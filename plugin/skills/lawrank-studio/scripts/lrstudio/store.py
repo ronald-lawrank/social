@@ -30,7 +30,8 @@ def normalize_url(url: str) -> str:
     p = urlparse(url)
     if not p.hostname or "." not in p.hostname:
         raise LRError(f"'{url}' doesn't look like a website address", fix="Give the firm's site, e.g. smithinjury.com")
-    return f"{p.scheme.lower()}://{p.hostname.lower()}{p.path or '/'}"
+    host = p.hostname.lower() + (f":{p.port}" if p.port else "")     # keep a port; drop any user:password@
+    return f"{p.scheme.lower()}://{host}{p.path or '/'}"
 
 
 @dataclass

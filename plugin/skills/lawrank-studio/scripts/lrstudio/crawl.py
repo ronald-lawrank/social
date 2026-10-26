@@ -103,6 +103,20 @@ IMAGES_JS = r"""async () => {
 }"""
 
 LOGOS_JS = r"""() => {
+  // Inline SVG logos usually take their colours from the page's CSS, which a copied-out SVG loses: bake the
+  // computed fill/stroke of every shape into the copy.
+  const bake = svg => {
+    const clone = svg.cloneNode(true), src = svg.querySelectorAll('*'), dst = clone.querySelectorAll('*');
+    src.forEach((el, i) => { const cs = getComputedStyle(el), d = dst[i];
+      if (!d.setAttribute) return;
+      if (cs.fill && cs.fill !== 'none') d.setAttribute('fill', cs.fill); else if (cs.fill === 'none') d.setAttribute('fill', 'none');
+      if (cs.stroke && cs.stroke !== 'none') { d.setAttribute('stroke', cs.stroke); d.setAttribute('stroke-width', cs.strokeWidth); }
+      if (cs.display === 'none' || cs.visibility === 'hidden') d.setAttribute('display', 'none'); });
+    const r = svg.getBoundingClientRect();
+    if (!clone.getAttribute('viewBox')) { try { const b = svg.getBBox(); clone.setAttribute('viewBox', `${b.x} ${b.y} ${b.width} ${b.height}`); } catch (e) { clone.setAttribute('viewBox', `0 0 ${r.width} ${r.height}`); } }
+    clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    return clone.outerHTML;
+  };
   const out = [];
   const sel = 'header img, [class*=logo] img, img[alt*=logo i], img[src*=logo i], img[class*=logo i], header svg, [class*=logo] svg, a[class*=logo] svg, a[href="/"] svg, a[href="/"] img';
   for (const e of [...document.querySelectorAll(sel)].slice(0, 10)) {
@@ -110,13 +124,13 @@ LOGOS_JS = r"""() => {
     const where = e.closest('header') ? 'header' : (e.closest('footer') ? 'footer' : 'page');
     const bg = (() => { for (let p = e; p; p = p.parentElement) { const c = getComputedStyle(p).backgroundColor; if (c && c !== 'rgba(0, 0, 0, 0)' && c !== 'transparent') return c; } return 'rgb(255, 255, 255)'; })();
     if (e.tagName.toLowerCase() === 'img') out.push({ url: e.currentSrc || e.src, w: e.naturalWidth, h: e.naturalHeight, alt: e.alt || '', where, bg });
-    else out.push({ svg: e.outerHTML.slice(0, 300000), w: Math.round(r.width), h: Math.round(r.height), where, bg, color: getComputedStyle(e).color });
+    else out.push({ svg: bake(e).slice(0, 300000), w: Math.round(r.width), h: Math.round(r.height), where, bg });
   }
   for (const e of document.querySelectorAll('footer img[src*=logo i], footer svg')) {
     const r = e.getBoundingClientRect(); if (r.width < 60) continue;
     const bg = getComputedStyle(e.closest('footer')).backgroundColor;
     if (e.tagName.toLowerCase() === 'img') out.push({ url: e.currentSrc || e.src, w: e.naturalWidth, h: e.naturalHeight, alt: e.alt || '', where: 'footer', bg });
-    else out.push({ svg: e.outerHTML.slice(0, 300000), w: Math.round(r.width), h: Math.round(r.height), where: 'footer', bg, color: getComputedStyle(e).color });
+    else out.push({ svg: bake(e).slice(0, 300000), w: Math.round(r.width), h: Math.round(r.height), where: 'footer', bg });
   }
   return out;
 }"""

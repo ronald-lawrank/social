@@ -43,7 +43,7 @@ def cmd_client(a):
     from . import store
     if a.action == "new":
         from . import onboard
-        return onboard.new_client(a.target, name=a.name, package=a.package, max_pages=a.pages)
+        return onboard.new_client(a.target, name=a.name, package=a.package, max_pages=a.pages, manual=a.manual)
     if a.action == "list":
         return {"ok": True, "clients": [{"name": c.name, "website": c.data.get("domain"), "status": c.data.get("status"),
                                          "direction": c.data.get("direction")} for c in store.all_clients()]}
@@ -99,6 +99,7 @@ def parser():
     sp.add_parser("doctor").set_defaults(fn=cmd_doctor)
     p = sp.add_parser("client"); p.add_argument("action", choices=["new", "show", "list", "set", "photos"]); p.add_argument("target", nargs="?")
     p.add_argument("pairs", nargs="*"); p.add_argument("--name"); p.add_argument("--package", default="growth"); p.add_argument("--pages", type=int, default=10)
+    p.add_argument("--manual", action="store_true", help="site blocks scanning: create the folder and add the brand by hand")
     p.set_defaults(fn=cmd_client)
     p = sp.add_parser("directions"); p.add_argument("client"); p.add_argument("--only"); p.set_defaults(fn=cmd_directions)
     p = sp.add_parser("campaign"); p.add_argument("action", choices=["new"]); p.add_argument("client"); p.add_argument("--name")
