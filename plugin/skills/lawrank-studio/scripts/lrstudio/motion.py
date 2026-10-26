@@ -26,29 +26,50 @@ VOICES = {"af_heart": "Heart (warm female voice)", "af_bella": "Bella (bright fe
           "am_michael": "Michael (warm male voice)", "am_fenrir": "Fenrir (deeper male voice)", "am_puck": "Puck (upbeat male voice)",
           "bf_emma": "Emma (British female voice)"}
 
+# Families whose opening scene is a car crash (journey: two cars bump; shield: a car in a storm; weight: a car is hit)
+# only suit personal-injury firms. Families not listed suit any practice.
+FAMILY_PRACTICE = {"journey": "personal injury", "shield": "personal injury", "weight": "personal injury"}
 
-def families_detail(only: list[str] | None = None) -> dict:
+
+def fits_practice(family: str, practice_area: str | None) -> bool:
+    """Whether a family suits the firm's practice (unknown practice: every family is allowed)."""
+    from .campaign import area_group
+    need = FAMILY_PRACTICE.get(family)
+    return not need or not practice_area or area_group(practice_area) == need
+
+
+def families_detail(only: list[str] | None = None, practice_area: str | None = None) -> dict:
     """What a writer needs per family: its story, the line ids and how many sentences each takes, the screen shape,
-    and a worked storyboard (from the family's header comment and motion/examples/<family>.json)."""
-    out = []
+    and a worked storyboard (from the family's header comment and motion/examples/<family>.json). With a practice area,
+    families written for another practice (the car-crash openings) are left out and named."""
+    out, skipped = [], []
     for f in FAMILIES:
         if only and f not in only:
             continue
+        if not fits_practice(f, practice_area):
+            skipped.append(f); continue
         src = (MOTION / "families" / f"{f}.js").read_text()
         m = re.search(r"/\*(.*?)\*/", src, re.S)
         notes = re.sub(r"\s+", " ", m.group(1)).strip() if m else ""
         ex = MOTION / "examples" / f"{f}.json"
-        out.append({"family": f, "how_it_works": notes, "example": json.loads(ex.read_text()) if ex.exists() else None})
-    return {"families": out, "voices": VOICES,
+        out.append({"family": f, "practice": f"{FAMILY_PRACTICE[f]} only" if f in FAMILY_PRACTICE else "any",
+                    "how_it_works": notes, "example": json.loads(ex.read_text()) if ex.exists() else None})
+    extra = {"not_for_this_practice": skipped, "practice_note": f"{', '.join(skipped)} open on a car crash, so they're only "
+             f"used for personal-injury firms; for {practice_area}, use {', '.join(x['family'] for x in out) or 'a static post'}."} if skipped else {}
+    return {"families": out, "voices": VOICES, **extra,
             "rules": ["Lines are spoken in order; each screen item appears when its line (or its named word) is spoken, so give "
                       "each item its own sentence in the order shown.", "Numbers in `say` are written as words.",
                       "Name the firm in the hook.", "The examples' claims belong to a test firm: write from this client's facts."]}
 
 
-def check_storyboard(pid: str, o: dict) -> list[str]:
+def check_storyboard(pid: str, o: dict, practice_area: str | None = None) -> list[str]:
     errs = []
     if o.get("family") not in FAMILIES:
         errs.append(f"{pid}: family must be one of {', '.join(FAMILIES)}")
+    elif not fits_practice(o["family"], practice_area):
+        ok = [f for f in FAMILIES if fits_practice(f, practice_area)]
+        errs.append(f"{pid}: the {o['family']} family opens on a car crash ({FAMILY_PRACTICE[o['family']]} only); "
+                    f"for {practice_area} use {', '.join(ok)}")
     if o.get("voice", "af_heart") not in VOICES:
         errs.append(f"{pid}: voice must be one of {', '.join(VOICES)}")
     ids = [l.get("id") for l in o.get("lines", [])]
@@ -105,11 +126,25 @@ def _sig(*parts) -> str:
     return h.hexdigest()[:12]
 
 
+def brand_word(brand: dict, o: dict) -> str:
+    """The word in the hook line where the logo comes in: a word of the firm's short name that the voice actually says
+    ("Carrasco" in "Call Ben Carrasco"), never an article ("The" from "The Law Office of ...")."""
+    skip = ("the", "a", "an", "law", "of")
+    words = []
+    for n in (brand.get("short"), brand.get("name")):           # a saved short of "The" falls through to the full name
+        words = [w for w in re.findall(r"[\w'’]+", store.short_name(n or "")) if w.lower() not in skip]
+        if words:
+            break
+    hook = next((l.get("say", "") for l in o.get("lines", []) if l.get("id") == "hook"), "")
+    said = {w.lower() for w in re.findall(r"[\w'’]+", hook)}
+    return next((w for w in reversed(words) if w.lower() in said), None) or (words[0] if words else "firm")
+
+
 def prepare(c: store.Client, d: Path, pid: str, o: dict) -> dict:
     """Voice + cues + soundtrack for one storyboard (cached by its content)."""
     tools.model("kokoro/kokoro-v1.0.fp16.onnx"); tools.model("kokoro/voices-v1.0.bin")
     brand = brand_for_motion(c)
-    sb = dict(o, brandWord=o.get("brandWord") or (brand["short"] or brand["name"]).split()[0])
+    sb = dict(o, brandWord=o.get("brandWord") or brand_word(brand, o))
     work = d / ".motion" / f"{pid}-{o['key']}"
     work.mkdir(parents=True, exist_ok=True)
     script = {"voice": o.get("voice", "af_heart"), "speed": o.get("speed", 1.04), "sentence_pause": .24, "clause_pause": .1,
@@ -337,7 +372,7 @@ def video(c: store.Client, campaign: str | None = None, posts: str | None = None
     with Lock(d, "video"):
         for p, o in todo:                          # each video on its own: one failing never stops the rest
             name = f"{p['id']} {o['key']}"
-            errs = check_storyboard(p["id"], o)
+            errs = check_storyboard(p["id"], o, c.data.get("practice_area"))
             if errs:
                 failed[name] = "; ".join(errs)[:300]; continue
             try:

@@ -99,8 +99,14 @@ def test_deleted_posts_leave_the_build_record(firm, drawn):
 def test_gallery_has_a_design_tab_built_from_the_brand_and_facts(firm, drawn):
     d = firm.campaigns_dir / "2026-10 Six-Month"
     build.build(firm, month=1)
-    index, design = (d / "index.html").read_text(), (d / "design.html").read_text()
-    assert "href='design.html'" in index and "href='index.html'" in design
+    index = (d / "index.html").read_text()
+    assert not (d / "design.html").exists()                                     # one file: the guide is a tab
+    for tab in ("posts", "kit", "design"):
+        assert f"data-t='{tab}'" in index and f"id='tab-{tab}'" in index
+    posts, kit, design = (index.split(f"id='tab-{t}'")[1].split("<div class='tabp'")[0] for t in ("posts", "kit", "design"))
+    assert "PI-001" in posts and "KIT" not in posts                             # the kit has its own tab
+    assert "KIT-FB-fb-cover.png" in kit and "PI-001" not in kit
+    assert "#tab-design section{" in index and "\nsection{" not in index       # the guide's CSS can't touch the gallery
     for section in ("Direction", "Logo", "Colour", "Typography", "Treatments", "Photography", "Formats", "Words"):
         assert f"<h2>{section}</h2>" in design
     assert "Brand colour" in design and "100% accent" in design                  # direction D and the campaign's mix
@@ -163,3 +169,9 @@ def test_campaigns_use_a_practice_plan_when_there_is_one(firm, home):
     posts = sorted(p.stem for p in (firm.campaigns_dir / "Family plan" / "posts").glob("*.json"))
     assert out["plan_file"] == "family-law.csv" and "plan_note" not in out
     assert posts[0].startswith("FL-0") and not any(p.startswith("PI-") for p in posts)
+
+
+def test_motion_families_offered_for_the_firms_practice(firm):
+    out = run("templates", "motion", "--client", firm.name)
+    assert out["ok"] and [f["family"] for f in out["families"]] == ["flip"] and "journey" in out["not_for_this_practice"]
+    assert len(run("templates", "motion")["families"]) == 4

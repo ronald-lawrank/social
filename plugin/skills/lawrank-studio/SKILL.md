@@ -97,7 +97,7 @@ so in plain words (`warnings`, `needs_attention`, `left_out`, `failed`). Work th
 
 ## Where things are (the shared Drive folder "Claude")
 - `Clients/<Firm>/`: client.json, `brand/` (brand.json, facts.xlsx, logos, photos,
-  board/board.html), `campaigns/<name>/` (posts/, review.xlsx, index.html + design.html, previews, images, video,
+  board/board.html), `campaigns/<name>/` (posts/, review.xlsx, index.html (tabs: Posts, Profile & covers, Design), previews, images, video,
   exports) and history.log.
 - `LawRank Studio/`: templates (these override the bundled ones), plan/six_month_plan.csv (plus optional
   practice plans such as plan/family-law.csv) and

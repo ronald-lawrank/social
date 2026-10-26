@@ -1,6 +1,6 @@
-"""design.html: the Design tab of a campaign's gallery. Colours, logo, typography, treatments, photos, formats and words,
+"""The Design tab of a campaign's gallery (index.html): colours, logo, typography, treatments, photos, formats and words,
 generated from brand.json, client.json (direction) and the approvals in facts.xlsx, so it never drifts from what the
-engine draws. Rewritten with the gallery on every build.
+engine draws. Rewritten with the gallery on every build; its CSS is scoped to #tab-design.
 
 Sample copy here is educational copy for the practice area or the firm's own facts; it never makes a claim."""
 import html
@@ -11,7 +11,7 @@ from pathlib import Path
 
 from . import compliance, fonts, store, templates, theme
 from .extract import contrast
-from .util import read_json, write_text
+from .util import read_json
 
 e = html.escape
 HEX = re.compile(r"#[0-9a-fA-F]{3,8}")
@@ -31,12 +31,8 @@ TREATMENT_USE = {"dark": "Ink field: posters, statements, alternate carousel sli
                  "accent": "Accent field: the most recognisable look; statements, FAQs, icon lists."}
 
 CSS = """
-*{box-sizing:border-box}body{margin:0;background:#F7F7F8;color:#111827;font:15px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',Inter,Arial,sans-serif}
-header{position:sticky;top:0;z-index:5;background:#fff;border-bottom:1px solid #E5E7EB;padding:14px 28px;display:flex;gap:18px;align-items:center;flex-wrap:wrap}
-header h1{font-size:18px;margin:0}header .sub{color:#6B7280}
-.tabs{display:flex;gap:6px}.tabs a{border:1px solid #E5E7EB;border-radius:999px;padding:6px 14px;text-decoration:none;color:inherit;background:#fff}
-.tabs a.on{background:#111827;color:#fff;border-color:#111827}
-main{max-width:1200px;margin:0 auto;padding:20px 28px 80px}
+*{box-sizing:border-box}
+:scope{display:block;max-width:1200px;margin:0 auto;color:#111827;font:15px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',Inter,Arial,sans-serif}
 section{background:#fff;border:1px solid #E5E7EB;border-radius:12px;padding:22px 24px;margin:16px 0}
 h2{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin:0 0 16px;display:flex;align-items:center;gap:10px}
 h2:before{content:'';width:24px;height:2px;background:var(--accent)}h3{font-size:15px;margin:18px 0 6px}
@@ -71,10 +67,29 @@ th{color:#6B7280;font-weight:600;font-size:12px;text-transform:uppercase;letter-
 """
 
 
-def tabs(active: str) -> str:
-    """The Posts / Design switch shared by index.html and design.html."""
-    links = (("posts", "index.html", "Posts"), ("design", "design.html", "Design"))
-    return "<nav class='tabs'>" + "".join(f"<a class='{'on' if k == active else ''}' href='{f}'>{t}</a>" for k, f, t in links) + "</nav>"
+def scope(css: str, root: str) -> str:
+    """Prefix every selector with `root` (":scope" means root itself), so the guide's styles can't touch the gallery.
+    @font-face stays global; @media blocks are scoped inside."""
+    out, i = [], 0
+    while i < len(css):
+        j = css.find("{", i)
+        if j < 0:
+            break
+        sel = css[i:j].strip()
+        depth, k = 1, j + 1
+        while depth:
+            depth += {"{": 1, "}": -1}.get(css[k], 0); k += 1
+        body = css[j + 1:k - 1]
+        if sel.startswith("@media"):
+            out.append(f"{sel}{{{scope(body, root)}}}")
+        elif sel.startswith("@"):
+            out.append(f"{sel}{{{body}}}")
+        else:
+            sels = [x.strip() for x in sel.split(",")]
+            out.append(",".join(root if x == ":scope" else x.replace(":scope", root) if x.startswith(":scope") else f"{root} {x}"
+                                for x in sels) + f"{{{body}}}")
+        i = k
+    return "\n".join(out)
 
 
 def _hex(v, default="#000000") -> str:
@@ -124,7 +139,8 @@ def _treatment_mix(rows: list[dict], direction: str | None) -> tuple[Counter, di
     return mix, used
 
 
-def page(c: store.Client, d: Path, rows: list[dict]) -> str:
+def panel(c: store.Client, d: Path, rows: list[dict]) -> tuple[str, str]:
+    """(CSS, HTML) for the Design tab."""
     from .campaign import DIRECTIONS, consult_cta, fees_usable, sample_copy
     b = c.brand()
     C = {k: _hex(v) for k, v in (b.get("colors") or {}).items() if isinstance(v, str) and HEX.fullmatch(v)}
@@ -141,7 +157,7 @@ def page(c: store.Client, d: Path, rows: list[dict]) -> str:
     stack = lambda role: (f"'{fam(role)[0]}'," if fam(role)[0] else "") + "-apple-system,Arial,sans-serif"
     radius = int((b.get("cta") or {}).get("radius", 4) or 0)
     upper = (b.get("cta") or {}).get("upper", True)
-    root = (f":root{{--ink:{C['ink']};--accent:{C['accent']};--paper:{C['paper']};--body:{T['light']['fg2']};"
+    root = (f":scope{{--ink:{C['ink']};--accent:{C['accent']};--paper:{C['paper']};--body:{T['light']['fg2']};"
             f"--acc-light:{T['light']['acc']};--f-head:{stack('head')};--f-body:{stack('body')};--f-ui:{stack('ui')};"
             f"--w-head:{fam('head')[1]}}}")
     S = []
@@ -295,19 +311,10 @@ def page(c: store.Client, d: Path, rows: list[dict]) -> str:
              + "</div></div><p class='note'>Captions: 1–3 short paragraphs, then a call to action. At most 3 hashtags. "
              "Alt text includes the headline.</p></section>")
 
-    return (f"<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width'>"
-            f"<title>{e(c.name)} · Design</title><style>{face_css}\n{root}\n{CSS}</style></head><body>"
-            f"<header><h1>{e(c.name)}</h1><span class='sub'>{e(d.name)} · Design guide</span>{tabs('design')}</header>"
-            f"<main>{''.join(S)}</main></body></html>")
+    return face_css + "\n" + scope(root + "\n" + CSS, "#tab-design"), "".join(S)
 
 
 def _font_notes(b: dict) -> list[str]:
     """Which brand fonts are stand-ins for commercial ones."""
     return list(dict.fromkeys(n for n in (fonts.resolve(s.get("family") or "")[1] for s in (b.get("fonts") or {}).values()
                                           if s.get("family")) if n))
-
-
-def write(c: store.Client, d: Path, rows: list[dict]) -> Path:
-    out = d / "design.html"
-    write_text(out, page(c, d, rows))
-    return out

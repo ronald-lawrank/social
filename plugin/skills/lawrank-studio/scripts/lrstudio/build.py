@@ -58,7 +58,7 @@ def build(c: store.Client, campaign: str | None = None, month: int | None = None
     with Lock(d, f"build {d.name}"):
         problems, compliance_notes, designs = {}, {}, []
         for p in static_posts:
-            v = spec.validate_post(p, facts, pics)
+            v = spec.validate_post(p, facts, pics, c.data.get("practice_area"))
             if v["errors"]:
                 problems[p["id"]] = v["errors"]
                 continue
