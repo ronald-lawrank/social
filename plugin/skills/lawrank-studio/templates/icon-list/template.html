@@ -1,18 +1,20 @@
 {% set items = c.get('items', [])[:4] %}
-{% set isz = 96 if S.key != '9x16' else 116 %}
+{% set big = items|length <= 3 and S.key == '4x5' %}{# fewer items: larger type, so the frame is filled, not padded #}
+{% set isz = (124 if big else 96) if S.key != '9x16' else 116 %}
 {{ frame() }}
   <div class="safe" style="left:{{S.safe[3]}}px;right:{{S.safe[1]}}px;top:{{S.safe[0]}}px;bottom:{{S.safe[2]}}px">
     {{ logo(230) }}
     <div class="grow" style="flex-grow:.5"></div>
     {% if c.get('label') %}<div class="label" data-slot="label" data-role="label">{{ c.label }}</div>{% endif %}
     <div class="h1" data-slot="headline" data-role="headline" style="margin-top:24px">{{ c.headline|accent(c.get('accent')) }}</div>
-    <div class="items" style="margin-top:{{ 54 if S.key != '1x1' else 36 }}px">
+    <div class="grow" style="flex-grow:.35"></div>
+    <div class="items{{ ' big' if big }}" style="margin-top:{{ 54 if S.key != '1x1' else 36 }}px">
       {% for it in items %}
       <div class="item">
         <div class="badge" style="width:{{isz}}px;height:{{isz}}px">{{ icon(it.get('icon', 'check'), (isz * 0.48)|int, 2.2) }}</div>
         <div class="item-text">
-          <div class="h3" data-slot="item{{loop.index}}" data-role="subhead">{{ it.title }}</div>
-          {% if it.get('text') and S.key != '1x1' %}<div class="body" data-slot="item{{loop.index}}_text" data-role="body" style="margin-top:6px">{{ it.text }}</div>{% endif %}
+          <div class="{{ 'h2' if big else 'h3' }}" data-slot="item{{loop.index}}" data-role="subhead">{{ it.title }}</div>
+          {% if it.get('text') and S.key != '1x1' %}<div class="{{ 'lead' if big else 'body' }}" data-slot="item{{loop.index}}_text" data-role="body" style="margin-top:{{ 10 if big else 6 }}px">{{ it.text }}</div>{% endif %}
         </div>
       </div>
       {% endfor %}

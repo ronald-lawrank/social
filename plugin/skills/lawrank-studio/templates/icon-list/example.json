@@ -1,0 +1,25 @@
+{
+ "copy": {
+  "label": "Who we help",
+  "headline": "Helping injured people across Texas and Utah",
+  "accent": "Texas and Utah",
+  "items": [
+   {
+    "icon": "car",
+    "title": "Drivers and passengers",
+    "text": "Car, motorcycle and rideshare crashes"
+   },
+   {
+    "icon": "truck",
+    "title": "People hit by big vehicles",
+    "text": "18-wheeler, truck and bus accidents"
+   },
+   {
+    "icon": "footprints",
+    "title": "Pedestrians and cyclists",
+    "text": "Hurt by a negligent driver"
+   }
+  ]
+ },
+ "footer": "site"
+}

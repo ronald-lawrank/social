@@ -33,7 +33,8 @@ def package(c: store.Client, campaign: str | None = None, month: int | None = No
     chosen = [(p, o) for p in posts for o in p["options"] if review_set or (p["id"], o["key"]) in approved]
     say(f"Packaging {len(chosen)} option(s){' (review set: nothing approved yet)' if review_set else ''} ...")
     ids = ",".join(sorted({p["id"] for p, _ in chosen}))
-    res = builder.build(c, campaign=d.name, posts=ids, sizes="all")          # every size, checked
+    res = builder.build(c, campaign=d.name, posts=ids, sizes="all",           # every size of what's delivered, checked
+                        options={(p["id"], o["key"]) for p, o in chosen})
     if res.get("flagged") or res.get("not_built"):
         raise LRError("Some designs still need fixing before they can be packaged", fix="Fix what `lr build` lists, then package again.",
                       flagged=res.get("flagged"), not_built=res.get("not_built"))

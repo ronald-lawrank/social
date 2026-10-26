@@ -4,3 +4,5 @@
 .num { flex: none; width: 92px; font-family: var(--f-head); font-weight: var(--w-head); font-size: 96px; line-height: .86; color: var(--acc); letter-spacing: -0.04em; }
 .sz-9x16 .num { font-size: 120px; width: 110px; }
 .step-text { flex: 1; padding-top: 4px; }
+.steps.big .step { padding: 44px 0; gap: 44px; }
+.steps.big .num { font-size: 124px; width: 110px; }

@@ -3,3 +3,4 @@
 .item { display: flex; align-items: center; gap: 34px; }
 .item .badge { background: var(--acc); color: var(--bg); }
 .item-text { flex: 1; min-width: 0; }
+.items.big { gap: 56px; }

@@ -43,14 +43,14 @@ def write_post(c, pid, options, campaign=None):
 
 def test_campaign_new_follows_the_plan(client):
     out = run("campaign", "new", "mcminn", "--start", "2026-11")
-    assert out["ok"] and out["posts"] == 48 and out["motion_posts"] == 0
+    assert out["ok"] and out["posts"] == 30 and out["motion_posts"] == 0      # growth: all-package + growth posts
     assert read_json(Path(out["folder"]) / "posts" / "KIT.json")["format"] == "kit"
     d = Path(out["folder"])
     p = read_json(d / "posts" / "PI-003.json")
     assert p["format"] == "carousel" and p["plan"]["angles"] and set(p["suggested_templates"]) <= set(templates.catalog())
     run("client", "set", "mcminn", "package=authority")
     out = run("campaign", "new", "mcminn", "--name", "Authority run")
-    assert out["motion_posts"] == 12 and read_json(Path(out["folder"]) / "posts" / "PI-006.json")["format"] == "motion"
+    assert out["posts"] == 48 and out["motion_posts"] == 12 and read_json(Path(out["folder"]) / "posts" / "PI-006.json")["format"] == "motion"
 
 
 def test_build_review_approve_library(client):
@@ -76,6 +76,15 @@ def test_build_review_approve_library(client):
     assert len(lib) == 1 and lib[0]["option"] == "B" and lib[0]["client"] == "McMinn Law Firm"
     found = run("library", "search", "injured justice Austin")
     assert found["results"] and found["results"][0]["headline"].startswith("Helping")
+    # a reviewer asks for changes on A: Claude sees it in `client show` and in the next build
+    wb = load_workbook(d / "review.xlsx"); ws = wb.active
+    for row in ws.iter_rows(min_row=2):
+        if row[4].value == "A":
+            row[11].value = "Changes requested"; row[12].value = "Warmer headline"
+    wb.save(d / "review.xlsx")
+    shown = run("client", "show", "mcminn")
+    assert shown["campaigns"][-1]["feedback"] == {"PI-001 A": "Changes requested: Warmer headline"}
+    assert run("build", "mcminn", "--post", "PI-001")["reviewer_feedback"] == {"PI-001 A": "Changes requested: Warmer headline"}
     # changing an approved option sends it back for review
     p = read_json(d / "posts" / "PI-001.json"); p["options"][1]["copy"]["support"] = "Offices in Austin and Utah."
     write_json(d / "posts" / "PI-001.json", p)

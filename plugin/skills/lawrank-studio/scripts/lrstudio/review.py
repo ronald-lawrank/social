@@ -38,6 +38,18 @@ def read_sheet(d: Path) -> dict:
     return out
 
 
+def feedback(d: Path, posts: set | None = None, sheet: dict | None = None) -> dict:
+    """What reviewers asked for: {"PI-001 B": "Changes requested: warmer headline"} for options not yet approved."""
+    sheet = read_sheet(d) if sheet is None else sheet
+    out = {}
+    for (pid, key), v in sorted(sheet.items()):
+        if posts is not None and pid not in posts:
+            continue
+        if v["status"] in ("Changes requested", "Rejected") or (v["notes"] and v["status"] == "Draft"):
+            out[f"{pid} {key}"] = f"{v['status']}: {v['notes']}".rstrip(": ")
+    return out
+
+
 def _summary_line(o: dict) -> str:
     c = o.get("copy") or {}
     for k in ("headline", "question", "quote", "stat_caption", "myth"):

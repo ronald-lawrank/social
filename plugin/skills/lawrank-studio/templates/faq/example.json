@@ -1,0 +1,9 @@
+{
+ "copy": {
+  "label": "Ask a lawyer",
+  "question": "Do I need a lawyer after a minor crash?",
+  "accent": "minor crash?",
+  "answer": "Not always. But if you were hurt, missed work or the insurer is pushing you to settle fast, it's worth a free conversation first.",
+  "cta": "Ask us for free"
+ }
+}

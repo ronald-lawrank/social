@@ -110,15 +110,6 @@ def setup(home: str | None = None, skip_models: bool = False) -> dict:
     _run([py, "-m", "pip", "install", "-q", "-r", paths.SCRIPTS / "requirements.txt"]); done.append("python packages")
     say("Installing the browser used for rendering ...")
     _run([py, "-m", "playwright", "install", "chromium"]); done.append("chromium")
-    if not node_bin():
-        raise LRError("Node.js isn't installed", fix="Install Node.js 22 LTS from https://nodejs.org, then run `lr setup` again.")
-    paths.NODE_DIR.mkdir(parents=True, exist_ok=True)
-    shutil.copy(paths.SCRIPTS / "node" / "package.json", paths.NODE_DIR / "package.json")
-    say("Installing the video renderer ...")
-    _run(["npm" if os.name != "nt" else "npm.cmd", "install", "--no-audit", "--no-fund", "--loglevel=error"], cwd=paths.NODE_DIR)
-    hf = hyperframes_cmd()
-    subprocess.run(hf + ["telemetry", "disable"], capture_output=True, env=node_env())
-    _run(hf + ["browser", "ensure"], env=node_env()); done.append("video renderer")
     warnings = []
     if not skip_models:
         for name in MODEL_FILES:
@@ -127,10 +118,23 @@ def setup(home: str | None = None, skip_models: bool = False) -> dict:
             except LRError as e:
                 warnings.append(str(e))
         done.append("models")
+        if warnings:
+            warnings.append("Faces fall back to OpenCV's built-in detector; voiceover needs the voice model (retry `lr setup`).")
+    if node_bin():                                         # only MP4 rendering needs Node; everything else works without it
+        paths.NODE_DIR.mkdir(parents=True, exist_ok=True)
+        shutil.copy(paths.SCRIPTS / "node" / "package.json", paths.NODE_DIR / "package.json")
+        say("Installing the video renderer ...")
+        _run(["npm" if os.name != "nt" else "npm.cmd", "install", "--no-audit", "--no-fund", "--loglevel=error"], cwd=paths.NODE_DIR)
+        hf = hyperframes_cmd()
+        subprocess.run(hf + ["telemetry", "disable"], capture_output=True, env=node_env())
+        _run(hf + ["browser", "ensure"], env=node_env()); done.append("video renderer")
+    else:
+        warnings.append("Node.js isn't installed, so MP4 videos can't be rendered yet (everything else works). "
+                        "Install Node.js 22 LTS from https://nodejs.org and run `lr setup` again.")
     res = doctor()
     res["installed"] = done
     if warnings:
-        res["warnings"] = warnings + ["Faces fall back to OpenCV's built-in detector; voiceover needs the voice model (retry `lr setup`)."]
+        res["warnings"] = warnings
     return res
 
 
@@ -148,17 +152,18 @@ def doctor() -> dict:
         out["browser"] = "ok"
     except Exception:
         problems.append("browser (Chromium)")
-    out["node"] = "ok" if node_bin() else "missing"
+    video = []                                             # MP4 rendering only; stills and previews don't need these
     if not node_bin():
-        problems.append("Node.js")
+        video.append("Node.js (install Node.js 22 LTS from https://nodejs.org)")
     try:
-        hyperframes_cmd(); out["video"] = "ok"
+        hyperframes_cmd()
     except LRError:
-        problems.append("video renderer")
+        video.append("video renderer")
     try:
-        ffmpeg(); out["ffmpeg"] = "ok"
+        ffmpeg()
     except LRError:
-        problems.append("ffmpeg")
+        video.append("ffmpeg")
+    out["video"] = "ok" if not video else "not ready: " + ", ".join(video) + "; then run `lr setup`"
     out["models"] = {n.split("/")[-1]: (paths.MODELS / n).exists() for n in MODEL_FILES}
     h = paths.home(required=False)
     out["home"] = str(h) if h else None

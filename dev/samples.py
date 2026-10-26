@@ -11,7 +11,7 @@ from lrstudio import render, store, templates  # noqa: E402
 
 
 
-SAMPLE = json.loads((Path(__file__).resolve().parent.parent / "tests" / "sample_copy.json").read_text())
+SAMPLE = {p.parent.name: json.loads(p.read_text()) for p in (Path(__file__).resolve().parent.parent / "plugin/skills/lawrank-studio/templates").glob("*/example.json")}
 
 
 def main():

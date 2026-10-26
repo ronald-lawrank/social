@@ -118,7 +118,7 @@ def mcminn(home):
     return store.find("mcminn")
 
 
-SAMPLES = json.loads((Path(__file__).parent / "sample_copy.json").read_text())
+SAMPLES = {p.parent.name: json.loads(p.read_text()) for p in (Path(__file__).parent.parent / "plugin/skills/lawrank-studio/templates").glob("*/example.json")}
 
 
 @pytest.mark.slow

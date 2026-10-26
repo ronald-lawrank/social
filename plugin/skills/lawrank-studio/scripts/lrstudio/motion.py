@@ -260,8 +260,8 @@ def render_mp4(c: store.Client, d: Path, post: dict, o: dict) -> dict:
             "files": [str(out916.relative_to(d)), str(out45.relative_to(d))]}
 
 
-def video(c: store.Client, campaign: str | None = None, posts: str | None = None, approved_only: bool = False, final: bool = False) -> dict:
-    """`lr video`: MP4s for motion options. By default only options marked Approved in review.xlsx."""
+def video(c: store.Client, campaign: str | None = None, posts: str | None = None) -> dict:
+    """`lr video`: MP4s for options marked Approved in review.xlsx. Naming posts with --post also renders their drafts."""
     from . import campaign as camp, review
     from .util import Lock, log
     d = camp.campaign_dir(c, campaign)
@@ -274,7 +274,7 @@ def video(c: store.Client, campaign: str | None = None, posts: str | None = None
             continue
         for o in p.get("options", []):
             st = statuses.get((p["id"], o["key"]), {}).get("status", "Draft")
-            if st == "Approved" or (not approved_only and want):
+            if st == "Approved" or want:
                 todo.append((p, o))
             else:
                 skipped.append(f"{p['id']} {o['key']} ({st})")

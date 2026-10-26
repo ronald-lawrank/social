@@ -21,18 +21,22 @@
 
 {% macro close_slide(cl, key, n, treatment='dark') %}
 {% set ph = (S.h * 0.42)|int %}
+{% set side = key and photo_kind(key) == 'person' %}{% set sx = 600 if S.key == '1x1' else 580 %}
 {{ frame(treatment, slide=n) }}
-  {% if key %}
+  {% if side %}
+    {{ photo(key, sx, 0, S.w - sx, S.h, focus_y=0.08, portrait=True) }}
+    {{ shade(sx, 0, 130, S.h, 'to left', color=themes[treatment].bg) }}
+  {% elif key %}
     {{ photo(key, 0, 0, S.w, ph, focus_y=0.08) }}
     {{ shade(0, ph - 200, S.w, 200, 'to bottom', color=themes[treatment].bg) }}
   {% endif %}
-  <div class="safe" style="left:{{S.safe[3]}}px;right:{{S.safe[1]}}px;top:{{ (ph + 10) if key else S.safe[0] }}px;bottom:{{S.safe[2]}}px">
-    {% if not key %}{{ logo(200, treatment=treatment) }}<div class="grow"></div>{% endif %}
-    <div class="{{ 'h1' if key else 'display' }}" data-slot="close_headline" data-role="headline">{{ cl.get('headline', '')|accent(cl.get('accent')) }}</div>
+  <div class="safe" style="left:{{S.safe[3]}}px;{{ ('width:' ~ (sx - S.safe[3] - 60) ~ 'px') if side else 'right:' ~ S.safe[1] ~ 'px' }};top:{{ (ph + 10) if key and not side else S.safe[0] }}px;bottom:{{S.safe[2]}}px">
+    {% if not key or side %}{{ logo(200, treatment=treatment) }}<div class="grow"></div>{% endif %}
+    <div class="{{ 'h2' if side else ('h1' if key else 'display') }}" data-slot="close_headline" data-role="headline">{{ cl.get('headline', '')|accent(cl.get('accent')) }}</div>
     {% if cl.get('support') %}<div class="{{ 'body' if key else 'lead' }}" data-slot="close_support" data-role="body" style="margin-top:24px">{{ cl.support|br }}</div>{% endif %}
-    {% if not key %}<div style="margin-top:56px">{% if cl.get('cta') %}{{ cta(cl.cta) }}{% endif %}</div>{% endif %}
+    {% if not key or side %}<div style="margin-top:56px">{% if cl.get('cta') %}{{ cta(cl.cta) }}{% endif %}</div>{% endif %}
     <div class="grow"></div>
-    {% if key %}<div class="footer">{% if cl.get('cta') %}{{ cta(cl.cta) }}{% else %}<div class="site" data-slot="site" data-role="label">{{ site }}</div>{% endif %}{{ logo(220, treatment=treatment) }}</div>
+    {% if key and not side %}<div class="footer">{% if cl.get('cta') %}{{ cta(cl.cta) }}{% else %}<div class="site" data-slot="site" data-role="label">{{ site }}</div>{% endif %}{{ logo(220, treatment=treatment) }}</div>
     {% else %}<div class="site" data-slot="site" data-role="label">{{ site }}</div>{% endif %}
     {% if c.get('disclosure') %}<div class="disclaimer" data-slot="disclosure" data-role="fine" style="margin-top:22px">{{ c.disclosure }}</div>{% endif %}
   </div>

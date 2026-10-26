@@ -1,0 +1,31 @@
+{
+ "copy": {
+  "cover": {
+   "label": "Myths",
+   "headline": "3 injury claim myths, busted",
+   "accent": "busted"
+  },
+  "slides": [
+   {
+    "big": "Myth 1",
+    "title": "You can wait to see a doctor",
+    "text": "Waiting can hurt your health and your claim."
+   },
+   {
+    "big": "Myth 2",
+    "title": "The insurer is on your side",
+    "text": "Their job is to pay as little as possible."
+   },
+   {
+    "big": "Myth 3",
+    "title": "Lawyers cost too much",
+    "text": "Ask how fees work before you decide."
+   }
+  ],
+  "close": {
+   "headline": "Questions? Ask us for free.",
+   "accent": "Ask us for free.",
+   "cta": "Free consultation"
+  }
+ }
+}

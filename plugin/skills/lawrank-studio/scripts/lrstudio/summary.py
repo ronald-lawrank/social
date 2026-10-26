@@ -1,7 +1,7 @@
 """`lr client show`: everything Claude needs about a client in a few lines, so it never re-reads the site."""
 import json
 
-from . import store
+from . import review, store
 from .util import LRError, log, read_json, write_json
 
 SETTABLE = {"direction", "practice_area", "package", "status", "name", "notes"}
@@ -15,6 +15,14 @@ def client_summary(c: store.Client) -> dict:
     if c.campaigns_dir.exists():
         for d in sorted(p for p in c.campaigns_dir.iterdir() if p.is_dir()):
             st = read_json(d / "status.json", {}) or {}
+            sheet = review.read_sheet(d)                  # live: reviewers change review.xlsx between builds
+            if sheet:
+                st["approved_options"] = sum(v["status"] == "Approved" for v in sheet.values())
+                st["posts_with_an_approved_option"] = len({k[0] for k, v in sheet.items() if v["status"] == "Approved"})
+                st["changes_requested"] = sum(v["status"] == "Changes requested" for v in sheet.values())
+                fb = review.feedback(d, sheet=sheet)
+                if fb:
+                    st["feedback"] = dict(list(fb.items())[:12])
             camps.append({"name": d.name, **st})
     return {
         "client": c.name, "folder": str(c.dir), "website": c.data.get("domain"),
@@ -27,7 +35,7 @@ def client_summary(c: store.Client) -> dict:
         "offices": [f"{o.get('city')}, {o.get('state')}" for o in b.get("offices", [])],
         "photos": {k: f"{p['kind']}{' · ' + p['name'] if p.get('name') else ''}" for k, p in pics.items() if p.get("use")},
         "photos_not_used": {k: p.get("why") for k, p in pics.items() if not p.get("use")},
-        "facts": {"usable": sorted(k for k, f in facts.items() if f["usable"]),
+        "facts": {"usable": {k: f["text"][:140] for k, f in sorted(facts.items()) if f["usable"]},
                   "need_approval": {k: f["text"][:110] for k, f in facts.items() if f["status"] == "needs approval"},
                   "not_verified": sorted(k for k, f in facts.items() if f["status"] == "not verified")},
         "campaigns": camps,

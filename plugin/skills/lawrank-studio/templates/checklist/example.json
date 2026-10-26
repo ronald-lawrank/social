@@ -1,0 +1,34 @@
+{
+ "copy": {
+  "cover": {
+   "label": "Save this",
+   "headline": "Documents to keep after an accident",
+   "accent": "after an accident"
+  },
+  "groups": [
+   {
+    "title": "At the scene",
+    "icon": "camera",
+    "items": [
+     "Photos of every vehicle",
+     "Witness names and numbers",
+     "The police report number"
+    ]
+   },
+   {
+    "title": "Medical",
+    "icon": "stethoscope",
+    "items": [
+     "Every bill and receipt",
+     "Doctor's notes",
+     "Prescriptions"
+    ]
+   }
+  ],
+  "close": {
+   "headline": "Not sure what you need? Ask us.",
+   "accent": "Ask us.",
+   "cta": "Free consultation"
+  }
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "copy": {
+  "label": "Your first call",
+  "headline": "What happens when you call us",
+  "accent": "call us",
+  "steps": [
+   {
+    "title": "We listen",
+    "text": "Tell us what happened, in your own words."
+   },
+   {
+    "title": "We review",
+    "text": "We look at the facts and your options."
+   },
+   {
+    "title": "You decide",
+    "text": "No pressure. You choose the next step."
+   }
+  ],
+  "note": "Free consultation. No obligation."
+ }
+}

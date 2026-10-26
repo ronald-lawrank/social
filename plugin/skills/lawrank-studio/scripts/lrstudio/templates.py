@@ -55,6 +55,15 @@ def get(name: str) -> dict:
     return cat[name]
 
 
+def detail(name: str) -> dict:
+    """Everything needed to write one template: slots with limits and notes, options, sizes and a known-good example."""
+    m = get(name)
+    ex = next((d / name / "example.json" for d in paths.template_dirs() if (d / name / "example.json").exists()), None)
+    return {"name": name, **{k: m.get(k) for k in ("label", "format", "use_for", "photo", "sizes", "treatment", "slots", "options", "compliance") if m.get(k) is not None},
+            "example": json.loads(ex.read_text()) if ex else None,
+            "note": "The example's photo keys belong to a test client: use this client's keys from `lr client show`."}
+
+
 def catalog_summary() -> list[dict]:
     return [{"name": n, "label": m.get("label"), "format": m.get("format"), "use_for": m.get("use_for"),
              "photo": m.get("photo", "none"), "slots": {k: v.get("max") for k, v in m.get("slots", {}).items()}}
@@ -146,7 +155,8 @@ class Ctx:
         for fx, fy, fw, fh in p.get("faces") or []:
             face = [x + c["x"] + fx * c["w"], y + c["y"] + fy * c["h"], fw * c["w"], fh * c["h"]]
             cx = face[0] + face[2] / 2
-            body = [cx - 1.3 * face[2], face[1] + face[3], 2.6 * face[2], min(1.0 * face[3], y + h - face[1] - face[3])]
+            # shoulders just below the chin: ~2.2 head-box widths (the head box is already padded for hair)
+            body = [cx - 1.1 * face[2], face[1] + face[3], 2.2 * face[2], min(1.0 * face[3], y + h - face[1] - face[3])]
             people.append({"face": [round(v, 1) for v in face], "chest": [round(v, 1) for v in body]})
         src = Path(self.client_dir / "brand" / "photos" / p["file"])
         rel = Path(_relpath(src, self.html_dir))

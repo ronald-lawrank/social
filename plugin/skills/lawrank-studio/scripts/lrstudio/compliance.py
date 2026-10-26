@@ -13,7 +13,7 @@ EXPERT = re.compile(r"\b(experts?|specialists?|speciali[sz]e[sd]?|speciali[sz]in
 RESULTS = re.compile(r"\$\s?\d|\b\d[\d,.]*\s?(million|billion|thousand)\b|\b(verdicts?|settlements?|recovered|won\b|awarded)\b", re.I)
 FEES = re.compile(r"\b(no fees?|free|don'?t pay|pay nothing|no cost|no charge|no upfront)\b", re.I)
 NUMBER = re.compile(r"(?<![\w$])(\d[\d,.]*\+?)")
-OK_NUMBERS = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "24/7", "911"}     # list counts, steps, 911
+OK_NUMBERS = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "24/7", "911", "101"}     # list counts, steps, 911, "Injury law 101"
 
 
 def texts(option: dict):

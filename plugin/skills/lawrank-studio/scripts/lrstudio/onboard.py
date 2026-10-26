@@ -143,8 +143,25 @@ def new_client(website: str, name: str | None = None, package: str = "growth", m
     return out
 
 
-def analyze_photos(c: store.Client, force: bool = False) -> dict:
+def refresh(c: store.Client, force: bool = False) -> dict:
+    """After someone drops in photos or a logo by hand: detect people, rebuild logo variants and marks, redraw the board."""
     meta = photos.reanalyze(c.brand_dir / "photos", force=force)
-    log(c.dir, "client photos")
+    ld = c.brand_dir / "logos"
+    notes = []
+    if (ld / "logo-dark.svg").exists():
+        dark = logos.sanitize((ld / "logo-dark.svg").read_text())
+        white = logos.sanitize((ld / "logo-white.svg").read_text()) if (ld / "logo-white.svg").exists() else logos.white_version(dark)
+        for f in ("mark-dark.svg", "mark-white.svg"):
+            (ld / f).unlink(missing_ok=True)
+        if not logos.write_variants(ld, dark, white):
+            notes.append("No separate icon found in the logo: profile pictures use the full logo.")
+    else:
+        notes.append("No logo-dark.svg in brand/logos: add the firm's vector logo there.")
+    try:
+        from . import board
+        board.render_board(c)
+    except Exception as e:
+        notes.append(f"brand board skipped: {e}")
+    log(c.dir, "client refresh")
     return {"client": c.name, "photos": {k: {"kind": m["kind"], "name": m.get("name"), "people": len(m.get("faces") or []),
-                                             "use": m.get("use", True)} for k, m in meta.items()}}
+                                             "use": m.get("use", True)} for k, m in meta.items()}, "notes": notes}

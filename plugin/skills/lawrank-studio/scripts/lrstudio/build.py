@@ -38,7 +38,8 @@ def designs_for(post: dict, sizes: list[str] | None) -> list[dict]:
 
 
 def build(c: store.Client, campaign: str | None = None, month: int | None = None, posts: str | None = None,
-          sizes: str | list | None = None, force: bool = False) -> dict:
+          sizes: str | list | None = None, force: bool = False, options: set | None = None) -> dict:
+    """options: only render these (post, option) pairs (packaging renders just what's being delivered)."""
     d = camp.campaign_dir(c, campaign)
     every = sizes == "all"                                       # no --sizes: the draft size (4:5) for fast review
     size_list = None if sizes in (None, "all") else (sizes.split(",") if isinstance(sizes, str) else list(sizes))
@@ -53,6 +54,7 @@ def build(c: store.Client, campaign: str | None = None, month: int | None = None
         raise LRError("None of the selected posts have options written yet",
                       fix=f"Write options into {d / 'posts'}/<ID>.json first (reference/writing.md).",
                       todo=[p["id"] for p in selected][:12])
+    reviewer = review.feedback(d, {p["id"] for p in written})        # read before this build rewrites the sheet
     with Lock(d, f"build {d.name}"):
         problems, compliance_notes, designs = {}, {}, []
         for p in static_posts:
@@ -62,7 +64,8 @@ def build(c: store.Client, campaign: str | None = None, month: int | None = None
                 continue
             compliance_notes[p["id"]] = v["issues"]
             if p.get("format") != "motion":
-                designs += designs_for_all(p) if every else designs_for(p, size_list)
+                ds = designs_for_all(p) if every else designs_for(p, size_list)
+                designs += [x for x in ds if options is None or (x["post"], x["option"]) in options]
         cache = {} if force else (read_json(d / ".build.json", {}) or {})
         say(f"Drawing {len(designs)} design(s) for {c.name} ...")
         results = render.render(c.dir, brand, designs, d, cache=cache) if designs else []
@@ -74,7 +77,7 @@ def build(c: store.Client, campaign: str | None = None, month: int | None = None
         for p in motion_posts:                     # voiced previews (cached by storyboard); MP4s come after approval
             if p["id"] in problems:
                 continue
-            for o in p["options"]:
+            for o in [o for o in p["options"] if options is None or (p["id"], o["key"]) in options]:
                 say(f"Motion preview {p['id']} {o['key']} ...")
                 r = motion.preview(c, d, p, o, cache)
                 newcache[r["id"]] = {k: v for k, v in r.items() if k != "cached"}
@@ -103,6 +106,8 @@ def build(c: store.Client, campaign: str | None = None, month: int | None = None
            "gallery": str(d / "index.html"), "review_sheet": str(d / "review.xlsx")}
     if sheet:
         out["flagged_sheet"] = str(sheet)
+    if reviewer:
+        out["reviewer_feedback"] = reviewer
     todo = [p["id"] for p in selected if not p.get("options")]
     if todo:
         out["todo"] = todo[:24]

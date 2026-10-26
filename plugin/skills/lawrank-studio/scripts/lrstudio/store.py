@@ -150,8 +150,8 @@ def read_facts(client: Client) -> dict[str, dict]:
         out[key] = {"key": key, "text": str(get("Fact") or "").strip(), "category": str(get("Category") or "general"),
                     "source": get("Source page"), "excerpt": get("Excerpt"), "verified": found,
                     "needs_approval": needs, "approved": approved, "approved_by": get("Approved by"), "notes": get("Notes"),
-                    "usable": found and (approved or not needs),
-                    "status": "usable" if found and (approved or not needs) else ("needs approval" if found else "not verified")}
+                    "usable": approved or (found and not needs),        # a person's approval counts even for facts not on the site
+                    "status": "usable" if approved or (found and not needs) else ("needs approval" if found else "not verified")}
     return out
 
 

@@ -53,6 +53,12 @@ def campaign_dir(c: store.Client, name: str | None = None) -> Path:
     return real[-1]
 
 
+def _included(included_in: str, package: str) -> bool:
+    """The plan's 'Included in' column: 'All packages', 'Growth + Authority', 'Authority'."""
+    t = included_in.lower()
+    return "all" in t or not t.strip() or package in t
+
+
 def new_campaign(c: store.Client, name: str | None = None, plan: str = "six-month", start: str | None = None) -> dict:
     start = start or dt.date.today().strftime("%Y-%m")
     if not re.fullmatch(r"\d{4}-\d{2}", start):
@@ -61,8 +67,9 @@ def new_campaign(c: store.Client, name: str | None = None, plan: str = "six-mont
     d = c.campaigns_dir / name
     if d.exists():
         raise LRError(f"Campaign '{name}' already exists", fix="Build it with `lr build`, or choose another --name.")
-    rows = plan_rows(plan)
-    authority = c.data.get("package") == "authority"
+    pkg = c.data.get("package") or "growth"
+    rows = [r for r in plan_rows(plan) if _included(r.get("Included in", ""), pkg)]
+    authority = pkg == "authority"
     (d / "posts").mkdir(parents=True)
     for r in rows:
         motion = r["Proposed format"] in MOTION_SLOTS and authority

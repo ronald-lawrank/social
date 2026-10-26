@@ -7,15 +7,15 @@
   lr client show <client>                everything Claude needs about a client, in a few lines
   lr client list
   lr client set <client> key=value ...   direction=B, practice_area="Family law", package=authority ...
-  lr client photos <client>              re-detect people in photos (after adding or replacing photos)
+  lr client refresh <client>             after adding photos or a logo by hand: people, logo marks, brand board
   lr client import <old client folder>   bring a client over from the old LawRank template
   lr directions <client>                 test designs in 3-4 directions
   lr campaign new <client> [--name N] [--plan six-month] [--start 2026-11]
   lr build <client> [--campaign C] [--month N | --post ID[,ID]] [--sizes 4x5,1x1,9x16] [--force]
-  lr video <client> [--campaign C] [--post ID] [--approved] [--final]
+  lr video <client> [--campaign C] [--post ID]   MP4s for approved motion options
   lr package <client> [--campaign C] [--month N]
   lr library search "<text>" [--client C]
-  lr templates                           list templates with what each needs
+  lr templates [name]                    list templates; with a name: full slots and a worked example
 """
 import argparse
 import sys
@@ -55,9 +55,9 @@ def cmd_client(a):
     if a.action in ("show", "set"):
         from . import summary
         return summary.client_summary(c) if a.action == "show" else summary.set_fields(c, a.pairs)
-    if a.action == "photos":
+    if a.action in ("refresh", "photos"):
         from . import onboard
-        return onboard.analyze_photos(c, force=True)
+        return onboard.refresh(c, force=True)
     raise LRError(f"unknown action {a.action}")
 
 
@@ -78,7 +78,7 @@ def cmd_build(a):
 
 def cmd_video(a):
     from . import motion
-    return motion.video(_client(a.client), campaign=a.campaign, posts=a.post, approved_only=a.approved, final=a.final)
+    return motion.video(_client(a.client), campaign=a.campaign, posts=a.post)
 
 
 def cmd_package(a):
@@ -93,7 +93,10 @@ def cmd_library(a):
 
 def cmd_templates(a):
     from . import templates
-    return {"ok": True, "templates": templates.catalog_summary()}
+    if a.name:
+        return {"ok": True, **templates.detail(a.name)}
+    return {"ok": True, "templates": templates.catalog_summary(),
+            "next": "`lr templates <name>` gives a template's full slots and a worked example."}
 
 
 def parser():
@@ -101,7 +104,7 @@ def parser():
     sp = ap.add_subparsers(dest="cmd", required=True)
     p = sp.add_parser("setup"); p.add_argument("--home"); p.add_argument("--skip-models", action="store_true"); p.set_defaults(fn=cmd_setup)
     sp.add_parser("doctor").set_defaults(fn=cmd_doctor)
-    p = sp.add_parser("client"); p.add_argument("action", choices=["new", "show", "list", "set", "photos", "import"]); p.add_argument("target", nargs="?")
+    p = sp.add_parser("client"); p.add_argument("action", choices=["new", "show", "list", "set", "refresh", "photos", "import"]); p.add_argument("target", nargs="?")
     p.add_argument("pairs", nargs="*"); p.add_argument("--name"); p.add_argument("--package", default="growth"); p.add_argument("--pages", type=int, default=10)
     p.add_argument("--manual", action="store_true", help="site blocks scanning: create the folder and add the brand by hand")
     p.set_defaults(fn=cmd_client)
@@ -111,11 +114,11 @@ def parser():
     p = sp.add_parser("build"); p.add_argument("client"); p.add_argument("--campaign"); p.add_argument("--month", type=int)
     p.add_argument("--post"); p.add_argument("--sizes"); p.add_argument("--force", action="store_true"); p.set_defaults(fn=cmd_build)
     p = sp.add_parser("video"); p.add_argument("client"); p.add_argument("--campaign"); p.add_argument("--post")
-    p.add_argument("--approved", action="store_true"); p.add_argument("--final", action="store_true"); p.set_defaults(fn=cmd_video)
+    p.set_defaults(fn=cmd_video)
     p = sp.add_parser("package"); p.add_argument("client"); p.add_argument("--campaign"); p.add_argument("--month", type=int); p.set_defaults(fn=cmd_package)
     p = sp.add_parser("library"); p.add_argument("action", choices=["search"]); p.add_argument("text"); p.add_argument("--client")
     p.add_argument("--limit", type=int, default=8); p.set_defaults(fn=cmd_library)
-    sp.add_parser("templates").set_defaults(fn=cmd_templates)
+    p = sp.add_parser("templates"); p.add_argument("name", nargs="?"); p.set_defaults(fn=cmd_templates)
     return ap
 
 

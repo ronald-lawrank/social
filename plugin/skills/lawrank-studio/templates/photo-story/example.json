@@ -1,0 +1,37 @@
+{
+ "copy": {
+  "cover": {
+   "label": "After a crash",
+   "headline": "5 things to do after a car accident",
+   "accent": "car accident"
+  },
+  "slides": [
+   {
+    "big": "Safety",
+    "title": "Get to safety and call 911",
+    "text": "Move out of traffic if you can. Report the crash."
+   },
+   {
+    "big": "Photos",
+    "title": "Photograph everything",
+    "text": "Vehicles, the scene, injuries and road conditions."
+   },
+   {
+    "big": "Doctor",
+    "title": "See a doctor the same day",
+    "text": "Some injuries show up hours later."
+   }
+  ],
+  "close": {
+   "headline": "Hurt in a crash? Talk to us first.",
+   "accent": "Talk to us first.",
+   "cta": "Free consultation"
+  }
+ },
+ "photos": [
+  "jason",
+  "justin",
+  "jimmy"
+ ],
+ "close_photo": "team"
+}

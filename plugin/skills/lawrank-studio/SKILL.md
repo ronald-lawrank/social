@@ -1,63 +1,86 @@
 ---
 name: lawrank-studio
-description: Builds LawRank law-firm social creative from a firm's website, including brand profiles, test designs, six-month campaigns, posts, carousels, covers and profile pictures, motion videos (MP4), Figma plugins and client decks. Use for any LawRank client or law-firm social work, such as a new client URL, test designs, building a month or a post (PI-017), revising a post, rendering videos, packaging for a client, or checking what's been done for a client.
+description: Builds LawRank law-firm social creative from a firm's website, including brand profiles, test designs, six-month campaigns, posts, carousels, covers and profile pictures, motion videos (MP4), Figma plugins and client decks. Use for any LawRank client or law-firm social work, such as a new client URL, test designs, building a month or a post (PI-017), revising a post, rendering approved videos, packaging for a client, or checking what's been done for a client.
 ---
 
 # LawRank Studio
 
-Everything lives in the shared Drive folder **Claude** (see "Where things are"). Run every step with
-`lr`; each command prints one JSON line. Open a file only when a command reports a problem.
+You write the words and choose the templates. The `lr` command does everything else: it scans
+sites, renders, checks and packages. In this file `lr` means:
+
+```
+python3 "<this skill's folder>/scripts/lr.py"
+```
+
+Every command prints one JSON line. Act on that line; open other files only when it points you to
+one. Never write HTML or CSS, and never edit templates.
 
 ## Start of every session
-1. `lr doctor`. If it reports missing tools, run `lr setup` once and continue.
-2. If the request names a client, run `lr client show "<client>"` before anything else. It returns
-   the brand, the chosen direction, facts awaiting approval, and campaign status. Don't re-scan
-   a client that already exists.
+1. Run `lr doctor`. If it reports `"ok": false`, run `lr setup` once (about 1 minute) and continue.
+   If it can't find the Drive folder, follow its `fix` (it explains Google Drive for desktop).
+2. If the request names a client, run `lr client show "<client>"` first. It returns the brand,
+   photos, facts awaiting approval, the chosen direction and campaign progress. Never re-scan an
+   existing client.
 
-## What the person asks → what to do
+## What the person asks for, and what to do
 
 | Request | Do | Read first |
 |---|---|---|
-| New client / a firm's URL | `lr client new <url>`, review its flags, then `lr directions <client>` | reference/onboarding.md |
+| A new client or a firm's URL | `lr client new <url>`, then `lr directions "<client>"` | reference/onboarding.md |
 | "They chose direction B" | `lr client set "<client>" direction=B` | n/a |
-| Build a month / the campaign | `lr campaign new` (if none), write the specs, `lr build --month N` | reference/writing.md, reference/templates.md |
-| Change one post | edit `posts/<ID>.json`, `lr build --post <ID>` | reference/writing.md |
-| Videos | write storyboards for motion slots, `lr build`, then `lr video --approved` after approval | reference/motion.md |
-| Package / send to client | `lr package <client> --month N` | reference/delivery.md |
-| "What's the status of X" | `lr client show "<client>"` | n/a |
+| Start the six-month plan | `lr campaign new "<client>"` | reference/writing.md |
+| Build a month or some posts | write the specs, then `lr build "<client>" --month N` | reference/writing.md |
+| Change one post | edit `posts/<ID>.json`, then `lr build "<client>" --post <ID>` | reference/writing.md |
+| Motion or video posts | write storyboards, `lr build`, then after approval `lr video "<client>"` | reference/motion.md |
+| Package or send to the client | `lr package "<client>" --month N` | reference/delivery.md |
+| Status, or "what's left" | `lr client show "<client>"` | n/a |
+| New photos or logo dropped in | `lr client refresh "<client>"` | reference/onboarding.md |
 
-Build test designs before any campaign. Build a campaign only after the client has chosen a direction.
+Order: test designs, then the client chooses a direction, then the campaign. Build a campaign only
+after a direction is set (ask if it isn't).
 
 ## Writing posts (your main job)
-You write copy and choose templates. Templates handle all design; never write HTML or CSS.
-- One spec per post: `campaigns/<campaign>/posts/<ID>.json`. Schema and examples are in reference/writing.md.
-- Write options A/B/C, each a different angle and a different template where possible.
-- Every claim cites a fact key from facts.xlsx. Never invent results, years, ratings, fees or quotes.
-  If a slot's facts aren't available, use the plan's fallback.
-- Before writing a month, run `lr library search "<topic>"` to reuse what worked and avoid repeats.
-- Supplied copy is locked: never reword it or change its case.
+- `lr templates` lists templates. `lr templates <name>` gives the full slots and a worked example.
+  Read reference/writing.md once per session before writing any specs.
+- Write 2–3 options per post, each with a different angle and, where possible, a different template.
+- Before writing a month, run `lr library search "<topic>"` to reuse what worked and avoid repeating
+  past posts.
+- Every claim needs a fact key from the client's facts (`lr client show` lists the usable ones).
+  Never invent results, years, ratings, fees, quotes or names. If the facts a slot needs are
+  missing, use the plan row's fallback.
+- Copy the firm or the team supplied is locked: never reword it or change its case.
 
-## Fixing what the checks flag
-`lr build` lists flagged designs and writes a contact sheet of only those. Look at that sheet.
-Fix in this order: shorter copy → another photo or crop → another template. Never shrink text.
-Rebuild only the flagged posts (`--post`).
+## When `lr build` reports problems
+- `not_built` lists spec errors, each naming the field and the fix. Fix those exact fields.
+- `flagged` lists designs whose render failed a check (text over a face, overflow, contrast, a head
+  cut off). Look at `flagged_sheet` (one image of only the flagged designs). Fix in this order:
+  shorter copy, then another photo, then another template. Never ask for smaller text.
+- `check_before_posting` lists claims for a human to confirm. Pass these on; don't remove them.
+- Rebuild only what changed: `--post ID[,ID]`. Unchanged designs come from cache.
 
 ## Rules that always apply
-- Only the firm's own photos and real logo. No stock, no AI-generated people.
-- People first: never crop faces, heads or shoulders; nothing on faces.
-- Results, reviews, testimonials, fees, awards and "free"/"no fee" promises need approval in
-  facts.xlsx; results carry "Past results do not guarantee future outcomes."
-- Never use "guarantee", "best", "expert" or "specialist" unless the firm has approved it.
-- MP4s only for posts marked Approved in review.xlsx.
+- Use only the firm's own photos and real logo. No stock photos and no AI-generated people.
+- People come first: never put text on faces and never crop off heads. The checks enforce this.
+- Results, reviews, testimonials, fees, awards and "free consultation" or "no fee" claims need
+  approval in facts.xlsx. Any result carries "Past results do not guarantee future outcomes."
+- Never use "guarantee", "best", "#1", "expert" or "specialist" unless the firm has approved it.
+- Render MP4s only for options marked Approved in review.xlsx.
 
 ## Ending the turn
-Reply in plain language:
-1. What was made, with the preview link (`index.html`).
-2. Claims or facts that need the firm's approval.
-3. What's needed from the person (e.g. a better photo, the vector logo).
-No file dumps and no internal check output.
+Reply in plain language and keep it short:
+1. What was made, with the gallery link (`gallery` in the output) or the files.
+2. Anything that needs the firm's approval (`check_before_posting`, `need_approval`).
+3. What you need from the person, such as a better photo or the vector logo.
+Don't paste JSON, file listings or check internals.
 
-## Where things are
-`Claude/Clients/<Firm>/`: client.json · brand/ (brand.json, facts.xlsx, logos, photos, board.html)
-· campaigns/<name>/ (posts, review.xlsx, index.html, previews, images, video, exports) · history.log.
-`Claude/LawRank Studio/`: templates/ · plan/six_month_plan.csv · library/.
+## If something fails
+Every error carries a `fix`. Do what it says, or tell the person if it needs them (for example,
+"the site blocks scanning, so send me the logo and photos"). If a command says another person is
+building the same campaign, wait or ask; don't delete `.lr-lock`.
+
+## Where things are (the shared Drive folder "Claude")
+- `Clients/<Firm>/`: client.json, `brand/` (brand.json, facts.xlsx, logos, photos,
+  board/board.html), `campaigns/<name>/` (posts/, review.xlsx, index.html, previews, images, video,
+  exports) and history.log.
+- `LawRank Studio/`: templates (these override the bundled ones), plan/six_month_plan.csv and
+  library/.
