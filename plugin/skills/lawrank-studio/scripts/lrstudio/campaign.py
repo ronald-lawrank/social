@@ -193,6 +193,8 @@ def directions(c: store.Client, only: str | None = None) -> dict:
         dd = DIRECTIONS[k]
         opts = []
         for i, (tpl, tr) in enumerate(dd["set"]):
+            if tpl == "poster" and not has_people:           # the poster needs the firm's people; type leads instead
+                tpl = "big-type"
             o = {"key": f"{k}{i + 1}", "template": tpl, "treatment": tr, "facts": base_facts,
                  "caption": f"{dc['tagline']} Talk to our team{loc} today.", "alt": f"{b['name']} social post: {dc['tagline']}"}
             if tpl in ("photo-split", "poster", "statement"):

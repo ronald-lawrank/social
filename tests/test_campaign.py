@@ -130,7 +130,7 @@ def test_directions_without_people_photos(home, monkeypatch, tmp_path):
     finally:
         stop()
     assert "A" not in out["directions"] and "skipped" in out["note"]
-    assert out["built"] >= 6 and not out["flagged"], out["flagged"]
+    assert out["ok"] and not out["not_built"] and out["built"] >= 8 and not out["flagged"], out
 
 
 # ---------------------------------------------------------------- compliance + validation units
@@ -211,3 +211,20 @@ def test_package_upgrade_adds_posts_and_motion(client):
     assert len(up["added"]) == 18 and "PI-006" in up["added"]
     assert read_json(Path(out["folder"]) / "posts" / "PI-006.json")["format"] == "motion"
     assert read_json(Path(out["folder"]) / "posts" / "PI-001.json")["options"]          # written posts untouched
+
+
+def test_confirm_as_a_string_and_revised_status(client):
+    run("campaign", "new", "mcminn")
+    d = write_post(client, "PI-001", [good_option("A", confirm="The founding year")])
+    out = run("build", "mcminn", "--post", "PI-001")
+    assert out["check_before_posting"]["PI-001 A"] == ["The founding year"]
+    wb = load_workbook(d / "review.xlsx"); ws = wb.active
+    for row in ws.iter_rows(min_row=2):
+        if row[0].value == "PI-001":
+            row[11].value = "Changes requested"; row[12].value = "Shorter"
+    wb.save(d / "review.xlsx")
+    p = read_json(d / "posts" / "PI-001.json"); p["options"][0]["copy"]["support"] = "Injury attorneys for Austin and Utah."
+    write_json(d / "posts" / "PI-001.json", p)
+    run("build", "mcminn", "--post", "PI-001")
+    ws = load_workbook(d / "review.xlsx").active
+    assert [r[11].value for r in ws.iter_rows(min_row=2) if r[0].value == "PI-001"] == ["Revised"]

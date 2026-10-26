@@ -11,7 +11,7 @@ import re
 import zipfile
 from pathlib import Path
 
-from . import build as builder, campaign as camp, deck, figma_export, review, store
+from . import spec, build as builder, campaign as camp, deck, figma_export, review, store
 from .util import LRError, Lock, log, read_json, say, write_bytes
 
 
@@ -82,13 +82,15 @@ def package(c: store.Client, campaign: str | None = None, month: int | None = No
                 f = facts.get(k)
                 if f and f["needs_approval"] and not f["approved"]:
                     confirm.add(f["text"][:160])
-            for x in o.get("confirm", []):
+            for x in spec.confirm_list(o):
                 confirm.add(x)
         deck_path = deck.build_deck(c, d, c.brand(), groups, sorted(confirm), exports / f"{stem} - Deck.pptx",
                                     f"{c.name}: {d.name}" + (f", Month {month}" if month else ""))
     log(c.dir, f"package {d.name}" + (f" month {month}" if month else ""))
     return {"client": c.name, "campaign": d.name, "options": len(chosen), "review_set": review_set,
             "files": [str(exports / f"{stem} - Deck.pptx"), str(plugin), str(exports / f"{stem} - Posts.zip")],
+            "included": [f"{p['id']} {o['key']}" for p, o in chosen],
+            "no_approved_option": [] if review_set else sorted({p["id"] for p in posts} - {p["id"] for p, _ in chosen}),
             "to_confirm": len(confirm),
             "figma_steps": "Unzip the plugin somewhere permanent, then in the Figma desktop app: Plugins > Development > "
                            "Import plugin from manifest, pick manifest.json, and run it in any file."}

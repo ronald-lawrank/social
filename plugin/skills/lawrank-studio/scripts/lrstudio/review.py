@@ -9,7 +9,7 @@ from pathlib import Path
 from . import spec, store
 from .util import read_json, write_bytes, write_json, write_text
 
-STATUSES = ["Draft", "Approved", "Changes requested", "Rejected"]
+STATUSES = ["Draft", "Approved", "Changes requested", "Revised", "Rejected"]
 COLS = ["Post", "Month", "Week", "Topic", "Option", "Template", "Headline", "Caption", "Image", "Checks",
         "Check before posting", "Status", "Notes", "Version"]
 
@@ -79,13 +79,15 @@ def update(c: store.Client, d: Path, built_posts: list[dict], designs: list[dict
             res = [cache[k] for k in sorted(ids)]
             blocking = [i["msg"] for r in res for i in r.get("issues", []) if i["level"] == "block"]
             warn = [i["msg"] for r in res for i in r.get("issues", []) if i["level"] == "warn"]
-            confirm = [i["msg"] for i in comp.get(o["key"], []) if i["level"] == "warn"] + list(o.get("confirm") or [])
+            confirm = [i["msg"] for i in comp.get(o["key"], []) if i["level"] == "warn"] + spec.confirm_list(o)
             rep = [r for r in repeats if r.startswith(f"{p['id']} {o['key']}")]
             v = version(o)
             old = prev.get((p["id"], o["key"]), {})
             status = old.get("status", "Draft")
             if status == "Approved" and old.get("version") and old["version"] != v:
                 status = "Changed after approval"
+            elif status == "Changes requested" and old.get("version") and old["version"] != v:
+                status = "Revised"                     # Claude acted on the note; back to the reviewer
             img = next((im for r in res for im in r.get("images", [])), None)
             rows.append({"post": p["id"], "month": p.get("month"), "week": p.get("week"), "topic": p.get("topic", ""),
                          "slot_type": p.get("slot_type"), "format": p.get("format"), "option": o["key"], "template": o["template"],
@@ -104,7 +106,7 @@ def update(c: store.Client, d: Path, built_posts: list[dict], designs: list[dict
         cell.font = Font(bold=True, color="FFFFFF"); cell.fill = head
     for i, w in enumerate([10, 7, 6, 34, 8, 14, 40, 60, 28, 40, 40, 18, 40, 10]):
         ws.column_dimensions[chr(65 + i)].width = w
-    fills = {"Approved": "D1FAE5", "Changes requested": "FEF3C7", "Rejected": "FEE2E2", "Changed after approval": "FDE68A"}
+    fills = {"Approved": "D1FAE5", "Changes requested": "FEF3C7", "Rejected": "FEE2E2", "Changed after approval": "FDE68A", "Revised": "DBEAFE"}
     for row in ws.iter_rows(min_row=2):
         for cell in row:
             cell.alignment = Alignment(wrap_text=True, vertical="top")

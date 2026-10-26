@@ -17,6 +17,12 @@ FORMAT_OF = {"static": {"static"}, "carousel": {"carousel"}, "kit": {"kit"}, "mo
              "mixed": {"static", "carousel"}}     # test-design rounds show a direction's statics and carousel together
 
 
+def confirm_list(o: dict) -> list[str]:
+    """`confirm` as a list of lines (a single string is accepted as one line)."""
+    v = o.get("confirm") or []
+    return [v] if isinstance(v, str) else [str(x) for x in v]
+
+
 def _is_leaf(spec: dict) -> bool:
     return isinstance(spec, dict) and ("item" not in spec) and not any(isinstance(v, dict) for v in spec.values())
 

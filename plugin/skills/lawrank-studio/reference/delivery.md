@@ -22,6 +22,7 @@ are cached, and longer when it renders the other sizes for the first time.
     logos), one page per run.
   - **`… - Posts.zip`**: every PNG at every size, the approved MP4s and `captions.csv` (post, month,
     topic, option, template, caption and alt text) for scheduling.
+- The output lists what's `included` and which posts have `no_approved_option` yet. Report both.
 - It refuses to package designs that still fail a check. Fix what it lists (the same way you would
   after `lr build`), then package again.
 

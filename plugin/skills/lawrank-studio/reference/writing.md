@@ -56,7 +56,7 @@ Only `options` is yours to write. The fields of each option:
 | `facts` | the fact keys behind every claim in the copy and caption |
 | `caption` | the social caption: 1–3 short paragraphs, then a call to action. No hashtag walls (at most 3). |
 | `alt` | what the image shows, for screen readers, including the headline text |
-| `confirm` | optional: anything else the firm should check, in plain words. These go to `check_before_posting` and the review sheet. |
+| `confirm` | optional list, such as `["Justin handles the Utah cases"]`: anything else the firm should check, in plain words. These go to `check_before_posting` and the review sheet. |
 
 `accent` must be a phrase taken word for word from the `headline` (in faq it comes from the
 `question`, and in myth-fact from the `fact`). It's coloured with the brand accent, so make it the
@@ -123,5 +123,9 @@ each direction.
 - "Try it in the light style" means `"treatment": "light"`.
 - Reviewers set Status and Notes in review.xlsx. `lr client show` lists them under the campaign's
   `feedback`, and `lr build` repeats them as `reviewer_feedback`. Address each note, rebuild that
-  post, and say what you changed.
+  post, and say what you changed. The rebuild sets the option's status to **Revised**, which sends
+  it back to the reviewer. Only reviewers set Approved.
+- If a note asks for something the facts don't support (for example, "lead with his Utah work" when
+  no fact ties him to Utah), write the closest version the facts do support, cite those facts, and
+  add a `confirm` line asking the firm for the missing detail. Say so in your reply.
 - Editing an approved option sends it back for review. That's intended.

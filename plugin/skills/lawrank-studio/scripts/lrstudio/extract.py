@@ -51,7 +51,7 @@ MAIN_AREA_GROUP = {   # which umbrella a specific area belongs to, for choosing 
 STATES = ("AL AK AZ AR CA CO CT DE FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR "
           "PA RI SC SD TN TX UT VT VA WA WV WI WY DC").split()
 PHONE = re.compile(r"\(?\b(\d{3})\)?[ .-](\d{3})[ .-](\d{4})\b")
-ADDRESS = re.compile(r"\b(\d{2,6}\s+[A-Z0-9][\w.'-]*(?:\s+[\w.'#-]+){0,6}?,?(?:\s+(?:Suite|Ste\.?|Unit|#)\s*[\w-]+,?)?)\s*"
+ADDRESS = re.compile(r"(?<![\d-])\b(\d{2,6}[ \t]+[A-Z0-9][\w.'-]*(?:[ \t]+[\w.'#-]+){0,6}?,?(?:[ \t]+(?:Suite|Ste\.?|Unit|#)[ \t]*[\w-]+,?)?)[ \t]*"
                      r"(?:\n|,)\s*([A-Z][a-zA-Z.'-]+(?:\s[A-Z][a-zA-Z.'-]+){0,3}),\s*(" + "|".join(STATES) + r")\s+(\d{5})(?:-\d{4})?")
 ROLE_WORDS = re.compile(r"\b(attorney|lawyer|partner|founder|founding|associate|of counsel|managing|esq\.?|shareholder|principal)\b", re.I)
 NAME = re.compile(r"^(?:[A-Z][a-z]+\.?|[A-Z]\.)(?:\s(?:[A-Z][a-z'’-]+|[A-Z]\.)){1,3}(?:,?\s(?:Jr\.|Sr\.|III|II|Esq\.))?$")
@@ -299,7 +299,7 @@ def extract(pages: list[dict], jsonld: list[dict] | None = None, firm_name: str 
         for line in p["text"].splitlines():
             for m in PHONE.finditer(line):
                 num = f"({m.group(1)}) {m.group(2)}-{m.group(3)}"
-                ctx = line.strip()[:160]
+                ctx = re.sub(r"\s*[·|,:–-]?\s*$", "", line.replace(m.group(0), "").strip())[:160] or m.group(0)
                 if num not in phones:
                     phones[num] = {"number": num, "context": ctx, "page": p, "raw": m.group(0)}
     for o in ex.offices:

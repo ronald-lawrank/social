@@ -123,7 +123,7 @@ def _to_confirm(posts: list[dict], notes: dict) -> dict:
     out = {}
     for p in posts:
         for o in p.get("options", []):
-            items = [i["msg"] for i in (notes.get(p["id"]) or {}).get(o.get("key"), []) if i["level"] == "warn"] + list(o.get("confirm") or [])
+            items = [i["msg"] for i in (notes.get(p["id"]) or {}).get(o.get("key"), []) if i["level"] == "warn"] + spec.confirm_list(o)
             if items:
                 out[f"{p['id']} {o.get('key')}"] = items[:4]
     return out
