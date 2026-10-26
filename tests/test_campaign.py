@@ -133,6 +133,24 @@ def test_directions_without_people_photos(home, monkeypatch, tmp_path):
     assert out["ok"] and not out["not_built"] and out["built"] >= 8 and not out["flagged"], out
 
 
+
+def test_kit_without_people_photos_still_builds(home, monkeypatch, tmp_path):
+    """Covers need a people photo; without one they're left out (with a note) so the rest of the kit isn't blocked."""
+    import fixture_site
+    monkeypatch.setenv("LR_ALLOW_PRIVATE", "1")
+    url, stop = fixture_site.serve(fixture_site.build(tmp_path / "site"))
+    try:
+        run("client", "new", url)
+    finally:
+        stop()
+    run("client", "set", "harbor", "direction=B")
+    out = run("campaign", "new", "harbor")
+    assert "kit_note" in out, out
+    kit = json.loads((Path(out["folder"]) / "posts" / "KIT.json").read_text())
+    assert {o["key"] for o in kit["options"]}.isdisjoint({"FB", "LI"})
+    b = run("build", "harbor", "--campaign", out["campaign"], "--post", "KIT")
+    assert b["ok"] and not b["not_built"] and b["built"] == len(kit["options"]), b
+
 # ---------------------------------------------------------------- compliance + validation units
 FACTS = {"founded": {"text": "Founded in 2005.", "category": "history", "usable": True, "status": "usable"},
          "verdict": {"text": "$4.2 million verdict for a crash victim.", "category": "results", "usable": False, "status": "needs approval"},
