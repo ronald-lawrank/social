@@ -76,6 +76,25 @@ def new_campaign(c: store.Client, name: str | None = None, plan: str = "six-mont
                 or SUGGEST.get(r["Post type"], []),
                 "options": []}
         write_json(d / "posts" / f"{post['id']}.json", post)
+    # the profile picture + cover kit goes with every six-month build
+    b = c.brand()
+    line = ((b.get("voice") or {}).get("tagline") or f"{(c.data.get('practice_area') or 'Injury').capitalize()} lawyers")[:44]
+    group = next((k for k, ph in (read_json(c.brand_dir / "photos" / "photos.json", {}) or {}).items() if ph.get("use", True) and ph["kind"] == "group"), None)
+    from . import logos
+    ld = c.brand_dir / "logos"
+    rev = next((f for f in (ld / "mark-white.svg", ld / "logo-white.svg") if f.exists()), None)
+    dark_ok = not (rev and logos.blends(rev.read_text(), b["colors"]["ink"]))   # part of the reversed logo would vanish on ink
+    kit = [{"key": "P1", "template": "profile", "treatment": "light"}, {"key": "P2", "template": "profile", "treatment": "accent"},
+           *([{"key": "P3", "template": "profile", "treatment": "dark"}] if dark_ok else []),
+           {"key": "FB", "template": "facebook-cover", "copy": {"headline": line, "support": b.get("website", "")}, **({"photo": group} if group else {})},
+           {"key": "LI", "template": "linkedin-banner", "copy": {"headline": line}, **({"photo": group} if group else {})},
+           {"key": "H1", "template": "highlight", "icon": "scale", "copy": {"label": "Results"}},
+           {"key": "H2", "template": "highlight", "icon": "users", "copy": {"label": "Our team"}},
+           {"key": "H3", "template": "highlight", "icon": "message-circle", "copy": {"label": "FAQ"}}]
+    for o in kit:
+        o.setdefault("copy", {}); o.update(facts=[], caption=f"{b['name']} {o['template'].replace('-', ' ')}", alt=f"{b['name']} {o['template'].replace('-', ' ')}")
+    write_json(d / "posts" / "KIT.json", {"id": "KIT", "month": 1, "week": 1, "topic": "Profile pictures and covers", "format": "kit",
+                                          "slot_type": "Profile & cover kit", "options": kit})
     write_json(d / "campaign.json", {"name": name, "plan": plan, "start": start, "package": c.data.get("package"),
                                      "practice_area": c.data.get("practice_area"), "created": dt.datetime.now().isoformat(timespec="minutes")})
     write_json(d / "status.json", {"posts": len(rows), "written": 0, "approved": 0})

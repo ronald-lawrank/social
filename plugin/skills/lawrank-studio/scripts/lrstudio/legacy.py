@@ -32,6 +32,13 @@ def import_folder(src: str, package: str = "growth") -> dict:
             shutil.copy(d / lg[role], c.brand_dir / "logos" / name)
     if not (c.brand_dir / "logos" / "logo-dark.svg").exists() and (c.brand_dir / "logos" / "logo-white.svg").exists():
         shutil.copy(c.brand_dir / "logos" / "logo-white.svg", c.brand_dir / "logos" / "logo-dark.svg")
+    from . import logos
+    ld = c.brand_dir / "logos"
+    if (ld / "logo-dark.svg").exists():
+        try:
+            logos.write_variants(ld, logos.sanitize((ld / "logo-dark.svg").read_text()), logos.sanitize((ld / "logo-white.svg").read_text()))
+        except Exception:
+            pass
     meta = {}
     for key, p in (old.get("photos") or {}).items():
         srcf = d / p["file"]

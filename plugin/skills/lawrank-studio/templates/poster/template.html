@@ -1,5 +1,5 @@
 {% set key = d.get('photo') or pick_photo(('group', 'person')) %}
-{% set split = {'4x5': 0.5, '1x1': 0.44, '9x16': 0.48}[S.key] %}
+{% set split = {'4x5': 0.5, '1x1': 0.44, '9x16': 0.42}[S.key] %}
 {% set ph = (S.h * (split + 0.16))|int %}
 {{ frame('dark') }}
   {{ photo(key, 0, 0, S.w, ph, fill=0.0, focus_y=0.1 if S.key != '9x16' else 0.16) }}
@@ -7,7 +7,7 @@
   <div class="safe" style="left:{{S.safe[3]}}px;right:{{S.safe[1]}}px;top:{{ (S.h * split + 30)|int }}px;bottom:{{S.safe[2]}}px">
     <div class="grow"></div>
     {% if c.get('sticker') %}<div class="sticker" data-slot="sticker" data-role="label">{{ c.sticker }}</div>{% endif %}
-    <div class="display" data-slot="headline" data-role="headline" style="margin-top:28px">{{ c.headline|accent(c.get('accent')) }}</div>
+    <div class="{{ 'h1' if S.key == '9x16' else 'display' }}" data-slot="headline" data-role="headline" style="margin-top:28px">{{ c.headline|accent(c.get('accent')) }}</div>
     {% if c.get('support') %}<div class="lead" data-slot="support" data-role="body" style="margin-top:30px">{{ c.support|br }}</div>{% endif %}
     <div style="margin-top:{{ 44 if S.key != '1x1' else 34 }}px">{{ logo(230, 'white') }}</div>
   </div>

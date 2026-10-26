@@ -44,6 +44,7 @@ def write_post(c, pid, options, campaign=None):
 def test_campaign_new_follows_the_plan(client):
     out = run("campaign", "new", "mcminn", "--start", "2026-11")
     assert out["ok"] and out["posts"] == 48 and out["motion_posts"] == 0
+    assert read_json(Path(out["folder"]) / "posts" / "KIT.json")["format"] == "kit"
     d = Path(out["folder"])
     p = read_json(d / "posts" / "PI-003.json")
     assert p["format"] == "carousel" and p["plan"]["angles"] and set(p["suggested_templates"]) <= set(templates.catalog())
@@ -96,8 +97,10 @@ def test_build_refuses_bad_specs_with_specific_fixes(client):
 
 def test_unwritten_posts_are_reported(client):
     run("campaign", "new", "mcminn")
-    out = run("build", "mcminn", "--month", "1")
+    out = run("build", "mcminn", "--post", "PI-001,PI-002")
     assert not out["ok"] and "PI-001" in out["todo"]
+    out = run("build", "mcminn", "--month", "1")             # the kit post comes pre-written; the rest are listed
+    assert out["built"] >= 7 and "PI-001" in out["todo"]
 
 
 def test_repeats_are_flagged(client):

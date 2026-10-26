@@ -91,9 +91,10 @@ class Ctx:
         self.used_photos: list[str] = []
         self.logos = {}
         for v in ("white", "dark"):
-            f = client_dir / "brand" / "logos" / f"logo-{v}.svg"
-            if f.exists():
-                self.logos[v] = re.sub(r"<\?xml[^>]*\?>", "", f.read_text(encoding="utf-8"))
+            for kind in ("logo", "mark"):
+                f = client_dir / "brand" / "logos" / f"{kind}-{v}.svg"
+                if f.exists():
+                    self.logos[v if kind == "logo" else f"mark-{v}"] = re.sub(r"<\?xml[^>]*\?>", "", f.read_text(encoding="utf-8"))
 
     # --- drawing helpers (return Markup) ---
     def frame(self, treatment: str | None = None, extra_class: str = "", style: str = "", safe=None, slide: int | None = None):
@@ -106,10 +107,12 @@ class Ctx:
         return Markup(f'<div class="frame sz-{self.size} {extra_class}" {a} style="width:{self.S["w"]}px;height:{self.S["h"]}px;'
                       f'{theme.css_vars(t)};{style}">')
 
-    def logo(self, width: int = 300, variant: str | None = None, style: str = "", treatment: str | None = None):
+    def logo(self, width: int = 300, variant: str | None = None, style: str = "", treatment: str | None = None, mark: bool = False):
         t = self.themes.get(treatment) if treatment else self.T
         v = variant or t["logo"]
-        svg = self.logos.get(v) or self.logos.get("dark") or self.logos.get("white")
+        svg = (self.logos.get(f"mark-{v}") if mark else None) or self.logos.get(v) or self.logos.get("dark") or self.logos.get("white")
+        if mark and self.logos.get(f"mark-{v}"):
+            return Markup(f'<div class="logo" data-ov="logo" style="width:{width}px;{style}">{svg}</div>')
         if not svg:
             name = html.escape(self.brand.get("name", ""))
             return Markup(f'<div class="logo" data-ov="logo" style="width:{width}px;font-family:var(--f-head);font-weight:var(--w-head);'

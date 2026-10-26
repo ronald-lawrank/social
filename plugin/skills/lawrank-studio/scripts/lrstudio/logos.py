@@ -76,14 +76,24 @@ def sanitize(svg_text: str) -> str:
         root.set("viewBox", f"0 0 {w.group(0)} {h.group(0)}")
     for k in ("width", "height", "class", "style", "x", "y"):
         root.attrib.pop(k, None)
-    root.set("xmlns", SVG_NS)
-    out = ET.tostring(root, encoding="unicode")
-    return out.replace(' xmlns="http://www.w3.org/2000/svg" xmlns="http://www.w3.org/2000/svg"', ' xmlns="http://www.w3.org/2000/svg"')
+    if not root.tag.startswith("{"):                 # inline SVG copied from a page has no namespace: give it one
+        root.set("xmlns", SVG_NS)
+    return ET.tostring(root, encoding="unicode")
 
 
 def aspect(svg: str) -> float:
     m = re.search(r'viewBox="\s*[-\d.e]+[ ,]+[-\d.e]+[ ,]+([\d.e]+)[ ,]+([\d.e]+)', svg)
     return float(m.group(1)) / max(float(m.group(2)), 1e-6) if m else 1.0
+
+
+def blends(svg: str, bg: str, tol: int = 40) -> bool:
+    """True when some colour in the logo is close to the background, so part of the shape would disappear on it."""
+    b = [int(bg.lstrip("#")[i:i + 2], 16) for i in (0, 2, 4)]
+    for h in colors(svg):
+        h = h.lstrip("#")
+        if len(h) >= 6 and sum(abs(int(h[i:i + 2], 16) - v) for i, v in zip((0, 2, 4), b)) < tol:
+            return True
+    return False
 
 
 def colors(svg: str) -> list[str]:
@@ -119,6 +129,22 @@ def _default_fill(svg: str, color: str) -> str:
     if re.search(r"<svg\b[^>]*\bfill=", svg):
         return re.sub(r'(<svg\b[^>]*\bfill=")[^"]*', lambda m: m.group(1) + color, svg, count=1)
     return re.sub(r"<svg\b", f'<svg fill="{color}"', svg, count=1)
+
+
+def write_variants(ldir, dark: str, white: str):
+    """logo-dark/white.svg plus, when the lockup has an icon, mark-dark/white.svg (for profile pictures)."""
+    from .util import write_text
+    write_text(ldir / "logo-dark.svg", dark)
+    write_text(ldir / "logo-white.svg", white)
+    try:
+        md = find_mark(dark)
+    except Exception:
+        md = None
+    if md:
+        write_text(ldir / "mark-dark.svg", md)
+        vb = re.search(r'viewBox="[^"]*"', md).group(0)
+        write_text(ldir / "mark-white.svg", re.sub(r'viewBox="[^"]*"', vb, white, count=1))
+    return bool(md)
 
 
 def white_version(svg: str) -> str:
@@ -167,3 +193,46 @@ def raster_is_light(data: bytes) -> bool:
     rgb = a[..., :3][mask] / 255
     lum = (0.2126 * rgb[:, 0] + 0.7152 * rgb[:, 1] + 0.0722 * rgb[:, 2]).mean()
     return lum > 0.75
+
+
+# ---------------------------------------------------------------- the mark (icon part of a lockup)
+def find_mark(svg: str) -> str | None:
+    """The logo's icon as its own SVG, when the lockup has one (an icon, a clear gap, then the wordmark).
+    Profile pictures need the mark: a whole wordmark is unreadable in a small circle."""
+    import numpy as np
+    from playwright.sync_api import sync_playwright
+    m = re.search(r'viewBox="\s*([-\d.e]+)[ ,]+([-\d.e]+)[ ,]+([\d.e]+)[ ,]+([\d.e]+)', svg)
+    if not m or aspect(svg) < 1.8:
+        return None                                   # already compact: the logo is its own mark
+    vx, vy, vw, vh = (float(v) for v in m.groups())
+    W = 1600
+    with sync_playwright() as p:
+        b = p.chromium.launch(); pg = b.new_page(viewport={"width": W, "height": int(W / aspect(svg)) + 4})
+        pg.set_content(f"<html><body style='margin:0;background:#fff'><div style='width:{W}px'>{svg}</div>"
+                       "<style>svg{width:100%;height:auto;display:block}</style></body></html>")
+        png = pg.locator("svg").first.screenshot()
+        b.close()
+    from PIL import Image
+    a = np.asarray(Image.open(io.BytesIO(png)).convert("L"), dtype="float32")
+    ink = (a < 235).any(axis=0)                       # columns with any drawing
+    cols = np.where(ink)[0]
+    if len(cols) == 0:
+        return None
+    runs, start = [], cols[0]
+    for i in range(1, len(cols)):
+        if cols[i] - cols[i - 1] > 1:
+            runs.append((start, cols[i - 1])); start = cols[i]
+    runs.append((start, cols[-1]))
+    first = runs[0]
+    gap = runs[1][0] - first[1] if len(runs) > 1 else 0
+    rows = np.where((a[:, first[0]:first[1] + 1] < 235).any(axis=1))[0]
+    if len(runs) < 2 or gap < 0.012 * a.shape[1] or not len(rows):
+        return None
+    w_px, h_px = first[1] - first[0] + 1, rows[-1] - rows[0] + 1
+    if not 0.55 <= w_px / h_px <= 1.6 or h_px < 0.5 * a.shape[0]:
+        return None                                   # the first shape isn't an icon (e.g. a letter of the wordmark)
+    k = vw / a.shape[1]
+    pad = 0.02 * vh
+    x0, x1 = vx + first[0] * k - pad, vx + (first[1] + 1) * k + pad
+    y0, y1 = vy + rows[0] * k - pad, vy + (rows[-1] + 1) * k + pad
+    return re.sub(r'viewBox="[^"]*"', f'viewBox="{x0:.2f} {y0:.2f} {x1 - x0:.2f} {y1 - y0:.2f}"', svg, count=1)

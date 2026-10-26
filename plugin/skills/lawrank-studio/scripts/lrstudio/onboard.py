@@ -75,9 +75,10 @@ def save_logos(site, client: store.Client, ink: str) -> tuple[dict, list[str]]:
             warnings.append("The site's logo is a white image, so there's no version for light backgrounds yet. Ask the firm for the full-colour vector logo.")
         warnings.append("The logo is an image, not a vector: fine for previews, but ask the firm for the SVG/PDF logo for print-sharp results and Figma.")
         write_bytes(ldir / ("logo-original" + (".png" if best["data"][:4] == b"\x89PNG" else ".jpg")), best["data"])
-    write_text(ldir / "logo-dark.svg", dark)
-    write_text(ldir / "logo-white.svg", white)
-    info.update(dark="logos/logo-dark.svg", white="logos/logo-white.svg", aspect=round(logos.aspect(dark), 3))
+    has_mark = logos.write_variants(ldir, dark, white) if best["kind"] == "svg" else False
+    if best["kind"] != "svg":
+        write_text(ldir / "logo-dark.svg", dark); write_text(ldir / "logo-white.svg", white)
+    info.update(dark="logos/logo-dark.svg", white="logos/logo-white.svg", aspect=round(logos.aspect(dark), 3), mark=has_mark)
     return info, warnings
 
 

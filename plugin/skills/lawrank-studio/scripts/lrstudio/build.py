@@ -103,6 +103,10 @@ def build(c: store.Client, campaign: str | None = None, month: int | None = None
            "gallery": str(d / "index.html"), "review_sheet": str(d / "review.xlsx")}
     if sheet:
         out["flagged_sheet"] = str(sheet)
+    todo = [p["id"] for p in selected if not p.get("options")]
+    if todo:
+        out["todo"] = todo[:24]
+        out["todo_note"] = f"{len(todo)} selected post(s) have no options written yet."
     if motion_posts:
         out["motion_previews"] = [str(d / "previews" / f"{p['id']}-{o['key']}-motion.html") for p in motion_posts if p["id"] not in problems for o in p["options"]]
         out["motion_note"] = "Previews play in a browser with sound. MP4s are rendered after approval with `lr video`."
