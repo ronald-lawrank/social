@@ -49,6 +49,27 @@ changes to *Revised* so it comes back to you.
 When the skill is improved, everyone runs `/plugin marketplace update lawrank` once (or Claude
 picks it up automatically when it starts, depending on your settings).
 
+## Using ChatGPT instead of Claude
+The studio works the same in **Codex** (OpenAI's coding agent, part of ChatGPT; sign in with your
+ChatGPT account). Same commands, same files in Drive, same gallery, Figma plugin, deck and MP4s.
+Do steps 1.1–1.3 above, then:
+
+1. Open a terminal once and paste the installer:
+   - Mac: `curl -fsSL https://raw.githubusercontent.com/ronald-lawrank/social/main/install.sh | sh`
+   - Windows (PowerShell): `irm https://raw.githubusercontent.com/ronald-lawrank/social/main/install.ps1 | iex`
+
+   It installs everything into `~/.lawrank-studio` and writes `AGENTS.md` (Codex's instructions)
+   into the **Claude** Drive folder. If it can't find the Drive folder, run
+   `~/.lawrank-studio/bin/lr setup --home "<path to the Claude folder>"`.
+2. In Codex, open the **Claude** Drive folder as the project and ask the same things you would ask
+   Claude ("New client: smithinjury.com, Growth package.").
+3. The first time, Codex asks for permission to run commands that use the network and write to
+   `~/.lawrank-studio`. Allow it (choose the option that remembers it for this folder). If it
+   says "write access wasn't granted", that's the permission it needs.
+
+**Updates (ChatGPT users):** ask Codex to "update LawRank Studio" (it runs `lr update`), or run
+`~/.lawrank-studio/bin/lr update` in a terminal.
+
 ## Good to know
 - Two people can work on different clients at the same time. If two people build the same campaign
   at once, the second person is told who's working on it.

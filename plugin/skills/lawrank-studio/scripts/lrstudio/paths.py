@@ -18,6 +18,8 @@ STATE = Path(os.environ.get("LR_STATE_DIR", Path.home() / ".lawrank-studio"))
 MODELS = STATE / "models"
 FONTS = STATE / "fonts"
 NODE_DIR = STATE / "node"
+BROWSERS = STATE / "browsers"          # the drawing browser (Chromium), kept here so one folder holds every tool
+BIN = STATE / "bin"                    # the `lr` command for any AI agent (Claude, Codex) or a terminal
 
 STUDIO_DIR = "LawRank Studio"
 CLIENTS_DIR = "Clients"

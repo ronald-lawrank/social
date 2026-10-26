@@ -2,6 +2,8 @@
 
   lr setup [--home PATH]                 install this laptop's tools; link the shared Drive folder
   lr doctor                              check tools and the Drive folder
+  lr update                              get the newest studio (copies installed with install.sh / install.ps1)
+  lr docs <name>                         print a reference guide: onboarding, writing, motion, delivery
   lr client new <website> [--name N] [--package growth]
                                          scan the site -> brand profile, facts, logos, photos, brand board
   lr client show <client>                everything Claude needs about a client, in a few lines
@@ -95,6 +97,16 @@ def cmd_library(a):
     return library.search(a.text, client=a.client, limit=a.limit)
 
 
+def cmd_docs(a):
+    from . import agents
+    return agents.docs(a.name)
+
+
+def cmd_update(a):
+    from . import agents
+    return agents.update()
+
+
 def cmd_templates(a):
     from . import templates
     if a.name:
@@ -136,6 +148,8 @@ def parser():
     p = sp.add_parser("package"); p.add_argument("client"); p.add_argument("--campaign"); p.add_argument("--month", type=int); p.set_defaults(fn=cmd_package)
     p = sp.add_parser("library"); p.add_argument("action", choices=["search"]); p.add_argument("text"); p.add_argument("--client")
     p.add_argument("--limit", type=int, default=8); p.set_defaults(fn=cmd_library)
+    p = sp.add_parser("docs"); p.add_argument("name"); p.set_defaults(fn=cmd_docs)
+    sp.add_parser("update").set_defaults(fn=cmd_update)
     p = sp.add_parser("templates"); p.add_argument("name", nargs="?"); p.add_argument("--client"); p.set_defaults(fn=cmd_templates)
     return ap
 

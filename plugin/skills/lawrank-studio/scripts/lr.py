@@ -15,6 +15,10 @@ VENV_PY = STATE / "venv" / ("Scripts/python.exe" if os.name == "nt" else "bin/py
 # Inside a venv, sys.prefix is the venv folder. (Comparing interpreter paths fails on macOS python.org installs, where the
 # venv's python is a symlink to the very same binary as the system python3.)
 in_venv = Path(sys.prefix).resolve() == (STATE / "venv").resolve()
+# The drawing browser lives in ~/.lawrank-studio/browsers once `lr setup` has put it there (older installs keep
+# Playwright's default cache), so agents that may only write to one folder (Codex) can still install it.
+if not os.environ.get("PLAYWRIGHT_BROWSERS_PATH") and (STATE / "browsers").is_dir():
+    os.environ["PLAYWRIGHT_BROWSERS_PATH"] = str(STATE / "browsers")
 if VENV_PY.exists() and not in_venv and not os.environ.get("LR_NO_VENV"):
     args = [str(VENV_PY), str(Path(__file__).resolve()), *sys.argv[1:]]
     if os.name == "nt":                        # execv on Windows detaches the console; run and pass the exit code back

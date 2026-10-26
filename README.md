@@ -8,6 +8,9 @@ the shared Google Drive folder **Claude**.
 - Team setup: [TEAM_SETUP.md](TEAM_SETUP.md)
 - Install (Claude Code / the desktop app's Code tab):
   `/plugin marketplace add ronald-lawrank/social` then `/plugin install lawrank-studio@lawrank`
+- Install for ChatGPT / Codex: `curl -fsSL https://raw.githubusercontent.com/ronald-lawrank/social/main/install.sh | sh`
+  (Windows: `irm https://raw.githubusercontent.com/ronald-lawrank/social/main/install.ps1 | iex`). Setup writes
+  `AGENTS.md` (generated from SKILL.md) into the Drive folder, so both agents follow the same instructions.
 - Design and decisions: [PLAN.md](PLAN.md)
 
 ## Layout
@@ -24,6 +27,7 @@ plugin/
     templates/<name>/               template.html (Jinja) + meta.json (slots, sizes) + example.json
     motion/                         the four motion families, runtime, voice, mix and motion QA
     data/six_month_plan.csv         the plan (a copy in Drive at LawRank Studio/plan/ overrides it)
+install.sh, install.ps1            one-line installers for Codex/ChatGPT users (into ~/.lawrank-studio/app)
 tests/                              pytest; a fictional firm site and an imported test client
 dev/samples.py                      renders every template with its example copy, for design review
 ```

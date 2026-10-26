@@ -85,10 +85,14 @@ def ffmpeg() -> str:
 
 
 # ---------------------------------------------------------------- setup / doctor
-def _run(cmd, tries: int = 2, **kw):
+def _run(cmd, tries: int = 2, timeout: int = 1800, **kw):
     say("  $ " + " ".join(str(c) for c in cmd[:6]))
     for n in range(tries):                        # installs fail on brief network trouble; one more try first
-        r = subprocess.run([str(c) for c in cmd], capture_output=True, text=True, **kw)
+        try:
+            r = subprocess.run([str(c) for c in cmd], capture_output=True, text=True, timeout=timeout, **kw)
+        except subprocess.TimeoutExpired:         # a stalled install ends with a clear message instead of hanging
+            raise LRError(f"{Path(str(cmd[0])).name} stalled for {timeout // 60} minutes and was stopped",
+                          fix="Usually a blocked download or a missing permission: see `lr doctor`, then run `lr setup` again.")
         if not r.returncode:
             break
         if n < tries - 1:
@@ -98,7 +102,24 @@ def _run(cmd, tries: int = 2, **kw):
     return r.stdout
 
 
+PERMISSION_FIX = ("LawRank Studio keeps its tools in one folder, {state}. Allow writing there, then run setup again. "
+                  "In Codex or the ChatGPT app: approve the request to write outside the workspace and to use the internet "
+                  "(or give this folder full access in Codex's settings). In Claude, approve the prompt.")
+
+
+def _writable(folder: Path) -> bool:
+    try:
+        folder.mkdir(parents=True, exist_ok=True)
+        probe = folder / ".write-test"
+        probe.write_text("ok"); probe.unlink()
+        return True
+    except OSError:
+        return False
+
+
 def setup(home: str | None = None, skip_models: bool = False) -> dict:
+    if not _writable(paths.STATE):                # check first, so nothing stalls halfway on a permission
+        raise LRError(f"Setup can't write to {paths.STATE}", fix=PERMISSION_FIX.format(state=paths.STATE))
     done = []
     if home:
         h = Path(home).expanduser()
@@ -124,6 +145,8 @@ def setup(home: str | None = None, skip_models: bool = False) -> dict:
     step("pip", lambda: _run([py, "-m", "pip", "install", "-q", "--upgrade", "pip"]))
     step("python packages", lambda: _run([py, "-m", "pip", "install", "-q", "-r", paths.SCRIPTS / "requirements.txt"]))
     say("Installing the browser used for rendering ...")
+    if not os.environ.get("PLAYWRIGHT_BROWSERS_PATH"):   # keep the browser with the other tools (one folder to allow)
+        os.environ["PLAYWRIGHT_BROWSERS_PATH"] = str(paths.BROWSERS)
     step("chromium", lambda: _run([py, "-m", "playwright", "install", "chromium"]))
     if not skip_models:
         for name in MODEL_FILES:
@@ -148,8 +171,20 @@ def setup(home: str | None = None, skip_models: bool = False) -> dict:
     else:
         warnings.append("Node.js isn't installed, so MP4 videos can't be rendered yet (everything else works). "
                         "Install Node.js 22 LTS from https://nodejs.org and run `lr setup` again.")
+    from . import agents                        # the `lr` command and AGENTS.md, for any AI agent
+    try:
+        res_bin = agents.install_launcher()
+        done.append("lr command")
+        h = paths.home(required=False)
+        if h:
+            agents.write_agents_md(h); done.append("AGENTS.md")
+    except Exception as e:
+        failed["lr command"] = str(e)[-300:]
+        res_bin = None
     res = doctor()
     res["installed"] = done
+    if res_bin:
+        res["lr"] = str(res_bin)
     if failed:
         failed.pop("pip", None) if "python packages" in done else None      # an old pip is harmless once packages are in
     if failed:
@@ -192,9 +227,13 @@ def doctor() -> dict:
     out["home"] = str(h) if h else None
     if not h:
         problems.append("shared Drive folder")
+    writable = _writable(paths.STATE)
+    if not writable:
+        problems.append("permission to write to the tools folder")
     out["ok"] = not problems
     if problems:
         out["missing"] = problems
-        out["fix"] = ("Install Google Drive for desktop and make the 'Claude' folder available offline. "
-                      if "shared Drive folder" in problems else "") + "Then run `lr setup`."
+        out["fix"] = (("Install Google Drive for desktop and make the 'Claude' folder available offline. "
+                       if "shared Drive folder" in problems else "")
+                      + (PERMISSION_FIX.format(state=paths.STATE) + " " if not writable else "") + "Then run `lr setup`.")
     return out
