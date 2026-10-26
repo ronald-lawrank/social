@@ -33,15 +33,20 @@ Just ask, for example:
 - "They chose direction B. Build month 1."
 - "Make PI-003 punchier and use Dana's photo."
 - "What's waiting on approval for Smith?"
+- "Smith upgraded to Authority. Do the month 1 motion posts."
 - "Render the approved videos for Smith."
 - "Package month 1 for Smith."
 
 Review happens in Drive. Open `Clients/<Firm>/campaigns/<campaign>/index.html` to see everything,
 and set **Status** to *Approved* (or *Changes requested* with a note) in `review.xlsx`, using
-Google Sheets. Claude picks it up the next time it runs.
+Google Sheets. Claude picks it up the next time it runs. When Claude acts on a note, the status
+changes to *Revised* so it comes back to you.
 
 ## Good to know
 - Two people can work on different clients at the same time. If two people build the same campaign
   at once, the second person is told who's working on it.
 - Every action is logged in `Clients/<Firm>/history.log`.
 - Drive keeps version history for every file, so mistakes can be undone from Drive.
+- The six-month plan ships with the skill. To change it for everyone, put an edited
+  `six_month_plan.csv` in `LawRank Studio/plan/`. To change a template for everyone, put an edited
+  copy of its folder in `LawRank Studio/templates/`. Copies in Drive override the built-in ones.
