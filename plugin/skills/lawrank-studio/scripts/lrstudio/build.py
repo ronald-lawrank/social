@@ -48,7 +48,7 @@ def build(c: store.Client, campaign: str | None = None, month: int | None = None
     selected = _posts(d, month, posts)
     written = [p for p in selected if p.get("options")]
     motion_posts = [p for p in written if p.get("format") == "motion"]
-    static_posts = [p for p in written if p.get("format") != "motion"]
+    static_posts = written
     if not written:
         raise LRError("None of the selected posts have options written yet",
                       fix=f"Write options into {d / 'posts'}/<ID>.json first (reference/writing.md).",
@@ -61,7 +61,8 @@ def build(c: store.Client, campaign: str | None = None, month: int | None = None
                 problems[p["id"]] = v["errors"]
                 continue
             compliance_notes[p["id"]] = v["issues"]
-            designs += designs_for_all(p) if every else designs_for(p, size_list)
+            if p.get("format") != "motion":
+                designs += designs_for_all(p) if every else designs_for(p, size_list)
         cache = {} if force else (read_json(d / ".build.json", {}) or {})
         say(f"Drawing {len(designs)} design(s) for {c.name} ...")
         results = render.render(c.dir, brand, designs, d, cache=cache) if designs else []
@@ -69,11 +70,20 @@ def build(c: store.Client, campaign: str | None = None, month: int | None = None
         newcache = {k: v for k, v in cache.items() if k.rsplit("-", 2)[0] in existing}      # forget deleted posts
         for r in results:
             newcache[r["id"]] = {k: v for k, v in r.items() if k != "cached"}
+        from . import motion
+        for p in motion_posts:                     # voiced previews (cached by storyboard); MP4s come after approval
+            if p["id"] in problems:
+                continue
+            for o in p["options"]:
+                say(f"Motion preview {p['id']} {o['key']} ...")
+                r = motion.preview(c, d, p, o, cache)
+                newcache[r["id"]] = {k: v for k, v in r.items() if k != "cached"}
+                designs.append({"id": r["id"], "post": p["id"], "option": o["key"], "template": "motion", "size": "9x16", "data": o, "result": r})
+                results.append(r)
         write_json(d / ".build.json", newcache)
         by_id = {r["id"]: r for r in results}
         for x in designs:
-            r = by_id.get(x["id"], {})
-            x.update(result=r)
+            x.setdefault("result", by_id.get(x["id"], {}))
         # test directions deliberately share messages so the looks can be compared
         repeats = [] if d.name == "Test designs" else library.repeats(c, d, static_posts)
         rows = review.update(c, d, static_posts, designs, compliance_notes, repeats)
@@ -94,8 +104,8 @@ def build(c: store.Client, campaign: str | None = None, month: int | None = None
     if sheet:
         out["flagged_sheet"] = str(sheet)
     if motion_posts:
-        out["motion_posts"] = [p["id"] for p in motion_posts]
-        out["motion_note"] = "Motion posts are previewed and rendered with `lr video`."
+        out["motion_previews"] = [str(d / "previews" / f"{p['id']}-{o['key']}-motion.html") for p in motion_posts if p["id"] not in problems for o in p["options"]]
+        out["motion_note"] = "Previews play in a browser with sound. MP4s are rendered after approval with `lr video`."
     out["ok"] = not problems and not flagged
     return out
 
