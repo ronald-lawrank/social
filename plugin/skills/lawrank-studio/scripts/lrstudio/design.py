@@ -63,7 +63,8 @@ ul{margin:4px 0 0;padding-left:20px}li{margin:4px 0}.do li::marker{content:'✓ 
 .photos figcaption{font-size:12px;color:#6B7280;margin-top:4px}
 table{border-collapse:collapse;width:100%;font-size:14px}td,th{text-align:left;padding:7px 10px;border-bottom:1px solid #E5E7EB;vertical-align:top}
 th{color:#6B7280;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.06em}
-.note{font-size:13px;color:#6B7280}.pend{background:#FEF3C7;border-radius:6px;padding:2px 6px}
+.note{font-size:13px;color:#6B7280}.boards{display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:12px}
+.boards img{width:100%;border-radius:6px;border:1px solid #E5E7EB}.pend{background:#FEF3C7;border-radius:6px;padding:2px 6px}
 """
 
 
@@ -174,6 +175,12 @@ def panel(c: store.Client, d: Path, rows: list[dict]) -> tuple[str, str]:
         f"<code>lr client set \"{e(c.name)}\" direction=B</code>.</p>")
         + (f"<p class='note' style='margin:0'>Treatment mix {'in this campaign' if rows else 'for this direction'}: {e(mix_txt)}"
            f" ({total} option{'s' if total != 1 else ''}).</p>" if total else "") + "</section>")
+
+    # ---- brand board (here, so the gallery is the one page to share; no separate board link)
+    boards = sorted((c.brand_dir / "board").glob("board_*.png"))
+    if boards:
+        S.append("<section><h2>Brand board</h2><div class='boards'>" + "".join(
+            f"<img loading='lazy' src='{e(_rel(f, d))}' alt='Brand board, page {n}'>" for n, f in enumerate(boards, 1)) + "</div></section>")
 
     # ---- logo
     ld = c.brand_dir / "logos"

@@ -1,5 +1,6 @@
 """Regressions from onboarding Ben Carrasco (Austin family law, October 2026): the gallery's build record, the Design
 tab, the brand board's sample copy and the short name. Drawing is faked, so none of these need Chromium."""
+import json
 import re
 from pathlib import Path
 
@@ -175,3 +176,50 @@ def test_motion_families_offered_for_the_firms_practice(firm):
     out = run("templates", "motion", "--client", firm.name)
     assert out["ok"] and [f["family"] for f in out["families"]] == ["flip"] and "journey" in out["not_for_this_practice"]
     assert len(run("templates", "motion")["families"]) == 4
+
+
+# ---- new-run fixes from the Alders & Lewellyn onboarding
+def test_third_party_logos_are_never_picked(monkeypatch):
+    from types import SimpleNamespace
+    from lrstudio import onboard
+    site = SimpleNamespace(url="https://aldersandlewellyn.com/", final_url="https://aldersandlewellyn.com/", logos=[
+        {"url": "https://cdn.trustindex.io/assets/platform/Google/logo.svg", "where": "page", "alt": "", "w": 120},
+        {"url": "https://aldersandlewellyn.com/wp-content/uploads/aldersandlewellyn-logo.png", "where": "header", "alt": "", "w": 400}])
+    fetched = []
+
+    def fake_download(url, referer=None):
+        fetched.append(url)
+        return (b"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'/>", "image/svg+xml") if url.endswith(".svg") else (b"PNG", "image/png")
+    monkeypatch.setattr(onboard, "download", fake_download)
+    best = onboard.pick_logo(site)
+    assert best["url"].endswith("aldersandlewellyn-logo.png") and not any("trustindex" in u for u in fetched)
+
+
+def test_small_text_reads_on_a_light_accent():
+    from lrstudio import theme
+    from lrstudio.extract import contrast
+    t = theme.treatments({"colors": {"ink": "#344952", "accent": "#C9A977", "paper": "#F4F4F4"}})["accent"]
+    assert contrast(t["fg"], "#C9A977") >= 4.5
+
+
+def test_kit_designs_are_read_right_when_packaging():
+    from lrstudio import deliver
+    posts = {"KIT", "PI-001", "DIR-A"}
+    assert deliver.parse_id("KIT-FB-fb-cover", posts) == ("KIT", "FB")
+    assert deliver.parse_id("KIT-LI-li-banner", posts) == ("KIT", "LI")
+    assert deliver.parse_id("DIR-A-A1-4x5", posts) == ("DIR-A", "A1")
+    assert deliver.parse_id("PI-001-A-4x5", posts) == ("PI-001", "A")
+
+
+def test_test_designs_never_use_unapproved_or_invented_lines(home):
+    from lrstudio import campaign as camp
+    run("client", "new", "https://alders-example.example/", "--manual", "--name", "Alders & Lewellyn, PLLC")
+    c = store.find("alders")
+    b = c.brand(); b["voice"] = {"tagline": "Alders & Lewellyn: Memphis Personal Injury Attorneys"}
+    write_json(c.brand_dir / "brand.json", b)
+    run("client", "set", "alders", "practice_area=Personal injury")
+    camp.directions(store.find("alders"))
+    text = json.dumps([read_json(f) for f in (c.campaigns_dir / "Test designs" / "posts").glob("DIR-*.json")])
+    for bad in ("Memphis Personal Injury Attorneys", "Our promise", "Straight answers", "Here when you need answers"):
+        assert bad not in text
+    assert "Do I need a lawyer after an accident?" in text

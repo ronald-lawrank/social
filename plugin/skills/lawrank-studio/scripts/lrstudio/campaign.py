@@ -279,12 +279,22 @@ def _default_copy(c: store.Client, b: dict, facts: dict) -> dict:
     area = (c.data.get("practice_area") or "").lower()
     city = (b.get("offices") or [{}])[0].get("city") or ""
     support = f"{area.capitalize()} lawyers" if area else "Lawyers"
-    tagline = (b.get("voice") or {}).get("tagline") or ("Clear answers about your legal options." if not area else f"{support} who listen.")
+    # the firm's tagline only when it's an approved fact; otherwise a vetted question for the practice area (never
+    # the page title, never an invented line)
+    tl = ((b.get("voice") or {}).get("tagline") or "").strip()
+    approved = next((k for k, f in facts.items() if f["usable"] and ((tl and tl.lower().rstrip(".") in f["text"].lower()) or k == "tagline")), None)
+    tagline = (tl if tl and approved != "tagline" else facts[approved]["text"].strip()) if approved else ""
+    sample = sample_copy(c.data.get("practice_area"))
     people = [p["name"] for p in b.get("people", [])]
     usable = {k: f for k, f in facts.items() if f["usable"]}
     years = next((f for f in usable.values() if f["category"] == "history" and re.search(r"\b(19|20)\d\d\b", f["text"])), None)
-    return {"tagline": tagline[:60], "area": area, "support": support, "city": city, "people": people, "years_fact": years,
-            "sample": sample_copy(c.data.get("practice_area"))}
+    return {"tagline": tagline, "tagline_fact": approved if tagline else None, "neutral": sample["faq"]["question"],
+            "area": area, "support": support, "city": city, "people": people, "years_fact": years, "sample": sample}
+
+
+def _headline(dc: dict, limit: int) -> str:
+    """The firm's approved tagline when it fits the slot whole; otherwise the practice's neutral question."""
+    return dc["tagline"] if dc["tagline"] and len(dc["tagline"]) <= limit else dc["neutral"]
 
 
 def directions(c: store.Client, only: str | None = None) -> dict:
@@ -303,7 +313,7 @@ def directions(c: store.Client, only: str | None = None) -> dict:
     for old in (d / "posts").glob("DIR-*.json"):          # a new round replaces the previous one
         old.unlink()
     loc = f" in {dc['city']}" if dc["city"] else ""
-    tagline_fact = next((k for k, f in facts.items() if f["category"] == "messaging" and f["usable"]), None)
+    tagline_fact = dc["tagline_fact"]
     area_fact = next((k for k, f in facts.items() if f["category"] == "services" and f["usable"]), None)
     base_facts = [k for k in (tagline_fact, area_fact) if k]
     made = []
@@ -314,21 +324,21 @@ def directions(c: store.Client, only: str | None = None) -> dict:
             if tpl == "poster" and not has_people:           # the poster needs the firm's people; type leads instead
                 tpl = "big-type"
             o = {"key": f"{k}{i + 1}", "template": tpl, "treatment": tr, "facts": base_facts,
-                 "caption": f"{dc['tagline']} Talk to our team{loc} today.", "alt": f"{b['name']} social post: {dc['tagline']}"}
+                 "caption": f"{_headline(dc, 200)} Talk to our team{loc} today.", "alt": f"{b['name']} social post: {_headline(dc, 200)}"}
             if tpl in ("photo-split", "poster", "statement"):
-                o["copy"] = {"label": "Meet the firm", "headline": dc["tagline"][:56], "support": f"{dc['support']}{loc}.",
+                o["copy"] = {"label": "Meet the firm", "headline": _headline(dc, 56), "support": f"{dc['support']}{loc}.",
                              "cta": consult_cta(facts)}
                 if tpl == "poster":
-                    o["copy"] = {"sticker": dc["city"] or "Local lawyers", "headline": dc["tagline"][:46], "support": f"{dc['support']}{loc}."}
+                    o["copy"] = {"sticker": dc["city"] or "Local lawyers", "headline": _headline(dc, 46), "support": f"{dc['support']}{loc}."}
             elif tpl == "portrait" and person:
                 o.update(photo=person)
-                o["copy"] = {"label": "Meet your lawyer", "headline": "Here when you need answers.", "name": pics[person].get("name") or "Our attorney", "role": "Attorney"}
+                o["copy"] = {"label": "Meet your lawyer", "headline": _headline(dc, 52), "name": pics[person].get("name") or "Our attorney", "role": "Attorney"}
             elif tpl == "proof-stat" and dc["years_fact"]:
                 yr = re.search(r"\b(19|20)\d\d\b", dc["years_fact"]["text"]).group(0)
                 o["facts"] = base_facts + [dc["years_fact"]["key"]]
                 o["copy"] = {"label": "Since " + yr, "stat": yr, "stat_caption": f"Serving clients{loc} since {yr}."}
             elif tpl == "proof-stat":
-                o["template"], o["copy"] = "statement", {"label": "Our promise", "headline": "Straight answers. Real attention.", "support": f"{dc['support']}{loc}."}
+                o["template"], o["copy"] = "statement", {"label": "Ask a lawyer", "headline": dc["neutral"], "support": f"{dc['support']}{loc}."}
             elif tpl == "faq":
                 o["copy"] = {"label": "Ask a lawyer", **dc["sample"]["faq"]}
             elif tpl == "icon-list":

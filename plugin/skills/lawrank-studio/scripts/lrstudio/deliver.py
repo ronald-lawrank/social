@@ -15,8 +15,12 @@ from . import spec, build as builder, campaign as camp, deck, figma_export, revi
 from .util import LRError, Lock, log, read_json, say, write_bytes
 
 
-def parse_id(did: str) -> tuple[str, str]:
-    """'PI-001-A-4x5' / 'DIR-A-A1-4x5' / 'PI-006-A-motion' -> (post id, option key)."""
+def parse_id(did: str, posts: set | None = None) -> tuple[str, str]:
+    """'PI-001-A-4x5' / 'DIR-A-A1-4x5' / 'KIT-FB-fb-cover' -> (post id, option key). Sizes and post ids can contain
+    dashes, so the post is matched against the campaign's post ids (as the build does) when they're given."""
+    post = builder.post_of(did, posts) if posts else None
+    if post:
+        return post, did[len(post) + 1:].split("-", 1)[0]
     post, key, _ = did.rsplit("-", 2)
     return post, key
 
@@ -29,6 +33,7 @@ def package(c: store.Client, campaign: str | None = None, month: int | None = No
              and (month is None or p.get("month") == month)]
     if not posts:
         raise LRError("Nothing written to package", fix="Build the campaign first (`lr build`).")
+    post_ids = {f.stem for f in (d / "posts").glob("*.json")}
     review_set = not any((p["id"], o["key"]) in approved for p in posts for o in p["options"])
     chosen = [(p, o) for p in posts for o in p["options"] if review_set or (p["id"], o["key"]) in approved]
     say(f"Packaging {len(chosen)} option(s){' (review set: nothing approved yet)' if review_set else ''} ...")
@@ -38,7 +43,7 @@ def package(c: store.Client, campaign: str | None = None, month: int | None = No
     # package what's ready; anything that still fails a check is left out and listed (never the whole package refused)
     left_out = {}
     for f in res.get("flagged") or []:
-        pid, key = parse_id(f["design"])
+        pid, key = parse_id(f["design"], post_ids)
         left_out.setdefault(f"{pid} {key}", f["fix"][:2])
     for pid, errs in (res.get("not_built") or {}).items():
         for p, o in chosen:
@@ -58,7 +63,7 @@ def package(c: store.Client, campaign: str | None = None, month: int | None = No
         buf = io.BytesIO(); rows = []
         with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
             for did, r in sorted(cache.items()):
-                pid, key = parse_id(did)
+                pid, key = parse_id(did, post_ids)
                 if (pid, key) not in keep:
                     continue
                 for im in r.get("images", []):
@@ -74,7 +79,7 @@ def package(c: store.Client, campaign: str | None = None, month: int | None = No
         # Figma plugin from the 4:5 (and kit/board) previews of the chosen options
         html = []
         for did, r in sorted(cache.items()):
-            if parse_id(did) in keep and r.get("html") and r.get("template") != "motion":
+            if parse_id(did, post_ids) in keep and r.get("html") and r.get("template") != "motion":
                 html.append((did, d / r["html"]))
         say(f"Exporting {len(html)} design(s) to Figma layers ...")
         made, not_made = {"posts": exports / f"{stem} - Posts.zip"}, {}
