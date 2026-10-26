@@ -60,7 +60,7 @@ def _summary_line(o: dict) -> str:
     return ""
 
 
-def update(c: store.Client, d: Path, built_posts: list[dict], designs: list[dict], notes: dict, repeats: list[str]) -> list[dict]:
+def update(c: store.Client, d: Path, notes: dict, repeats: list[str]) -> list[dict]:
     """Rewrite review.xlsx for every written post in the campaign, keeping reviewers' Status and Notes."""
     from openpyxl import Workbook
     from openpyxl.styles import Alignment, Font, PatternFill
@@ -213,7 +213,7 @@ def gallery(c: store.Client, d: Path, rows: list[dict]):
              f"<header><h1>{html.escape(c.name)}</h1><span class='sub'>{html.escape(d.name)} · {len(feed)} posts · "
              f"{sum(r['status'] == 'Approved' for r in rows)} approved options</span>"
              "<nav class='tabs'><a href='#posts' data-t='posts'>Posts</a>"
-             + (f"<a href='#kit' data-t='kit'>Profile &amp; covers</a>" if kit else "")
+             + ("<a href='#kit' data-t='kit'>Profile &amp; covers</a>" if kit else "")
              + "<a href='#design' data-t='design'>Design</a></nav>"
              "<div class='filters'><button class='on' data-m='all'>All</button>"
              + "".join(f"<button data-m='{m}'>Month {m}</button>" for m in months if m) + "</div></header>"]
@@ -248,8 +248,7 @@ def _design(c: store.Client, d: Path) -> tuple[str, str]:
     """The Design tab (never stops the gallery: a problem shows as a note in the tab)."""
     try:
         from . import design_guide, render
-        css, _ = render._font_assets(c.brand(), d / "previews")
-        css = css.replace("url('assets/fonts/", "url('previews/assets/fonts/")
+        css, _ = render._font_assets(c.brand(), d / "previews", prefix="previews/assets/fonts/")
         return design_guide.render(c, d, css)
     except Exception as e:
         from .util import log_error

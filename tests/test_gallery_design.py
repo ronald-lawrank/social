@@ -1,6 +1,5 @@
 """Gallery tabs (Posts | Profile & covers | Design), the build record surviving partial builds, client-appropriate
 board copy, short names and practice-specific plans."""
-import json
 import re
 from pathlib import Path
 
@@ -75,7 +74,7 @@ def test_gallery_has_posts_kit_and_design_tabs(mcminn):
 
 
 def test_board_and_guide_copy_fit_the_practice_and_the_approvals(home):
-    out = run("client", "new", "https://carrasco-family.example/", "--manual", "--name", "The Law Office of Ben Carrasco, PLLC")
+    run("client", "new", "https://carrasco-family.example/", "--manual", "--name", "The Law Office of Ben Carrasco, PLLC")
     c = store.find("carrasco")
     assert c.brand()["short"] == "Ben Carrasco"
     run("client", "set", "carrasco", "practice_area=Family law")
@@ -107,3 +106,13 @@ def test_practice_plans_plug_in(home):
     out = run("campaign", "new", "doe", "--name", "Family plan")
     assert out["plan"] == "six_month_plan_family-law.csv" and "plan_note" not in out and out["posts"] == 3
     assert read_json(Path(out["folder"]) / "posts" / "PI-001.json")["topic"] == "Divorce basics"
+
+
+def test_test_designs_use_approved_or_neutral_copy_only(mcminn):
+    run("directions", "mcminn")
+    opts = [o for f in sorted((mcminn.campaigns_dir / "Test designs" / "posts").glob("DIR-*.json")) for o in read_json(f)["options"]]
+    heads = {o["copy"].get("headline") for o in opts if o["copy"].get("headline")}
+    assert "Helping the Injured Get Justice." in heads                       # the firm's approved tagline fact
+    assert all("tagline" in o["facts"] for o in opts if o["copy"].get("headline") == "Helping the Injured Get Justice.")
+    assert not any(h in str(opts) for h in ("Our promise", "Straight answers", "Here when you need answers"))
+    assert not any(o["copy"].get("cta") == "Free consultation" for o in opts)  # McMinn's fees fact isn't approved

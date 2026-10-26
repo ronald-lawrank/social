@@ -1,13 +1,11 @@
 """Step 3: templates render, and the checks catch what they should (on synthetic frames and on real renders)."""
 import json
-import shutil
 from pathlib import Path
 
-import numpy as np
 import pytest
 from PIL import Image
 
-from lrstudio import checks, photos, render, store, templates, theme
+from lrstudio import checks, render, store, templates, theme
 from lrstudio.extract import contrast
 
 MCMINN_OLD = Path("/home/user/lawrank-creative-studio/engine/template/clients/mcminn")

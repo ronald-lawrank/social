@@ -1,6 +1,5 @@
 """Install and check this laptop's tools: Python packages, Chromium, Node packages (HyperFrames, GSAP), ffmpeg,
 the face and voice models, and the link to the shared Drive folder."""
-import json
 import os
 import shutil
 import subprocess

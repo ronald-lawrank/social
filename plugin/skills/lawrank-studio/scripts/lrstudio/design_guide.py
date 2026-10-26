@@ -65,16 +65,12 @@ CSS = """
 
 
 def _rel(path: Path, start: Path) -> str:
-    import os
-    return Path(os.path.relpath(path, start)).as_posix()
+    return Path(templates._relpath(path, start)).as_posix()
 
 
 def _accent(text: str, phrase: str, color: str) -> str:
-    t = e(text)
-    if phrase and phrase.lower() in text.lower():
-        i = text.lower().index(phrase.lower())
-        t = e(text[:i]) + f"<span style='color:{color}'>" + e(text[i:i + len(phrase)]) + "</span>" + e(text[i + len(phrase):])
-    return t
+    """The headline with its accent phrase in `color` (the same filter the templates use)."""
+    return str(templates.accent(text, phrase)).replace('<span class="acc">', f"<span style='color:{color}'>")
 
 
 def _squash(t: str) -> str:

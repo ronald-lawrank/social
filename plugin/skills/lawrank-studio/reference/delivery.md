@@ -6,9 +6,10 @@ Every build updates `campaigns/<campaign>/index.html`, a gallery in three tabs:
 - **Profile & covers:** the profile pictures, Facebook cover, LinkedIn banner and highlight covers.
 - **Design:** the client's design guide (direction, logo rules, colours with contrast, typography,
   treatments, photos, formats, voice and claims awaiting approval). Link straight to it with
-  `index.html#design`; it's a good thing to send a new designer or the client. Share it as a Drive link (the file is in the
-shared folder). Reviewers set Status (Draft, Approved, Changes requested or Rejected) and Notes in
-`review.xlsx`, which opens in Google Sheets.
+  `index.html#design`; it's a good thing to send a new designer or the client.
+
+Share the gallery as a Drive link (the file is in the shared folder). Reviewers set Status (Draft,
+Approved, Changes requested or Rejected) and Notes in `review.xlsx`, which opens in Google Sheets.
 
 ## Packaging
 `lr package "<client>" [--month N] [--campaign "<name>"]` takes about 10 seconds when the designs

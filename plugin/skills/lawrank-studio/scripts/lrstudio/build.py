@@ -99,7 +99,7 @@ def build(c: store.Client, campaign: str | None = None, month: int | None = None
             x.setdefault("result", by_id.get(x["id"], {}))
         # test directions deliberately share messages so the looks can be compared
         repeats = [] if d.name == "Test designs" else library.repeats(c, d, static_posts)
-        rows = review.update(c, d, static_posts, designs, compliance_notes, repeats)
+        rows = review.update(c, d, compliance_notes, repeats)
         flagged = [x for x in designs if any(i["level"] == "block" for i in x["result"].get("issues", []))]
         sheet = review.flagged_sheet(d, flagged) if flagged else None
         review.gallery(c, d, rows)

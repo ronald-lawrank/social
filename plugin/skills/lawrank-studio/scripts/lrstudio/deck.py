@@ -15,14 +15,14 @@ def _rgb(hexc):
 def build_deck(c, d: Path, brand: dict, groups: list[dict], confirm: list[str], out: Path, title: str) -> Path:
     """groups: [{"title", "subtitle", "images": [paths], "captions": [str], "notes": str}] one slide each."""
     from pptx import Presentation
-    from pptx.util import Emu, Inches, Pt
+    from pptx.util import Inches, Pt
     from PIL import Image
     prs = Presentation()
     prs.slide_width, prs.slide_height = Inches(13.333), Inches(7.5)
     blank = prs.slide_layouts[6]
-    ink, accent, paper = brand["colors"]["ink"], brand["colors"]["accent"], brand["colors"].get("paper", "#F5F5F5")
+    ink, accent = brand["colors"]["ink"], brand["colors"]["accent"]
     head = brand["fonts"]["head"]["family"]; body = brand["fonts"]["body"]["family"]
-    W, H = prs.slide_width, prs.slide_height
+    W = prs.slide_width
     tmp = Path(tempfile.mkdtemp(prefix="lr-deck-"))
 
     def small(p):

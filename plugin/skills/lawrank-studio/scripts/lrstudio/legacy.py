@@ -1,6 +1,5 @@
 """`lr client import <folder>`: bring a client over from the old LawRank template (clients/<slug>/ with brand.json,
 content.json and assets/). Logos, photos (with their people boxes), colours, fonts and facts carry over."""
-import json
 import shutil
 from pathlib import Path
 

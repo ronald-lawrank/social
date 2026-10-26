@@ -1,8 +1,6 @@
 """Replay exported Figma layers as HTML (absolute boxes, the same fonts) and compare with the original render.
 A close match means the plugin will place every layer where the design has it."""
-import base64
 import html
-import json
 
 
 def _css(c):
@@ -26,7 +24,7 @@ def frame_html(frame: dict, images: dict, font_css: str) -> str:
         elif l["type"] == "svg":
             parts.append(f"<div style='{pos}'>{l['svg']}</div>")
         elif l["type"] == "text":
-            spans, last = [], 0
+            spans = []
             for r in l["runs"]:
                 spans.append(f"<span style='color:{_css(r['color'])}'>{html.escape(l['chars'][r['start']:r['end']])}</span>")
             body = "".join(spans).replace("\n", "<br>") if spans else html.escape(l["chars"])

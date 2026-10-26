@@ -1,5 +1,4 @@
 """Things going wrong on purpose: every command should finish with what it could do and say plainly what it couldn't."""
-import json
 import time
 import urllib.error
 from pathlib import Path

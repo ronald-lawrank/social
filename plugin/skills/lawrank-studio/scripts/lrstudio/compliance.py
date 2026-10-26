@@ -44,7 +44,6 @@ def lint(option: dict, facts: dict, template_meta: dict) -> list[dict]:
     add = lambda level, rule, msg: out.append({"level": level, "rule": rule, "msg": msg})
     cited = [facts[k] for k in option.get("facts", []) if k in facts]
     cited_text = " ".join(f["text"] for f in cited).lower()
-    approved = lambda cats: any(f["category"] in cats and f["usable"] for f in cited)
     all_text = " ".join(t for _, t in texts(option))
 
     for path, t in texts(option):

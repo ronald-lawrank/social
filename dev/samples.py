@@ -35,7 +35,7 @@ def main():
 
 def sheet(out, res, width=2400):
     from PIL import Image, ImageDraw
-    rows, row, x, h = [], [], 0, 0
+    rows, row, x = [], [], 0
     thumbs = []
     for r in res:
         for p in r["images"]:

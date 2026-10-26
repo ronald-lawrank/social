@@ -41,8 +41,9 @@ MEASURE_JS = r"""() => {
 }"""
 
 
-def _font_assets(brand: dict, previews: Path) -> tuple[str, list[str]]:
-    """Copy the brand font files next to the previews and return @font-face CSS with relative URLs."""
+def _font_assets(brand: dict, previews: Path, prefix: str = "assets/fonts/") -> tuple[str, list[str]]:
+    """Copy the brand font files next to the previews and return @font-face CSS with relative URLs (from the previews
+    folder by default; the gallery one level up passes prefix="previews/assets/fonts/")."""
     css, notes = fonts.face_css(brand)
     adir = previews / "assets" / "fonts"
     adir.mkdir(parents=True, exist_ok=True)
@@ -52,7 +53,7 @@ def _font_assets(brand: dict, previews: Path) -> tuple[str, list[str]]:
         dst = adir / src.name
         if not dst.exists() or dst.stat().st_size != src.stat().st_size:
             shutil.copy(src, dst)
-        return f"url('assets/fonts/{src.name}')"
+        return f"url('{prefix}{src.name}')"
     import re
     return re.sub(r"url\('file://([^']+)'\)", localize, css), notes
 

@@ -1,11 +1,10 @@
 """`lr client new <website>`: read the firm's site once and save everything the studio needs to remember."""
 import datetime as dt
 import re
-from pathlib import Path
 
 from . import extract, logos, photos, store
 from .crawl import SiteBlocked, crawl, download
-from .util import LRError, log, read_json, say, slugify, write_bytes, write_json, write_text
+from .util import LRError, log, say, slugify, write_bytes, write_json, write_text
 
 DEFAULT_BRAND = {
     "colors": {"ink": "#1B1C1E", "accent": "#B5121B", "paper": "#F5F5F2", "muted": "#6C7C86", "body": "#4B5660", "line": "#D9DCDF"},

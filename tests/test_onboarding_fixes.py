@@ -6,7 +6,6 @@ import re
 import ssl
 import urllib.error
 
-import pytest
 
 from lrstudio import campaign, extract, fonts, logos, paths, photos, render, util
 

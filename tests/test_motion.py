@@ -1,6 +1,5 @@
 """Step 5: motion storyboards -> voiced preview -> MP4 only after approval."""
 import json
-import shutil
 import subprocess
 from pathlib import Path
 
@@ -8,7 +7,7 @@ import pytest
 from openpyxl import load_workbook
 
 from conftest import run
-from lrstudio import motion, store, tools
+from lrstudio import motion, tools
 from lrstudio.util import read_json, write_json
 
 MCMINN_OLD = Path("/home/user/lawrank-creative-studio/engine/template/clients/mcminn")

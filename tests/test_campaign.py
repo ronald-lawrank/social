@@ -1,5 +1,4 @@
 """Step 4: plan -> specs -> build -> review sheet -> approvals -> library; compliance and spec validation."""
-import json
 from pathlib import Path
 
 import pytest
