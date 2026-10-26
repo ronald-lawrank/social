@@ -12,7 +12,8 @@
   <div class="safe" style="left:{{S.safe[3]}}px;right:{{S.safe[1]}}px;top:{{ (ph - 40) if key else S.safe[0] }}px;bottom:{{S.safe[2]}}px">
     {% if not key %}{{ logo(240, treatment='dark') }}<div class="grow"></div>{% endif %}
     {% if cv.get('label') %}<div class="label" data-slot="cover_label" data-role="label">{{ cv.label }}</div>{% endif %}
-    <div class="{{ 'h1' if key else 'display' }}" data-slot="cover_headline" data-role="headline" style="margin-top:20px">{{ cv.headline|accent(cv.get('accent')) }}</div>
+    {% set hl = (cv.get('headline') or '')|length %}
+    <div class="{{ 'h1' if key else 'display' }}" data-slot="cover_headline" data-role="headline" style="margin-top:20px;{% if not key and S.key != '1x1' %}font-size:{{ 148 if hl <= 28 else (132 if hl <= 40 else 116) }}px{% endif %}">{{ cv.headline|accent(cv.get('accent')) }}</div>
     <div class="grow"></div>
     <div class="footer">{% if key %}{{ logo(210, 'white') }}{% else %}<div></div>{% endif %}{{ swipe() }}</div>
   </div>

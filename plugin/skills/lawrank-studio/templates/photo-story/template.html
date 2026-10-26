@@ -5,7 +5,9 @@
 {{ cp.photo_cover(c.get('cover', {}), cover_key) }}
 {% for s in slides %}
   {% set tr = ['dark', 'accent'][loop.index0 % 2] %}
-  {% set key = s.get('photo') or (cycle[loop.index0 % cycle|length] if cycle else None) %}
+  {# fewer photos than slides: photos on alternate slides, type-only slides between (no repeated faces) #}
+  {% set spread = cycle and cycle|length < slides|length %}
+  {% set key = s.get('photo') or (None if not cycle else ((cycle[loop.index0 // 2] if loop.index0 % 2 == 0 and loop.index0 // 2 < cycle|length else None) if spread else cycle[loop.index0])) %}
   {% set side = key and photo_kind(key) == 'person' %}{% set sx = 600 if S.key == '1x1' else 580 %}
   {% set ph = (S.h * 0.44)|int %}
   {{ frame(tr, slide=loop.index + 1) }}
@@ -17,16 +19,16 @@
       {{ shade(0, ph - 190, S.w, 192, 'to bottom', color=themes[tr].bg) }}
     {% endif %}
     <div class="safe" style="left:{{S.safe[3]}}px;{{ ('width:' ~ (sx - S.safe[3] - 60) ~ 'px') if side else 'right:' ~ S.safe[1] ~ 'px' }};top:{{ (ph + 18) if key and not side else S.safe[0] }}px;bottom:{{S.safe[2]}}px">
-      {% if side %}{{ logo(200, treatment=tr) }}<div class="grow"></div>{% endif %}
+      {% if side or not key %}{{ logo(200, treatment=tr) }}<div class="grow"></div>{% endif %}
       {% if not key and d.get('big_words', True) == False %}<div class="badge" style="width:120px;height:120px">{{ icon(s.get('icon', 'check'), 60, 2.2) }}</div>{% endif %}
       {% if s.get('big') and d.get('big_words', True) %}
         <div class="word {{ 'small-word' if key else '' }}" data-slot="big{{loop.index}}" data-role="headline">{{ s.big }}</div>
       {% elif key and s.get('icon') %}
         <div class="badge" style="width:110px;height:110px">{{ icon(s.icon, 56, 2.2) }}</div>
       {% endif %}
-      {% if not key %}<div class="grow"></div>{% endif %}
-      <div class="h2" data-slot="title{{loop.index}}" data-role="headline" style="margin-top:30px">{{ s.title }}</div>
-      {% if s.get('text') %}<div class="body" data-slot="text{{loop.index}}" data-role="body" style="margin-top:20px">{{ s.text|br }}</div>{% endif %}
+      {% if not key %}<div class="rule" style="margin-top:44px"></div>{% endif %}
+      <div class="{{ 'h1' if not key else 'h2' }}" data-slot="title{{loop.index}}" data-role="headline" style="margin-top:{{ 34 if not key else 30 }}px">{{ s.title }}</div>
+      {% if s.get('text') %}<div class="{{ 'lead' if not key else 'body' }}" data-slot="text{{loop.index}}" data-role="body" style="margin-top:20px">{{ s.text|br }}</div>{% endif %}
       <div class="grow"></div>
     </div>
   </div>

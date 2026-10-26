@@ -3,3 +3,6 @@
 .check-row { display: flex; gap: 26px; align-items: flex-start; }
 .check-row .box { flex: none; width: 60px; height: 60px; border-radius: min(var(--radius), 10px); display: grid; place-items: center;
                   background: var(--acc); color: var(--bg); margin-top: 2px; }
+.check-row.big { gap: 32px; }
+.check-row.big .box { width: 76px; height: 76px; margin-top: 4px; }
+.checks:has(.big) { gap: 44px; }

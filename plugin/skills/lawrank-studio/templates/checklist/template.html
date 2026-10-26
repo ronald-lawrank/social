@@ -12,8 +12,9 @@
       <div class="h1" data-slot="group{{loop.index}}" data-role="headline" style="margin-top:40px">{{ g.title }}</div>
       <div class="checks">
         {% set gi = loop.index %}
+        {% set few = g.get('items', [])|length <= 3 and S.key != '1x1' %}{# few items: larger, so the slide is filled #}
         {% for it in g.get('items', [])[:4] %}
-        <div class="check-row"><span class="box">{{ icon('check', 34, 3) }}</span><div class="h3 check-text" data-slot="g{{gi}}i{{loop.index}}" data-role="subhead">{{ it }}</div></div>
+        <div class="check-row{{ ' big' if few }}"><span class="box">{{ icon('check', 40 if few else 34, 3) }}</span><div class="{{ 'h2' if few else 'h3' }} check-text" data-slot="g{{gi}}i{{loop.index}}" data-role="subhead">{{ it }}</div></div>
         {% endfor %}
       </div>
       <div class="grow"></div>
