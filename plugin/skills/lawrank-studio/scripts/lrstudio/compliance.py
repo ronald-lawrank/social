@@ -10,7 +10,10 @@ DISCLAIMER = "Past results do not guarantee future outcomes."
 GUARANTEE = re.compile(r"\b(guarantee[ds]?|guaranteeing|promise[sd]? (?:you|to win|results)|100% (?:success|win)|will win|we always win|never lose)\b", re.I)
 SUPERLATIVE = re.compile(r"\b(the best|best (?:lawyers?|attorneys?|firm)|#\s?1|number one|no\. ?1|top[- ]rated|leading|premier|unmatched|unbeatable)\b", re.I)
 EXPERT = re.compile(r"\b(experts?|specialists?|speciali[sz]e[sd]?|speciali[sz]ing|certified)\b", re.I)
-RESULTS = re.compile(r"\$\s?\d|\b\d[\d,.]*\s?(million|billion|thousand)\b|\b(verdicts?|settlements?|recovered|won\b|awarded)\b", re.I)
+# A result is money, or the firm saying it won/recovered something. Educational words alone ("many claims end in a
+# settlement", "a jury verdict") are not results.
+RESULTS = re.compile(r"\$\s?\d|\b\d[\d,.]*\s?(million|billion)\b|\b(we|our (?:firm|team|attorneys?|lawyers?|clients?))\b[^.!?]{0,40}?"
+                     r"\b(won|recovered|secured|obtained|awarded|verdicts?|settlements?)\b", re.I)
 FEES = re.compile(r"\b(no fees?|free|don'?t pay|pay nothing|no cost|no charge|no upfront)\b", re.I)
 NUMBER = re.compile(r"(?<![\w$])(\d[\d,.]*\+?)")
 OK_NUMBERS = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "24/7", "911", "101"}     # list counts, steps, 911, "Injury law 101"
@@ -60,15 +63,21 @@ def lint(option: dict, facts: dict, template_meta: dict) -> list[dict]:
                     continue
                 if n0 not in cited_text and n0.replace(",", "") not in cited_text.replace(",", ""):
                     add("block", "unverified", f"{path}: the number '{n0}' isn't in any fact this option cites; cite the fact or remove it")
-    if RESULTS.search(all_text):
-        if not approved({"results", "imported"}) and not any(f["category"] == "results" for f in cited):
-            add("block", "results", "mentions results/money but cites no results fact")
-        elif any(f["category"] == "results" and not f["usable"] for f in cited):
+    is_result = lambda f: f["category"] == "results" or (f["category"] == "imported" and RESULTS.search(f["text"]))
+    hits = [(path, RESULTS.search(t).group(0)) for path, t in texts(option) if RESULTS.search(t)]
+    if hits:
+        where = "; ".join(f"{p}: '{m}'" for p, m in hits[:3])
+        if not any(is_result(f) for f in cited):
+            add("block", "results", f"{where} reads as a case result but cites no results fact: cite the approved result, or reword "
+                                    "(general education like 'many claims settle' is fine)")
+        elif any(is_result(f) and not f["usable"] for f in cited):
             add("warn", "approval", "cites a result the firm hasn't approved yet (check before posting)")
         if DISCLAIMER.lower()[:30] not in all_text.lower():
-            add("block", "disclaimer", f"results need the disclaimer: add \"{DISCLAIMER}\" (copy.disclaimer or the caption)")
-    if FEES.search(all_text) and not any(f["category"] in ("fees", "imported") for f in cited):
-        add("warn", "fees", f"'{FEES.search(all_text).group(0)}' is a fee/service promise: cite the firm's fee fact")
+            add("block", "disclaimer", f"{where} is a result, so add \"{DISCLAIMER}\" (copy.disclaimer or the caption)")
+    m = FEES.search(all_text)
+    if m and not any(f["category"] in ("fees", "imported") and f["usable"] for f in cited) \
+            and not any(m.group(0).lower() in f["text"].lower() and f["usable"] for f in cited):
+        add("warn", "fees", f"'{m.group(0)}' is a fee/service promise: cite the firm's approved fee fact, or quote a usable fact that says it")
     if template_meta.get("compliance") == "testimonial" or option.get("copy", {}).get("quote"):
         if not any(f["category"] in ("testimonial", "reviews", "imported") for f in cited):
             add("block", "testimonial", "a client quote must cite the testimonial fact it comes from (verbatim, with consent)")

@@ -100,8 +100,7 @@ def build(c: store.Client, campaign: str | None = None, month: int | None = None
     out = {"client": c.name, "campaign": d.name, "built": len(designs), "redrawn": sum(1 for r in results if not r.get("cached")),
            "flagged": [{"design": x["id"], "fix": [i["msg"] for i in x["result"]["issues"] if i["level"] == "block"][:4]} for x in flagged][:20],
            "not_built": {k: v[:6] for k, v in problems.items()},
-           "check_before_posting": {f"{pid} {k}": [i["msg"] for i in iss if i["level"] == "warn"][:3]
-                                    for pid, opts in compliance_notes.items() for k, iss in opts.items() if any(i["level"] == "warn" for i in iss)},
+           "check_before_posting": _to_confirm(written, compliance_notes),
            "repeats": repeats[:8], "status": status,
            "gallery": str(d / "index.html"), "review_sheet": str(d / "review.xlsx")}
     if sheet:
@@ -116,6 +115,17 @@ def build(c: store.Client, campaign: str | None = None, month: int | None = None
         out["motion_previews"] = [str(d / "previews" / f"{p['id']}-{o['key']}-motion.html") for p in motion_posts if p["id"] not in problems for o in p["options"]]
         out["motion_note"] = "Previews play in a browser with sound. MP4s are rendered after approval with `lr video`."
     out["ok"] = not problems and not flagged
+    return out
+
+
+def _to_confirm(posts: list[dict], notes: dict) -> dict:
+    """Per option: compliance warnings plus the `confirm` lines the writer added, for the firm to check."""
+    out = {}
+    for p in posts:
+        for o in p.get("options", []):
+            items = [i["msg"] for i in (notes.get(p["id"]) or {}).get(o.get("key"), []) if i["level"] == "warn"] + list(o.get("confirm") or [])
+            if items:
+                out[f"{p['id']} {o.get('key')}"] = items[:4]
     return out
 
 

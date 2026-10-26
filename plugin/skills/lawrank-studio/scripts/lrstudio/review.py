@@ -79,7 +79,7 @@ def update(c: store.Client, d: Path, built_posts: list[dict], designs: list[dict
             res = [cache[k] for k in sorted(ids)]
             blocking = [i["msg"] for r in res for i in r.get("issues", []) if i["level"] == "block"]
             warn = [i["msg"] for r in res for i in r.get("issues", []) if i["level"] == "warn"]
-            confirm = [i["msg"] for i in comp.get(o["key"], []) if i["level"] == "warn"]
+            confirm = [i["msg"] for i in comp.get(o["key"], []) if i["level"] == "warn"] + list(o.get("confirm") or [])
             rep = [r for r in repeats if r.startswith(f"{p['id']} {o['key']}")]
             v = version(o)
             old = prev.get((p["id"], o["key"]), {})
@@ -128,6 +128,8 @@ def status(d: Path, rows: list[dict]) -> dict:
     s = {"posts": total, "written": len(posts), "options": len(rows), "approved_options": sum(r["status"] == "Approved" for r in rows),
          "posts_with_an_approved_option": len(approved_posts), "changes_requested": sum(r["status"] == "Changes requested" for r in rows),
          "needs_fixing": sum(bool(r["blocking"]) for r in rows)}
+    if s["needs_fixing"]:
+        s["fix_list"] = [f"{r['post']} {r['option']}" for r in rows if r["blocking"]][:12]
     write_json(d / "status.json", s)
     return s
 

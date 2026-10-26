@@ -27,7 +27,7 @@ def client_summary(c: store.Client) -> dict:
     return {
         "client": c.name, "folder": str(c.dir), "website": c.data.get("domain"),
         "practice_area": c.data.get("practice_area"), "package": c.data.get("package"),
-        "direction": c.data.get("direction"), "status": c.data.get("status"),
+        "direction": _direction(c.data.get("direction")), "status": c.data.get("status"),
         "brand": {"colors": b.get("colors"), "fonts": {k: v.get("family") for k, v in (b.get("fonts") or {}).items()},
                   "cta": b.get("cta"), "logo": (b.get("logo") or {}).get("status"), "reliable": b.get("reliable")},
         "voice": b.get("voice"),
@@ -42,6 +42,16 @@ def client_summary(c: store.Client) -> dict:
         "warnings": b.get("warnings", []),
         "board": str(c.brand_dir / "board" / "board.html") if (c.brand_dir / "board" / "board.html").exists() else None,
     }
+
+
+def _direction(k):
+    """The chosen test-design direction spelled out, so writing can follow it."""
+    from .campaign import DIRECTIONS
+    d = DIRECTIONS.get((k or "").upper())
+    if not d:
+        return k
+    return {"key": k.upper(), "name": d["name"], "why": d["why"],
+            "templates_and_treatments": [f"{t} ({tr})" for t, tr in d["set"]]}
 
 
 def set_fields(c: store.Client, pairs: list[str]) -> dict:

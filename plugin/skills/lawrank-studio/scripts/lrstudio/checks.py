@@ -92,7 +92,7 @@ def check_frame(f: dict, png_path) -> list[dict]:
                 continue
             # a frame edge just under the chin leaves a floating head: cut lower (mid-chest) or show less
             chin = face[1] + face[3]
-            if ph["heads_whole"] and chin - 2 < cy + ch < chin + 0.75 * face[3] and not ph.get("portrait"):
+            if ph["heads_whole"] and chin - 2 < cy + ch < chin + 0.35 * face[3] and not ph.get("portrait"):   # head box is padded; neck ≈ 1/3 head below the chin
                 add("people", "block", f"photo '{ph['key']}': person {n} is cut at the neck", face)
             for name, box in texty:
                 if _inter(face, box) > 0.02 * face[2] * face[3]:

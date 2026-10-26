@@ -180,3 +180,34 @@ def test_slot_rules_for_carousels():
     spec.check_slots({"cover": {"headline": "ok"}, "slides": [{"title": "a" * 50}], "close": {"headline": "x"}}, meta["slots"], "copy", errs)
     joined = " ".join(errs)
     assert "copy.slides needs at least 3" in joined and "copy.slides[0].title is 50 characters" in joined
+
+
+def test_educational_words_are_not_results():
+    assert not any(i["rule"] in ("results", "disclaimer") for i in lint({"answer": "Many claims are resolved through a settlement; some reach a jury verdict."}))
+    hit = [i for i in lint({"headline": "Our team recovered a settlement for a family."}) if i["rule"] == "results"]
+    assert hit and "copy.headline" in hit[0]["msg"] and "recovered" in hit[0]["msg"]
+
+
+def test_quoting_a_usable_fact_with_free_is_not_a_fee_warning():
+    facts = dict(FACTS, contact={"text": "Call or use the free case evaluation form.", "category": "contact", "usable": True, "status": "usable"})
+    iss = compliance.lint({"copy": {"support": "Use the free case evaluation form."}, "facts": ["contact"], "caption": "x"}, facts, META)
+    assert ("fees", "warn") not in levels(iss)
+
+
+def test_confirm_lines_reach_the_reviewer(client):
+    run("campaign", "new", "mcminn")
+    d = write_post(client, "PI-001", [good_option("A", confirm=["The firm's founding year"])])
+    out = run("build", "mcminn", "--post", "PI-001")
+    assert "The firm's founding year" in out["check_before_posting"]["PI-001 A"]
+    ws = load_workbook(d / "review.xlsx").active
+    assert any("founding year" in str(r[10].value) for r in ws.iter_rows(min_row=2))
+
+
+def test_package_upgrade_adds_posts_and_motion(client):
+    out = run("campaign", "new", "mcminn")
+    write_post(client, "PI-001", [good_option("A")])
+    run("client", "set", "mcminn", "package=authority")
+    up = run("campaign", "update", "mcminn")
+    assert len(up["added"]) == 18 and "PI-006" in up["added"]
+    assert read_json(Path(out["folder"]) / "posts" / "PI-006.json")["format"] == "motion"
+    assert read_json(Path(out["folder"]) / "posts" / "PI-001.json")["options"]          # written posts untouched

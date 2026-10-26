@@ -61,6 +61,7 @@ def detail(name: str) -> dict:
     ex = next((d / name / "example.json" for d in paths.template_dirs() if (d / name / "example.json").exists()), None)
     return {"name": name, **{k: m.get(k) for k in ("label", "format", "use_for", "photo", "sizes", "treatment", "slots", "options", "compliance") if m.get(k) is not None},
             "example": json.loads(ex.read_text()) if ex else None,
+            **({"icons": sorted(f.stem for f in ICON_DIR.glob("*.svg"))} if "icon" in json.dumps(m.get("slots", {})) + json.dumps(m.get("options") or {}) else {}),
             "note": "The example's photo keys belong to a test client: use this client's keys from `lr client show`."}
 
 

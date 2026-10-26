@@ -89,7 +89,7 @@ def test_show_and_set(home, site_url, private_ok):
     out = run("client", "set", "harbor", "direction=B", "brand.colors.accent=#B08030", "brand.voice.notes+=Plain-spoken, warm")
     assert out["ok"]
     s = run("client", "show", "harbor vale")
-    assert s["direction"] == "B" and s["brand"]["colors"]["accent"] == "#B08030" and s["voice"]["notes"] == ["Plain-spoken, warm"]
+    assert s["direction"]["key"] == "B" and s["direction"]["name"] == "Bold type" and s["brand"]["colors"]["accent"] == "#B08030" and s["voice"]["notes"] == ["Plain-spoken, warm"]
     assert len(json.dumps(s)) < 6000      # small enough to read every session
 
 

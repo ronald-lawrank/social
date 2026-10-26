@@ -59,6 +59,48 @@ def _included(included_in: str, package: str) -> bool:
     return "all" in t or not t.strip() or package in t
 
 
+def _post_from_row(r: dict, authority: bool) -> dict:
+    motion = r["Proposed format"] in MOTION_SLOTS and authority
+    post = {"id": r["Post ID"], "month": int(r["Month"]), "week": int(r["Week"]), "monthly_focus": r["Monthly focus"],
+            "slot_type": r["Post type"], "topic": r["Topic / assignment"], "format": "motion" if motion else r["Build as"],
+            "plan": {"topic_as_written": r["Topic / assignment"], "included_in": r["Included in"],
+                     "info_needed": r["Information needed"], "angles": r["Post ideas / possible angles"],
+                     "fallback": r["Production notes / fallback"], "needs_client_info": r["Client info needed?"]},
+            "suggested_templates": [] if motion else [t for t in SUGGEST.get(r["Post type"], ["statement", "photo-story"])
+                                                       if (r["Build as"] == "carousel") == (t in ("photo-story", "big-type", "checklist"))]
+            or SUGGEST.get(r["Post type"], []),
+            "options": []}
+    return post
+
+
+def update_campaign(c: store.Client, campaign: str | None = None, plan: str = "six-month") -> dict:
+    """After a package change: add the plan posts the package now includes and turn unwritten motion slots into motion
+    (Authority). Written posts are never changed; posts the package no longer includes are listed, not deleted."""
+    d = campaign_dir(c, campaign)
+    pkg = c.data.get("package") or "growth"
+    authority = pkg == "authority"
+    rows = plan_rows(plan)
+    have = {f.stem: f for f in (d / "posts").glob("*.json")}
+    added, converted, extra = [], [], []
+    for r in rows:
+        pid = r["Post ID"]
+        inc = _included(r.get("Included in", ""), pkg)
+        if inc and pid not in have:
+            write_json(d / "posts" / f"{pid}.json", _post_from_row(r, authority)); added.append(pid)
+        elif pid in have:
+            p = read_json(have[pid]) or {}
+            if not inc:
+                extra.append(pid)
+            elif not p.get("options"):
+                fresh = _post_from_row(r, authority)
+                if fresh["format"] != p.get("format"):
+                    write_json(have[pid], fresh); converted.append(pid)
+    log(c.dir, f"campaign update {d.name}: +{len(added)} posts, {len(converted)} reformatted")
+    return {"campaign": d.name, "package": pkg, "added": added, "now_motion" if authority else "now_carousel": converted,
+            "not_in_package": extra,
+            "note": "Posts already written were left as they are." + (" `not_in_package` posts stay unless you delete them." if extra else "")}
+
+
 def new_campaign(c: store.Client, name: str | None = None, plan: str = "six-month", start: str | None = None) -> dict:
     start = start or dt.date.today().strftime("%Y-%m")
     if not re.fullmatch(r"\d{4}-\d{2}", start):
@@ -72,16 +114,7 @@ def new_campaign(c: store.Client, name: str | None = None, plan: str = "six-mont
     authority = pkg == "authority"
     (d / "posts").mkdir(parents=True)
     for r in rows:
-        motion = r["Proposed format"] in MOTION_SLOTS and authority
-        post = {"id": r["Post ID"], "month": int(r["Month"]), "week": int(r["Week"]), "monthly_focus": r["Monthly focus"],
-                "slot_type": r["Post type"], "topic": r["Topic / assignment"], "format": "motion" if motion else r["Build as"],
-                "plan": {"topic_as_written": r["Topic / assignment"], "included_in": r["Included in"],
-                         "info_needed": r["Information needed"], "angles": r["Post ideas / possible angles"],
-                         "fallback": r["Production notes / fallback"], "needs_client_info": r["Client info needed?"]},
-                "suggested_templates": [] if motion else [t for t in SUGGEST.get(r["Post type"], ["statement", "photo-story"])
-                                                           if (r["Build as"] == "carousel") == (t in ("photo-story", "big-type", "checklist"))]
-                or SUGGEST.get(r["Post type"], []),
-                "options": []}
+        post = _post_from_row(r, authority)
         write_json(d / "posts" / f"{post['id']}.json", post)
     # the profile picture + cover kit goes with every six-month build
     b = c.brand()

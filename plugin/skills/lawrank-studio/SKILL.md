@@ -34,14 +34,16 @@ one. Never write HTML or CSS, and never edit templates.
 | Motion or video posts | write storyboards, `lr build`, then after approval `lr video "<client>"` | reference/motion.md |
 | Package or send to the client | `lr package "<client>" --month N` | reference/delivery.md |
 | Status, or "what's left" | `lr client show "<client>"` | n/a |
+| The client changed package | `lr client set "<client>" package=authority`, then `lr campaign update "<client>"` | n/a |
 | New photos or logo dropped in | `lr client refresh "<client>"` | reference/onboarding.md |
 
 Order: test designs, then the client chooses a direction, then the campaign. Build a campaign only
 after a direction is set (ask if it isn't).
 
 ## Writing posts (your main job)
-- `lr templates` lists templates. `lr templates <name>` gives the full slots and a worked example.
-  Read reference/writing.md once per session before writing any specs.
+- `lr templates` lists templates. `lr templates a,b,c` gives those templates' full slots, worked
+  examples and icon names in one call. Read reference/writing.md once per session before writing
+  any specs.
 - Write 2–3 options per post, each with a different angle and, where possible, a different template.
 - Before writing a month, run `lr library search "<topic>"` to reuse what worked and avoid repeating
   past posts.
@@ -53,9 +55,12 @@ after a direction is set (ask if it isn't).
 ## When `lr build` reports problems
 - `not_built` lists spec errors, each naming the field and the fix. Fix those exact fields.
 - `flagged` lists designs whose render failed a check (text over a face, overflow, contrast, a head
-  cut off). Look at `flagged_sheet` (one image of only the flagged designs). Fix in this order:
-  shorter copy, then another photo, then another template. Never ask for smaller text.
-- `check_before_posting` lists claims for a human to confirm. Pass these on; don't remove them.
+  cut off). Look at `flagged_sheet` (one image of only the flagged designs).
+  - Text problems (overflow, collisions): shorten the copy, then try another template.
+  - Photo problems (a face covered, a head or neck cut): use another photo, then another template.
+  - Never ask for smaller text.
+- `check_before_posting` lists claims for a human to confirm, including your own `confirm` lines.
+  They also go to review.xlsx. Pass these on; don't remove them.
 - Rebuild only what changed: `--post ID[,ID]`. Unchanged designs come from cache.
 
 ## Rules that always apply
@@ -71,6 +76,8 @@ Reply in plain language and keep it short:
 1. What was made, with the gallery link (`gallery` in the output) or the files.
 2. Anything that needs the firm's approval (`check_before_posting`, `need_approval`).
 3. What you need from the person, such as a better photo or the vector logo.
+4. Open items elsewhere in the campaign (`feedback` and `fix_list` in `lr client show`), as one line
+   with an offer to handle them.
 Don't paste JSON, file listings or check internals.
 
 ## If something fails

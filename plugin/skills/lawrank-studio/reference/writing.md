@@ -5,12 +5,13 @@ checks every option. Good copy and a fitting template choice are what make a pos
 
 ## Building a month: the fast way
 1. Run `lr client show "<client>"`. Keep its `photos` (keys and who is in them), its usable `facts`
-   (keys and text) and the `direction` in mind.
+   (keys and text) and the `direction` (its name, feel, templates and treatments) in mind.
 2. Run `lr library search "<monthly focus>" --client "<client>"` to see what's already been done for
    this firm. Search once more without `--client` for ideas that worked elsewhere.
 3. Read the month's posts: `campaigns/<campaign>/posts/PI-0NN.json`. Each has the `plan` row (topic,
    angles, info needed, fallback) and `suggested_templates`.
-4. Run `lr templates <name>` for each template you'll use (once per session per template).
+4. Run `lr templates <name>,<name>,…` once for all the templates you'll use. It returns their slots,
+   worked examples and the icon names.
 5. Write the `options` into every post of the month, then run one build:
    `lr build "<client>" --month N`. Building all posts at once is much faster than one at a time.
 6. Fix what's reported (see SKILL.md), rebuilding only those posts with `--post`.
@@ -55,10 +56,14 @@ Only `options` is yours to write. The fields of each option:
 | `facts` | the fact keys behind every claim in the copy and caption |
 | `caption` | the social caption: 1–3 short paragraphs, then a call to action. No hashtag walls (at most 3). |
 | `alt` | what the image shows, for screen readers, including the headline text |
-| `confirm` | optional: anything else the firm should check, in plain words |
+| `confirm` | optional: anything else the firm should check, in plain words. These go to `check_before_posting` and the review sheet. |
 
-`accent` must be a phrase taken word for word from the `headline`. It's coloured with the brand
-accent, so make it the payoff ("We handle the insurance company."), not filler.
+`accent` must be a phrase taken word for word from the `headline` (in faq it comes from the
+`question`, and in myth-fact from the `fact`). It's coloured with the brand accent, so make it the
+payoff ("We handle the insurance company."), not filler.
+
+The worked examples show shape and length; their claims belong to a test firm. Never copy a claim
+from an example. Write each claim from this client's facts.
 
 ## Choosing templates
 - Start from `suggested_templates`. Give each option a different template where you can, so the
@@ -95,6 +100,10 @@ accent, so make it the payoff ("We handle the insurance company."), not filler.
   disclaimer; testimonials without an approved fact.
 - **Flagged for a human** (`check_before_posting`): "expert" or "specialist", fee statements
   ("free", "no fee unless we win") without a usable fees fact, and facts still awaiting approval.
+  Quoting a usable fact word for word (for example, "the free case evaluation form") is fine.
+- **Results** means money amounts, or the firm saying it won, recovered or secured something.
+  General education ("many claims settle; some go to trial") is not a result and needs no
+  disclaimer.
 - Results always carry the disclaimer slot or caption line: "Past results do not guarantee future
   outcomes."
 - General legal information is fine ("Texas has a two-year deadline for most injury claims") only

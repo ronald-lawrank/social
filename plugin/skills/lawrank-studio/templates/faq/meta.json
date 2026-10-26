@@ -1,15 +1,40 @@
 {
   "label": "Question & answer",
   "format": "static",
-  "sizes": ["4x5", "1x1", "9x16"],
+  "sizes": [
+    "4x5",
+    "1x1",
+    "9x16"
+  ],
   "treatment": "accent",
   "photo": "none",
   "use_for": "One common question answered briefly: legal FAQs, 'do I need a lawyer', timelines (no promises).",
   "slots": {
-    "label": {"max": 26},
-    "question": {"max": 70, "required": true},
-    "answer": {"max": 200, "required": true},
-    "cta": {"max": 26}
+    "label": {
+      "max": 26
+    },
+    "question": {
+      "max": 70,
+      "required": true
+    },
+    "answer": {
+      "max": 200,
+      "required": true
+    },
+    "cta": {
+      "max": 26
+    },
+    "accent": {
+      "max": 26,
+      "of": "question",
+      "note": "words copied from the question, coloured with the brand accent"
+    }
   },
-  "options": {"treatment": ["accent", "dark", "light"]}
+  "options": {
+    "treatment": [
+      "accent",
+      "dark",
+      "light"
+    ]
+  }
 }

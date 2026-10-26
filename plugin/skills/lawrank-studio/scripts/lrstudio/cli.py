@@ -11,11 +11,12 @@
   lr client import <old client folder>   bring a client over from the old LawRank template
   lr directions <client>                 test designs in 3-4 directions
   lr campaign new <client> [--name N] [--plan six-month] [--start 2026-11]
+  lr campaign update <client> [--campaign C]   after a package change: add the posts it now includes
   lr build <client> [--campaign C] [--month N | --post ID[,ID]] [--sizes 4x5,1x1,9x16] [--force]
   lr video <client> [--campaign C] [--post ID]   MP4s for approved motion options
   lr package <client> [--campaign C] [--month N]
   lr library search "<text>" [--client C]
-  lr templates [name]                    list templates; with a name: full slots and a worked example
+  lr templates [name[,name]]             list templates; with names: full slots, worked examples, icon names
 """
 import argparse
 import sys
@@ -68,6 +69,8 @@ def cmd_directions(a):
 
 def cmd_campaign(a):
     from . import campaign
+    if a.action == "update":
+        return campaign.update_campaign(_client(a.client), campaign=a.campaign, plan=a.plan)
     return campaign.new_campaign(_client(a.client), name=a.name, plan=a.plan, start=a.start)
 
 
@@ -94,7 +97,15 @@ def cmd_library(a):
 def cmd_templates(a):
     from . import templates
     if a.name:
-        return {"ok": True, **templates.detail(a.name)}
+        names = [n.strip() for n in a.name.split(",") if n.strip()]
+        if len(names) == 1:
+            return {"ok": True, **templates.detail(names[0])}
+        out = [templates.detail(n) for n in names]
+        icons = next((d.pop("icons") for d in out if "icons" in d), None)
+        for d in out:
+            d.pop("icons", None); d.pop("note", None)
+        return {"ok": True, "templates": out, **({"icons": icons} if icons else {}),
+                "note": "Example photo keys belong to a test client: use this client's keys from `lr client show`."}
     return {"ok": True, "templates": templates.catalog_summary(),
             "next": "`lr templates <name>` gives a template's full slots and a worked example."}
 
@@ -109,7 +120,8 @@ def parser():
     p.add_argument("--manual", action="store_true", help="site blocks scanning: create the folder and add the brand by hand")
     p.set_defaults(fn=cmd_client)
     p = sp.add_parser("directions"); p.add_argument("client"); p.add_argument("--only"); p.set_defaults(fn=cmd_directions)
-    p = sp.add_parser("campaign"); p.add_argument("action", choices=["new"]); p.add_argument("client"); p.add_argument("--name")
+    p = sp.add_parser("campaign"); p.add_argument("action", choices=["new", "update"]); p.add_argument("client"); p.add_argument("--name")
+    p.add_argument("--campaign")
     p.add_argument("--plan", default="six-month"); p.add_argument("--start"); p.set_defaults(fn=cmd_campaign)
     p = sp.add_parser("build"); p.add_argument("client"); p.add_argument("--campaign"); p.add_argument("--month", type=int)
     p.add_argument("--post"); p.add_argument("--sizes"); p.add_argument("--force", action="store_true"); p.set_defaults(fn=cmd_build)

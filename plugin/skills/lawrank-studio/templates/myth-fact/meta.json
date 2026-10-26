@@ -1,14 +1,31 @@
 {
   "label": "Myth vs fact",
   "format": "static",
-  "sizes": ["4x5", "1x1", "9x16"],
+  "sizes": [
+    "4x5",
+    "1x1",
+    "9x16"
+  ],
   "treatment": "dark",
   "photo": "none",
   "use_for": "Clearing up one common misconception in plain words (keep the fact general and reviewed).",
   "slots": {
-    "myth": {"max": 70, "required": true},
-    "fact": {"max": 130, "required": true},
-    "label": {"max": 26}
+    "myth": {
+      "max": 70,
+      "required": true
+    },
+    "fact": {
+      "max": 130,
+      "required": true
+    },
+    "label": {
+      "max": 26
+    },
+    "accent": {
+      "max": 26,
+      "of": "fact",
+      "note": "words copied from the fact, coloured with the brand accent"
+    }
   },
   "options": {}
 }

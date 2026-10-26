@@ -57,10 +57,23 @@ def _font_assets(brand: dict, previews: Path) -> tuple[str, list[str]]:
     return re.sub(r"url\('file://([^']+)'\)", localize, css), notes
 
 
+_ENGINE = None
+
+
+def _engine_hash() -> bytes:
+    """The code that draws and checks designs: a change here re-renders and re-checks everything once."""
+    global _ENGINE
+    if _ENGINE is None:
+        here = Path(__file__).parent
+        _ENGINE = hashlib.sha1(b"".join((here / f).read_bytes() for f in
+                                        ("render.py", "checks.py", "templates.py", "photos.py", "theme.py", "fonts.py"))).digest()
+    return _ENGINE
+
+
 def design_key(template: str, size: str, data: dict, brand: dict, extra: str = "") -> str:
     """A fingerprint of everything that affects the drawing (for skipping unchanged designs)."""
     tdir = Path(templates.get(template)["dir"])
-    h = hashlib.sha1()
+    h = hashlib.sha1(_engine_hash())
     shared = [f for d in templates.paths.template_dirs() for f in sorted((d / "_base").glob("*"))]
     for p in sorted(tdir.glob("*")) + shared:
         if p.is_file():

@@ -76,9 +76,10 @@ def validate_option(post: dict, o: dict, facts: dict, photos: dict) -> tuple[lis
     check_slots(o.get("copy") or {}, meta.get("slots", {}), "copy", slot_errs)
     errs += [f"{where}: {e}" for e in slot_errs]
     acc = (o.get("copy") or {}).get("accent")
-    head = (o.get("copy") or {}).get("headline") or ""
+    of = ((meta.get("slots") or {}).get("accent") or {}).get("of", "headline")
+    head = (o.get("copy") or {}).get(of) or ""
     if acc and head and acc.lower() not in head.lower():
-        errs.append(f"{where}: copy.accent '{acc}' isn't part of the headline")
+        errs.append(f"{where}: copy.accent '{acc}' isn't part of the {of}")
     keys = [o.get("photo"), o.get("cover_photo"), o.get("close_photo"), *(o.get("photos") or []),
             *[s.get("photo") for s in (o.get("copy") or {}).get("slides", []) if isinstance(s, dict)]]
     for k in [k for k in keys if k]:
