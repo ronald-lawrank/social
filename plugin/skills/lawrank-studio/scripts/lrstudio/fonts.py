@@ -2,10 +2,12 @@
 the commercial fonts law-firm sites often use. Figma has every Google font, so the plugin uses the same families."""
 import base64
 import re
-import urllib.request
+import urllib.error
+import urllib.parse
 
 from . import paths
-from .util import say
+from .extract import family_name
+from .util import fetch, say
 
 GF_RAW = "https://raw.githubusercontent.com/google/fonts/main/{lic}/{dir}/{file}"
 # Commercial / system fonts -> the closest Google font (by proportions and feel)
@@ -25,7 +27,7 @@ SUBSTITUTES = {
 
 def resolve(family: str) -> tuple[str, str | None]:
     """(family to use, note if substituted)."""
-    f = (family or "").strip().strip("'\"")
+    f = family_name(family)          # brand.json files written before the scan stripped "-SemiBold" etc.
     sub = SUBSTITUTES.get(f.lower())
     if sub:
         return sub, f"{f} isn't a free font; using {sub}, its closest Google font"
@@ -51,19 +53,30 @@ def ensure(family: str, weight: int) -> tuple[str, bool] | None:
             return str(p), p.name.endswith("-var.ttf")
     miss = paths.FONTS / f"{key}.missing"
     if miss.exists():
-        return None
+        if miss.read_text().startswith("404"):
+            return None
+        miss.unlink()                                # written by older versions after SSL errors too: retry once
+    trouble = None
     for lic, d, f, variable in _candidates(family, weight):
-        url = GF_RAW.format(lic=lic, dir=d, file=urllib.request.quote(f))
+        url = GF_RAW.format(lic=lic, dir=d, file=urllib.parse.quote(f))
         try:
-            data = urllib.request.urlopen(url, timeout=20).read()
-        except Exception:
+            data = fetch(url, timeout=20)
+        except urllib.error.HTTPError as e:
+            if e.code != 404:
+                trouble = f"HTTP {e.code}"
+            continue
+        except Exception as e:                       # SSL, DNS, timeout: say so, and try again next time
+            trouble = str(getattr(e, "reason", None) or e)[:120]
             continue
         if len(data) > 10_000:
             p = paths.FONTS / (f"{key}-var.ttf" if variable else f"{key}-{weight}.ttf")
             p.write_bytes(data)
             say(f"  font {family} cached")
             return str(p), variable
-    miss.write_text("not found in Google Fonts")
+    if trouble:
+        say(f"  font {family} couldn't be downloaded ({trouble}); will retry next time")
+        return None
+    miss.write_text("404: not found in Google Fonts")    # every candidate was a real 404: don't ask again
     return None
 
 

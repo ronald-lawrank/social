@@ -21,6 +21,8 @@ AI_MADE = re.compile(r"midjourney|dall-?e|openai|stable.?diffusion|firefly|image
 MIN_SIDE = 700           # smaller photos look soft once a post enlarges them
 MIN_SHARPNESS = 40       # variance of the Laplacian; under this a photo reads as blurred
 MAX_UPSCALE = 2.0        # never enlarge a photo past 2x its own pixels
+MAX_TEXT_SHARE = 0.03    # share of the frame covered by lines of type; above it the image is a banner or graphic
+SAME_FACE = 0.30         # SFace cosine similarity: the same attorney scored 0.33-0.45 across photos, stock faces <0.2
 
 
 # ---------------------------------------------------------------- detection
@@ -39,6 +41,35 @@ def _faces_yunet(img):
     _detector.setInputSize((w, h))
     _, found = _detector.detect(img)
     return [] if found is None else [[float(f[0]), float(f[1]), float(f[2]), float(f[3]), float(f[-1])] for f in found]
+
+
+def face_features(data: bytes) -> list | None:
+    """One SFace feature vector per detected face, or None when the models aren't available."""
+    import cv2
+    import numpy as np
+    det_path, rec_path = tools.model("yunet.onnx", required=False), tools.model("sface.onnx", required=False)
+    img = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
+    if not (det_path and rec_path) or img is None:
+        return None
+    H, W = img.shape[:2]
+    s = min(1.0, 1280 / max(W, H))
+    img = cv2.resize(img, (round(W * s), round(H * s))) if s < 1 else img
+    h, w = img.shape[:2]
+    det = cv2.FaceDetectorYN.create(str(det_path), "", (w, h), 0.7, 0.3, 5000)
+    rec = cv2.FaceRecognizerSF.create(str(rec_path), "")
+    _, found = det.detect(img)
+    return [] if found is None else [rec.feature(rec.alignCrop(img, f)) for f in found]
+
+
+_recognizer = None
+
+
+def same_face(a, b) -> bool:
+    import cv2
+    global _recognizer
+    if _recognizer is None:
+        _recognizer = cv2.FaceRecognizerSF.create(str(tools.model("sface.onnx")), "")
+    return _recognizer.match(a, b, cv2.FaceRecognizerSF_FR_COSINE) >= SAME_FACE
 
 
 def _faces_haar(img):
@@ -81,6 +112,47 @@ def analyze(data: bytes) -> dict:
     return {"w": W, "h": H, "faces": faces, "sharpness": round(sharp), "detector": by}
 
 
+def text_share(data: bytes) -> float:
+    """Share of the image covered by lines of type (site banners like "AUSTIN RELOCATION LAWYER" over a headshot).
+    Edge map -> lines joined sideways -> boxes shaped like text lines: wide, short, dense, many vertical strokes."""
+    import cv2
+    import numpy as np
+    img = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_GRAYSCALE)
+    if img is None:
+        return 0.0
+    s = 1000 / max(img.shape)
+    g = cv2.resize(img, (round(img.shape[1] * s), round(img.shape[0] * s)), interpolation=cv2.INTER_AREA)
+    H, W = g.shape
+    grad = cv2.morphologyEx(g, cv2.MORPH_GRADIENT, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3)))
+    _, bw = cv2.threshold(grad, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
+    bw = cv2.morphologyEx(bw, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_RECT, (9, 1)))
+    area = 0
+    for c in cv2.findContours(bw, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[0]:
+        x, y, w, h = cv2.boundingRect(c)
+        if not (8 <= h <= 0.12 * H and w >= max(30, 2.5 * h)):
+            continue
+        roi = bw[y:y + h, x:x + w]
+        fill = cv2.countNonZero(roi) / (w * h)
+        strokes = np.mean([np.count_nonzero(np.diff(roi[int(h * f)] > 0)) for f in (0.3, 0.5, 0.7)]) / w
+        if 0.3 <= fill <= 0.9 and strokes > 0.04:
+            area += w * h
+    return area / (W * H)
+
+
+def stock_check(kind: str, name: str | None, texts: list, people: list[dict], text: float, face_match: bool | None = None) -> str | None:
+    """Why a picked photo might not be the firm's own (stock couples and children, site banners), or None.
+    face_match: whether a face matches a photo named after the firm's people (None when that can't be told: no
+    named photo or no face model); then a name in the alt text or caption counts instead.
+    Only a flag: a person looks, and sets "use": true in photos.json if it is the firm's."""
+    if text > MAX_TEXT_SHARE:
+        return "check: possibly stock or a site banner (large text regions)"
+    if kind not in ("person", "group") or not people or name or face_match:
+        return None
+    if face_match is None and match_name(texts, people):
+        return None                                       # a page about the attorney says this is them
+    return "check: possibly stock (no face matched to the firm's people)"
+
+
 def dhash(data: bytes) -> int:
     from PIL import Image
     g = Image.open(io.BytesIO(data)).convert("L").resize((9, 8))
@@ -104,6 +176,8 @@ def match_name(texts: list[str], people: list[dict]) -> str | None:
         if not parts:
             continue
         score = sum(1 for x in parts if re.search(rf"\b{re.escape(x)}\b", blob))
+        if "".join(parts) in re.sub(r"\W+", "", blob):           # "BenCarrasco.jpg", alt="DanaReyes"
+            score = max(score, len(parts))
         if score >= min(2, len(parts)) and (not best or score > best[0]):
             best = (score, p["name"])
     return best[1] if best else None
@@ -121,7 +195,7 @@ def _key_for(kind: str, name: str | None, taken: set) -> str:
 def collect(candidates: list[dict], photos_dir: Path, people: list[dict], firm_domain: str, limit: int = 24) -> dict:
     """Download, analyse and choose photos. candidates: [{url, page, alt, near, w, h}] largest first."""
     from .crawl import download
-    out, seen_hash, taken = {}, [], set()
+    out, seen_hash, taken, checks = {}, [], set(), {}
     for c in candidates:
         if len(out) >= limit:
             break
@@ -160,7 +234,31 @@ def collect(candidates: list[dict], photos_dir: Path, people: list[dict], firm_d
                     "source": c.get("page"), "image_url": c["url"], "alt": c.get("alt") or None,
                     "why": "; ".join(reasons) if reasons else "good size and sharpness" + (f", {len(info['faces'])} people" if info["faces"] else ""),
                     "sha1": hashlib.sha1(img).hexdigest()}
+        checks[key] = {"reasons": reasons, "texts": [c.get("alt"), c.get("near"), Path(c["url"]).stem], "text": text_share(data),
+                       "features": face_features(data) if kind in ("person", "group") else None}
+    _flag_possible_stock(out, checks, people)
     return out
+
+
+def _flag_possible_stock(out: dict, checks: dict, people: list[dict]):
+    """Second pass, once every photo is in: faces that match a photo already named after one of the firm's people are
+    that person; the rest of the people photos, and banners with text, are flagged for a human to check."""
+    refs = [(f, m["name"]) for k, m in out.items() if m.get("name") for f in (checks[k]["features"] or [])]
+    for k, m in out.items():
+        ch = checks[k]
+        match = None
+        for f in ch["features"] or []:
+            match = next((n for rf, n in refs if same_face(f, rf)), None)
+            if match:
+                break
+        if match and m["kind"] == "person" and not m.get("name"):
+            m["name"] = match
+        known = bool(refs) and ch["features"] is not None                    # faces can be compared for this photo
+        flag = stock_check(m["kind"], m.get("name"), ch["texts"], people, ch["text"], face_match=bool(match) if known else None)
+        if flag:
+            ch["reasons"].append(flag)
+        if ch["reasons"]:
+            m.update(use=False, why="; ".join(ch["reasons"]))
 
 
 def _normalized(data: bytes, ext: str) -> bytes:

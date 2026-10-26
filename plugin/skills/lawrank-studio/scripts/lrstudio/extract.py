@@ -55,6 +55,18 @@ ADDRESS = re.compile(r"(?<![\d-])\b(\d{2,6}[ \t]+[A-Z0-9][\w.'-]*(?:[ \t]+[\w.'#
                      r"(?:\n|,)\s*([A-Z][a-zA-Z.'-]+(?:\s[A-Z][a-zA-Z.'-]+){0,3}),\s*(" + "|".join(STATES) + r")\s+(\d{5})(?:-\d{4})?")
 ROLE_WORDS = re.compile(r"\b(attorney|lawyer|partner|founder|founding|associate|of counsel|managing|esq\.?|shareholder|principal)\b", re.I)
 NAME = re.compile(r"^(?:[A-Z][a-z]+\.?|[A-Z]\.)(?:\s(?:[A-Z][a-z'’-]+|[A-Z]\.)){1,3}(?:,?\s(?:Jr\.|Sr\.|III|II|Esq\.))?$")
+# Words that make a Title Case line a heading, not a person ("Why Hire", "Custody Disputes", "Areas We Serve").
+NOT_NAME = set("""why hire how what who when where which our your my we us me you meet team choose choosing areas area serve
+serving served frequently asked questions question contact call get free view all read more learn see next back menu
+protective orders order custody disputes dispute divorce divorces family child children support spousal maintenance
+modification modifications enforcement agreement agreements prenuptial postnuptial marital rights grandparents
+grandparent adoption adoptions paternity relocation mediation property division uncontested contested collaborative
+military parental protecting visitation alimony criminal defense injury injuries accident accidents personal wrongful
+death estate planning wills trusts probate immigration bankruptcy business employment appeals reviews review
+testimonials testimonial results case cases client clients practice services service office offices blog news articles
+resources faq consultation schedule privacy policy terms disclaimer sitemap copyright reserved home about welcome
+helping help guide steps process experience trusted local county""".split())
+ROLE_CANON = {"esq": "Attorney", "esq.": "Attorney", "founding": "Founding Attorney", "founder": "Founder", "managing": "Managing Attorney"}
 AWARDS = re.compile(r"super lawyers|best lawyers|avvo|martindale|av preeminent|million dollar advocates|top 100|"
                     r"national trial lawyers|rising star|lawyers of distinction|board certified|expertise\.com", re.I)
 
@@ -136,11 +148,32 @@ def parse_style(s: str | None) -> dict | None:
 
 WEIGHT_STYLE = {"100": "Thin", "200": "ExtraLight", "300": "Light", "400": "Regular", "500": "Medium", "600": "SemiBold",
                 "700": "Bold", "800": "ExtraBold", "900": "Black"}
+# Font files are often named "Family-Weight" (PostScript names), and the scan reports that name: strip the style part.
+_STYLE = r"(?:Thin|Hairline|(?:Extra|Ultra)?Light|Book|Regular|Normal|Roman|Medium|(?:Semi|Demi)Bold|(?:Extra|Ultra)?Bold|Heavy|Black|Italic|Oblique|Variable|VF|\d00)"
+_STYLE_DASH = re.compile(rf"[-_](?:{_STYLE})+(?:[-_]?(?:{_STYLE}))*$", re.I)
+# with a space only the unambiguous ones: "Archivo Black" and "Titan One" are real family names
+_STYLE_SPACE = re.compile(r"\s+(?:(?:Extra|Ultra)Light|Light|Thin|Regular|Medium|(?:Semi|Demi|Extra|Ultra)Bold|Italic|Oblique)(?:\s*Italic)?$", re.I)
+
+
+def family_name(name: str) -> str:
+    """'Jost-SemiBold' -> 'Jost', 'Figtree SemiBold Italic' -> 'Figtree', 'Archivo Black' stays."""
+    f = (name or "").strip().strip("'\"")
+    for _ in range(3):
+        g = _STYLE_SPACE.sub("", _STYLE_DASH.sub("", f)).strip()
+        if g == f or not g:
+            break
+        f = g
+    return f
+
+
 GENERIC_FONTS = {"serif", "sans-serif", "system-ui", "-apple-system", "arial", "helvetica", "times new roman", "times", "georgia"}
 
 
-def derive_visual_identity(brand_read: dict) -> tuple[dict, list[str]]:
-    """Colour roles, fonts and CTA style for brand.json from the computed-CSS read. Returns (data, warnings)."""
+def derive_visual_identity(brand_read: dict, logo_dark: str | None = None) -> tuple[dict, list[str]]:
+    """Colour roles, fonts and CTA style for brand.json from the computed-CSS read. Returns (data, warnings).
+
+    logo_dark: the logo's main dark colour (logos.dominant_dark). The most frequent dark CSS colour is often just the
+    body text grey; the logo's navy/oxblood is the brand, so it wins as ink when it differs from the body text."""
     warnings = []
     if brand_read.get("reliable") is False:
         warnings.append("The site's stylesheets didn't load during the scan; colours and fonts below are unreliable. "
@@ -158,7 +191,10 @@ def derive_visual_identity(brand_read: dict) -> tuple[dict, list[str]]:
     if not accent:
         accent = "#B5121B"; warnings.append("No saturated brand colour found; accent is a placeholder. Set it by hand.")
     ink = darks[0] if darks else (h1["color"] if h1 and luminance(h1["color"]) < 0.06 else "#1B1C1E")
-    if not darks:
+    body_text = body["color"].upper() if body and body["color"].startswith("#") else None
+    if logo_dark and logo_dark.upper() != body_text:
+        ink = logo_dark.upper()
+    elif not darks:
         warnings.append("No dark brand colour found; ink falls back to near-black.")
     paper = lights[0] if lights else "#F5F5F5"
     mids = [c for c, _ in colors if 0.1 < luminance(c) < 0.45 and saturation(c) < 0.25]
@@ -177,9 +213,10 @@ def derive_visual_identity(brand_read: dict) -> tuple[dict, list[str]]:
         warnings.append(f"White text on the accent {accent} is below 3:1; accent fields use ink text.")
 
     def font(st, fallback):
-        if not st or st["family"].lower() in GENERIC_FONTS:
+        fam = family_name(st["family"]) if st else ""
+        if not fam or fam.lower() in GENERIC_FONTS:
             return fallback, False
-        return st["family"], True
+        return fam, True
     head_fam, ok_h = font(h1, "Montserrat")
     body_fam, ok_b = font(body, "Lato")
     if not ok_h: warnings.append("Headline font not identified (generic or missing); Montserrat is a placeholder.")
@@ -196,7 +233,8 @@ def derive_visual_identity(brand_read: dict) -> tuple[dict, list[str]]:
     if button:
         m = re.match(r"([\d.]+)px", button["radius"] or "")
         cta = {"radius": min(999, round(float(m.group(1)))) if m else 0, "upper": button["transform"] == "uppercase"}
-    evidence = {"colors": "Computed CSS frequency on the home page: " + ", ".join(f"{c} ×{n}" for c, n in colors[:6]),
+    evidence = {"colors": "Computed CSS frequency on the home page: " + ", ".join(f"{c} ×{n}" for c, n in colors[:6])
+                + (f"; ink {ink} is the logo's main dark colour" if ink == (logo_dark or "").upper() else ""),
                 "fonts": f"h1: {brand_read.get('h1')}; body: {brand_read.get('body')}",
                 "cta": f"button: {brand_read.get('button')}"}
     return {"colors": out, "fonts": fonts, "cta": cta, "treatments": treatments, "evidence": evidence}, warnings
@@ -221,6 +259,31 @@ def _key(base: str, used: set) -> str:
         out, n = f"{k}_{n}", n + 1
     used.add(out)
     return out
+
+
+def _looks_like_name(l: str) -> bool:
+    if not NAME.match(l) or len(l) > 40 or ROLE_WORDS.search(l):
+        return False
+    if re.search(r"\b(Law|Firm|Group|LLP|PLLC|LLC|PC|Street|Avenue|Road|Suite|The)\b", l):
+        return False
+    if any(w in NOT_NAME for w in re.findall(r"[a-z]+", l.lower())):
+        return False
+    words = [w for w in re.sub(r",?\s(Jr\.|Sr\.|III|II|Esq\.)$", "", l).split()]
+    if len(words) > 3 and not any(re.fullmatch(r"[A-Z]\.", w) for w in words):
+        return False                                        # four capitalised words without an initial is a heading
+    return not any(re.search(rx, l, re.I) for rx in PRACTICE_AREAS.values())
+
+
+def _role(line: str) -> str:
+    """The role as a plain title. Page copy like "A Leading Austin Divorce Attorney" is marketing (and "leading" is a
+    blocked superlative), so it becomes just "Attorney"."""
+    from .compliance import EXPERT, SUPERLATIVE
+    line = line.strip(" ,-–|")
+    if len(line) <= 40 and not SUPERLATIVE.search(line) and not EXPERT.search(line) and not re.match(r"(a|an|the|your|our)\b", line, re.I):
+        return line
+    words = [w.lower() for w in ROLE_WORDS.findall(line)]
+    w = words[0] if words else "attorney"
+    return ROLE_CANON.get(w, w.title())
 
 
 def extract(pages: list[dict], jsonld: list[dict] | None = None, firm_name: str | None = None) -> Extraction:
@@ -345,18 +408,15 @@ def extract(pages: list[dict], jsonld: list[dict] | None = None, firm_name: str 
             add("testimonial", "testimonial", m.group(1).strip(), p, m.group(1).strip(),
                 note="Verbatim client words: use only with the client's written consent and the firm's approval.")
 
-    # people: a name line followed (within two lines) by a role line, on team/about pages
+    # people: a name line followed (within two lines) by a short role line
     for p in pages:
-        if p is home and len(pages) > 1 and not re.search(r"attorney|team|about|lawyer|people", p["url"], re.I):
-            pass
         lines = [l.strip() for l in p["text"].splitlines() if l.strip()]
         for i, l in enumerate(lines):
-            if NAME.match(l) and len(l) <= 40 and not ROLE_WORDS.search(l) and not re.search(r"\b(Law|Firm|Group|LLP|PLLC|LLC|PC|Street|Avenue|Road|Suite|Our|The|Contact|Home|About|Practice|Results|Reviews)\b", l):
-                nxt = " ".join(lines[i + 1:i + 3])
-                role = ROLE_WORDS.search(nxt)
-                if role and not any(x["name"] == l for x in ex.people):
-                    role_line = next(x for x in lines[i + 1:i + 3] if ROLE_WORDS.search(x))
-                    ex.people.append({"name": l, "role": role_line[:80], "source": p["url"]})
+            if not _looks_like_name(l) or (i + 1 < len(lines) and _looks_like_name(lines[i + 1])):
+                continue                                    # a heading over the real name ("Why Hire" / "Dana Reyes")
+            role_line = next((x for x in lines[i + 1:i + 3] if ROLE_WORDS.search(x) and len(x) <= 70 and not re.search(r"[?©]", x)), None)
+            if role_line and not any(x["name"] == l for x in ex.people):
+                ex.people.append({"name": l, "role": _role(role_line), "source": p["url"]})
     for d in jsonld or []:
         for person in (d.get("employee") or d.get("member") or []) if isinstance(d.get("employee") or d.get("member"), list) else []:
             if isinstance(person, dict) and person.get("name") and not any(x["name"] == person["name"] for x in ex.people):

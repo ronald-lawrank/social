@@ -260,7 +260,8 @@ def preview(c: store.Client, d: Path, post: dict, o: dict, cache: dict) -> dict:
     """Build (or reuse) the preview for one motion option. Returns a build-cache record."""
     did = f"{post['id']}-{o['key']}-motion"
     fam_src = (MOTION / "families" / f"{o.get('family')}.js").read_bytes() if o.get("family") in FAMILIES else b""
-    key = _sig(o, c.brand(), fam_src)
+    from .render import assets_sig
+    key = _sig(o, c.brand(), fam_src, assets_sig(c.dir))                 # the logo files too, not just their names
     prev = cache.get(did)
     if prev and prev.get("key") == key and all((d / x).exists() for x in prev.get("images", [])):
         return dict(prev, cached=True)

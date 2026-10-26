@@ -119,7 +119,7 @@ def new_campaign(c: store.Client, name: str | None = None, plan: str = "six-mont
         write_json(d / "posts" / f"{post['id']}.json", post)
     # the profile picture + cover kit goes with every six-month build
     b = c.brand()
-    line = ((b.get("voice") or {}).get("tagline") or f"{(c.data.get('practice_area') or 'Injury').capitalize()} lawyers")[:44]
+    line = ((b.get("voice") or {}).get("tagline") or (f"{c.data['practice_area'].capitalize()} lawyers" if c.data.get("practice_area") else "Local lawyers"))[:44]
     group = next((k for k, ph in (read_json(c.brand_dir / "photos" / "photos.json", {}) or {}).items() if ph.get("use", True) and ph["kind"] == "group"), None)
     from . import logos
     ld = c.brand_dir / "logos"
@@ -159,15 +159,89 @@ DIRECTIONS = {
 }
 
 
+# Educational sample copy for the test-design round, by practice area (the firm's own facts fill the rest).
+_CLOSE = {"headline": "Questions? We're here.", "cta": "Talk to us"}
+SAMPLE_COPY = {
+    "personal injury": {
+        "faq": {"question": "Do I need a lawyer after an accident?",
+                "answer": "Not always. If you were hurt or the insurer is pushing you to settle quickly, a conversation with a lawyer helps you understand your options."},
+        "help": [{"icon": "message-circle", "title": "We listen", "text": "Tell us what happened"},
+                 {"icon": "search", "title": "We investigate", "text": "Evidence, records and witnesses"},
+                 {"icon": "scale", "title": "We fight for you", "text": "With the insurer and in court"}],
+        "story": {"cover": {"label": "After an accident", "headline": "3 things to do after an accident"},
+                  "slides": [{"big": "Safety", "title": "Get safe and call 911", "text": "Report the crash and get checked out."},
+                             {"big": "Photos", "title": "Document everything", "text": "Photos of the scene, vehicles and injuries."},
+                             {"big": "Call", "title": "Talk to a lawyer first", "text": "Before you give the insurer a statement."}]},
+        "checklist": {"cover": {"label": "Save this", "headline": "What to keep after an accident"},
+                      "groups": [{"title": "At the scene", "icon": "camera", "items": ["Photos of every vehicle", "Witness names", "The police report number"]},
+                                 {"title": "Afterwards", "icon": "file-text", "items": ["Medical bills", "Time off work", "Letters from insurers"]}]},
+    },
+    "family law": {
+        "faq": {"question": "Do I need a lawyer to get divorced?",
+                "answer": "Not always. If you share children, a home or retirement accounts, a conversation with a lawyer helps you understand your options before you agree to anything."},
+        "help": [{"icon": "message-circle", "title": "We listen", "text": "Your family, your priorities"},
+                 {"icon": "file-text", "title": "We prepare", "text": "Paperwork, finances and parenting plans"},
+                 {"icon": "scale", "title": "We stand with you", "text": "In negotiation and in court"}],
+        "story": {"cover": {"label": "Thinking about divorce", "headline": "3 things to do before you file"},
+                  "slides": [{"big": "Papers", "title": "Gather your records", "text": "Tax returns, bank statements and debts."},
+                             {"big": "Kids", "title": "Put the children first", "text": "Think about routines, school and time with each parent."},
+                             {"big": "Call", "title": "Talk to a lawyer early", "text": "Before you sign or agree to anything."}]},
+        "checklist": {"cover": {"label": "Save this", "headline": "What to gather before a divorce"},
+                      "groups": [{"title": "Money", "icon": "file-text", "items": ["Recent tax returns", "Bank and retirement statements", "Debts and loans"]},
+                                 {"title": "Family", "icon": "users", "items": ["School and medical details", "Your current schedule", "Messages about the children"]}]},
+    },
+    "criminal defense": {
+        "faq": {"question": "Should I talk to the police without a lawyer?",
+                "answer": "You have the right to remain silent and to ask for a lawyer. Saying \"I want to speak to a lawyer\" is enough, and it can't be held against you."},
+        "help": [{"icon": "message-circle", "title": "We listen", "text": "Your side of the story"},
+                 {"icon": "search", "title": "We investigate", "text": "Evidence, reports and procedure"},
+                 {"icon": "scale", "title": "We defend you", "text": "In negotiation and in court"}],
+        "story": {"cover": {"label": "Know your rights", "headline": "3 things to do if you're arrested"},
+                  "slides": [{"big": "Calm", "title": "Stay calm and polite", "text": "Don't resist, argue or run."},
+                             {"big": "Silent", "title": "Use your right to remain silent", "text": "Give your name, then ask for a lawyer."},
+                             {"big": "Call", "title": "Call a lawyer", "text": "Before you answer any questions."}]},
+        "checklist": {"cover": {"label": "Save this", "headline": "What to keep after an arrest"},
+                      "groups": [{"title": "Paperwork", "icon": "file-text", "items": ["Bond and release papers", "Your court date", "Any citation or ticket"]},
+                                 {"title": "Your notes", "icon": "camera", "items": ["What happened, written down", "Witness names", "Officer names or badge numbers"]}]},
+    },
+    None: {                                       # any other practice area: nothing specific to one kind of case
+        "faq": {"question": "When should I talk to a lawyer?",
+                "answer": "Earlier than most people think. A short conversation before you sign, reply or decide helps you understand your options."},
+        "help": [{"icon": "message-circle", "title": "We listen", "text": "Tell us what's going on"},
+                 {"icon": "search", "title": "We look closely", "text": "Your documents and your options"},
+                 {"icon": "scale", "title": "We stand with you", "text": "From the first call to the end"}],
+        "story": {"cover": {"label": "Before you decide", "headline": "3 things to do before you call a lawyer"},
+                  "slides": [{"big": "Notes", "title": "Write down what happened", "text": "Dates, names and what was said."},
+                             {"big": "Papers", "title": "Gather your documents", "text": "Letters, contracts and emails."},
+                             {"big": "Call", "title": "Ask your questions early", "text": "Before you sign or agree to anything."}]},
+        "checklist": {"cover": {"label": "Save this", "headline": "What to bring to your first meeting"},
+                      "groups": [{"title": "Documents", "icon": "file-text", "items": ["Letters and notices", "Contracts or agreements", "Emails and messages"]},
+                                 {"title": "Your notes", "icon": "message-circle", "items": ["A timeline of events", "Names of everyone involved", "Your questions"]}]},
+    },
+}
+AREA_GROUP = {"divorce": "family law", "child custody": "family law", "dui / dwi": "criminal defense"}
+
+
+def sample_copy(practice_area: str | None) -> dict:
+    """Educational sample copy that fits the firm's main practice area (a neutral set when there isn't a match)."""
+    from .extract import MAIN_AREA_GROUP
+    a = (practice_area or "").strip()
+    a = MAIN_AREA_GROUP.get(a, a).lower()
+    import copy
+    return copy.deepcopy(SAMPLE_COPY.get(AREA_GROUP.get(a, a)) or SAMPLE_COPY[None])
+
+
 def _default_copy(c: store.Client, b: dict, facts: dict) -> dict:
     """Sample copy for test designs, from the firm's own verified facts (Claude can rewrite it before building)."""
-    area = (c.data.get("practice_area") or "personal injury").lower()
-    tagline = (b.get("voice") or {}).get("tagline") or f"Helping people after {area} cases."
+    area = (c.data.get("practice_area") or "").lower()
     city = (b.get("offices") or [{}])[0].get("city") or ""
+    support = f"{area.capitalize()} lawyers" if area else "Lawyers"
+    tagline = (b.get("voice") or {}).get("tagline") or ("Clear answers about your legal options." if not area else f"{support} who listen.")
     people = [p["name"] for p in b.get("people", [])]
     usable = {k: f for k, f in facts.items() if f["usable"]}
     years = next((f for f in usable.values() if f["category"] == "history" and re.search(r"\b(19|20)\d\d\b", f["text"])), None)
-    return {"tagline": tagline[:60], "area": area, "city": city, "people": people, "years_fact": years}
+    return {"tagline": tagline[:60], "area": area, "support": support, "city": city, "people": people, "years_fact": years,
+            "sample": sample_copy(c.data.get("practice_area"))}
 
 
 def directions(c: store.Client, only: str | None = None) -> dict:
@@ -199,10 +273,10 @@ def directions(c: store.Client, only: str | None = None) -> dict:
             o = {"key": f"{k}{i + 1}", "template": tpl, "treatment": tr, "facts": base_facts,
                  "caption": f"{dc['tagline']} Talk to our team{loc} today.", "alt": f"{b['name']} social post: {dc['tagline']}"}
             if tpl in ("photo-split", "poster", "statement"):
-                o["copy"] = {"label": "Meet the firm", "headline": dc["tagline"][:56], "support": f"{dc['area'].capitalize()} lawyers{loc}.",
+                o["copy"] = {"label": "Meet the firm", "headline": dc["tagline"][:56], "support": f"{dc['support']}{loc}.",
                              "cta": "Free consultation" if any(f["category"] == "fees" and f["usable"] for f in facts.values()) else "Talk to us"}
                 if tpl == "poster":
-                    o["copy"] = {"sticker": dc["city"] or "Local lawyers", "headline": dc["tagline"][:46], "support": f"{dc['area'].capitalize()} lawyers{loc}."}
+                    o["copy"] = {"sticker": dc["city"] or "Local lawyers", "headline": dc["tagline"][:46], "support": f"{dc['support']}{loc}."}
             elif tpl == "portrait" and person:
                 o.update(photo=person)
                 o["copy"] = {"label": "Meet your lawyer", "headline": "Here when you need answers.", "name": pics[person].get("name") or "Our attorney", "role": "Attorney"}
@@ -211,28 +285,17 @@ def directions(c: store.Client, only: str | None = None) -> dict:
                 o["facts"] = base_facts + [dc["years_fact"]["key"]]
                 o["copy"] = {"label": "Since " + yr, "stat": yr, "stat_caption": f"Serving clients{loc} since {yr}."}
             elif tpl == "proof-stat":
-                o["template"], o["copy"] = "statement", {"label": "Our promise", "headline": "Straight answers. Real attention.", "support": f"{dc['area'].capitalize()} lawyers{loc}."}
+                o["template"], o["copy"] = "statement", {"label": "Our promise", "headline": "Straight answers. Real attention.", "support": f"{dc['support']}{loc}."}
             elif tpl == "faq":
-                o["copy"] = {"label": "Ask a lawyer", "question": "Do I need a lawyer after an accident?",
-                             "answer": "Not always. If you were hurt or the insurer is pushing you to settle quickly, a conversation with a lawyer helps you understand your options."}
+                o["copy"] = {"label": "Ask a lawyer", **dc["sample"]["faq"]}
             elif tpl == "icon-list":
-                o["copy"] = {"label": "How we help", "headline": "What we do for you",
-                             "items": [{"icon": "message-circle", "title": "We listen", "text": "Tell us what happened"},
-                                       {"icon": "search", "title": "We investigate", "text": "Evidence, records and witnesses"},
-                                       {"icon": "scale", "title": "We fight for you", "text": "With the insurer and in court"}]}
+                o["copy"] = {"label": "How we help", "headline": "What we do for you", "items": dc["sample"]["help"]}
             elif tpl in ("photo-story", "big-type"):
-                o["copy"] = {"cover": {"label": "After an accident", "headline": "3 things to do after an accident"},
-                             "slides": [{"big": "Safety", "title": "Get safe and call 911", "text": "Report the crash and get checked out."},
-                                        {"big": "Photos", "title": "Document everything", "text": "Photos of the scene, vehicles and injuries."},
-                                        {"big": "Call", "title": "Talk to a lawyer first", "text": "Before you give the insurer a statement."}],
-                             "close": {"headline": "Questions? We're here.", "cta": "Talk to us"}}
+                o["copy"] = {**dc["sample"]["story"], "close": dict(_CLOSE)}
                 if tpl == "photo-story":
                     o["photos"] = [k2 for k2, p in pics.items() if p.get("use", True) and p["kind"] == "person"][:3]
             elif tpl == "checklist":
-                o["copy"] = {"cover": {"label": "Save this", "headline": "What to keep after an accident"},
-                             "groups": [{"title": "At the scene", "icon": "camera", "items": ["Photos of every vehicle", "Witness names", "The police report number"]},
-                                        {"title": "Afterwards", "icon": "file-text", "items": ["Medical bills", "Time off work", "Letters from insurers"]}],
-                             "close": {"headline": "Questions? We're here.", "cta": "Talk to us"}}
+                o["copy"] = {**dc["sample"]["checklist"], "close": dict(_CLOSE)}
             opts.append(o)
         pid = f"DIR-{k}"
         write_json(d / "posts" / f"{pid}.json", {"id": pid, "month": 0, "week": 0, "topic": f"Direction {k}: {dd['name']}",

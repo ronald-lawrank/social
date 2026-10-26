@@ -147,7 +147,15 @@ def write_variants(ldir, dark: str, white: str):
     return bool(md)
 
 
+EMBEDDED = re.compile(r'((?:xlink:)?href=")data:image/(png|jpe?g|webp|gif);base64,([A-Za-z0-9+/=\s]+)(")')
+
+
 def white_version(svg: str) -> str:
+    """All colours white. Embedded raster images (a PNG/JPG logo wrapped in an SVG) become white alpha masks:
+    recolouring can't reach their pixels, and tracing them smears the lettering."""
+    if EMBEDDED.search(svg):
+        return EMBEDDED.sub(lambda m: m.group(1) + "data:image/png;base64," +
+                            base64.b64encode(_white_mask(base64.b64decode(m.group(3)))).decode() + m.group(4), svg)
     return _default_fill(_recolor(svg, lambda h: "#FFFFFF"), "#FFFFFF")
 
 
@@ -156,18 +164,38 @@ def dark_version(svg: str, ink: str) -> str:
 
 
 # ---------------------------------------------------------------- raster logos
-def wrap_raster(data: bytes) -> tuple[str, str | None]:
-    """A PNG/JPG logo as an SVG (trimmed to its content). Returns (svg, white_svg or None when it can't be reversed)."""
+def _knocked_out(data: bytes):
+    """The logo as RGBA; a logo on a flat background gets that colour made transparent."""
     import numpy as np
     from PIL import Image
     im = Image.open(io.BytesIO(data))
     im.load()
     has_alpha = im.mode in ("RGBA", "LA") or (im.mode == "P" and "transparency" in im.info)
     im = im.convert("RGBA")
-    if not has_alpha:                                      # a logo on a flat background: knock out that colour
+    if not has_alpha:
+        # background = the median border colour (one corner pixel of a JPG can be off by 30 levels, which left a
+        # white box behind), and a soft edge so JPEG noise fades instead of smearing round the letters
         a = np.asarray(im, dtype="int16")
-        distance = np.abs(a[..., :3] - a[0, 0, :3]).max(axis=2)
-        im.putalpha(Image.fromarray(np.where(distance > 24, 255, 0).astype("uint8")))
+        border = np.concatenate([a[0, :, :3], a[-1, :, :3], a[:, 0, :3], a[:, -1, :3]])
+        bg = np.median(border, axis=0)
+        distance = np.abs(a[..., :3] - bg).max(axis=2)
+        im.putalpha(Image.fromarray(np.clip((distance - 32) * 255 / 64, 0, 255).astype("uint8")))
+    return im
+
+
+def _white_mask(data: bytes) -> bytes:
+    """White pixels with the logo's own alpha, as PNG bytes."""
+    from PIL import Image
+    im = _knocked_out(data)
+    out = Image.new("RGBA", im.size, (255, 255, 255, 255)); out.putalpha(im.getchannel("A"))
+    b = io.BytesIO(); out.save(b, "PNG", optimize=True)
+    return b.getvalue()
+
+
+def wrap_raster(data: bytes) -> tuple[str, str | None]:
+    """A PNG/JPG logo as an SVG (trimmed to its content). Returns (svg, white_svg): the white one is an alpha mask."""
+    from PIL import Image
+    im = _knocked_out(data)
     box = im.getchannel("A").getbbox()
     if box:
         im = im.crop(box)
@@ -181,6 +209,39 @@ def wrap_raster(data: bytes) -> tuple[str, str | None]:
                 f'href="data:image/png;base64,{base64.b64encode(b.getvalue()).decode()}"/></svg>')
     white_px = Image.new("RGBA", im.size, (255, 255, 255, 255)); white_px.putalpha(im.getchannel("A"))
     return emb(im), emb(white_px)
+
+
+def _chromatic_dark(rgb) -> bool:
+    """A dark colour with some hue (navy, oxblood, forest): a brand colour, not just black or charcoal text."""
+    return luminance(rgb_hex(rgb)) < 0.06 and max(rgb) - min(rgb) >= 18
+
+
+def dominant_dark(svg: str | None = None, raster: bytes | None = None) -> str | None:
+    """The logo's main dark brand colour (e.g. navy), or None when the logo is black, grey, light or colourful only."""
+    from collections import Counter
+    if svg and not raster:
+        m = EMBEDDED.search(svg)
+        if m:
+            raster = base64.b64decode(m.group(3))
+        else:
+            counts = Counter(h for h in colors(svg) if _chromatic_dark(hex_rgb(h)))
+            return counts.most_common(1)[0][0] if counts else None
+    if not raster:
+        return None
+    import numpy as np
+    a = np.asarray(_knocked_out(raster), dtype="int32")
+    px = a[..., :3][a[..., 3] > 200]
+    if not len(px):
+        return None
+    q = px // 8                                            # group anti-aliased edges with their fill
+    keys, inv, n = np.unique(q, axis=0, return_inverse=True, return_counts=True)
+    for i in np.argsort(-n):
+        if n[i] < 0.05 * len(px):
+            break
+        rgb = tuple(px[inv.ravel() == i].mean(axis=0))
+        if _chromatic_dark(rgb):
+            return rgb_hex(rgb)
+    return None
 
 
 def raster_is_light(data: bytes) -> bool:

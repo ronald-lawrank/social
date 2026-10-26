@@ -22,6 +22,25 @@ def emit(result: dict):
     print(json.dumps(result, ensure_ascii=False, separators=(",", ":"), default=str))
 
 
+def ssl_context():
+    """HTTPS with certifi's CA bundle: python.org Python on macOS ships without CA certificates, so the default
+    context fails every download until "Install Certificates.command" is run."""
+    import ssl
+    try:
+        import certifi
+        return ssl.create_default_context(cafile=certifi.where())
+    except ImportError:
+        return ssl.create_default_context()
+
+
+def fetch(url: str, timeout: float = 30) -> bytes:
+    """GET a URL (certifi-verified). Raises urllib.error.HTTPError on 4xx/5xx, other errors on network trouble."""
+    import urllib.request
+    req = urllib.request.Request(url, headers={"User-Agent": "lawrank-studio"})
+    with urllib.request.urlopen(req, timeout=timeout, context=ssl_context()) as r:
+        return r.read()
+
+
 def say(msg: str):
     """Progress for humans goes to stderr, so stdout stays one JSON line."""
     print(msg, file=sys.stderr, flush=True)

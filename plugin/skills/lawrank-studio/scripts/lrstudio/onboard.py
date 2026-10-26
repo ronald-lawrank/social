@@ -35,10 +35,9 @@ def _fonts(fonts: dict) -> dict:
     return out
 
 
-def save_logos(site, client: store.Client, ink: str) -> tuple[dict, list[str]]:
-    """Pick the best logo candidate and write logo-dark.svg and logo-white.svg. Returns (logo info, warnings)."""
-    ldir = client.brand_dir / "logos"
-    warnings, cands = [], []
+def pick_logo(site) -> dict | None:
+    """The best logo candidate on the site: {kind: svg|raster, svg|data, where, url?}."""
+    cands = []
     for i, l in enumerate(site.logos):
         try:
             if l.get("svg"):
@@ -56,10 +55,25 @@ def save_logos(site, client: store.Client, ink: str) -> tuple[dict, list[str]]:
                                   "score": 1 + (l["where"] == "header") + min(1, (l.get("w") or 0) / 600)})
         except Exception as e:
             say(f"  logo candidate {i} skipped: {str(e)[:80]}")
-    if not cands:
+    return max(cands, key=lambda c: c["score"]) if cands else None
+
+
+def logo_dark_colour(best: dict | None) -> str | None:
+    if not best:
+        return None
+    try:
+        return logos.dominant_dark(svg=best.get("svg"), raster=best.get("data"))
+    except Exception:
+        return None
+
+
+def save_logos(best: dict | None, client: store.Client, ink: str) -> tuple[dict, list[str]]:
+    """Write logo-dark.svg and logo-white.svg for the picked candidate. Returns (logo info, warnings)."""
+    ldir = client.brand_dir / "logos"
+    warnings = []
+    if not best:
         warnings.append("No logo found on the site. Ask the firm for its vector logo (SVG or PDF) and put it in brand/logos/.")
         return {"status": "missing"}, warnings
-    best = max(cands, key=lambda c: c["score"])
     info = {"status": "vector" if best["kind"] == "svg" else "raster", "source": best.get("url") or f"inline SVG in the site {best['where']}"}
     if best["kind"] == "svg":
         svg = best["svg"]
@@ -103,7 +117,8 @@ def new_client(website: str, name: str | None = None, package: str = "growth", m
                         "brand/photos/, then run `lr client photos` and set colours/fonts with `lr client set`."}
     site = crawl(url, max_pages=max_pages)
     ex = extract.extract(site.pages, site.jsonld, firm_name=name)
-    visual, vwarn = extract.derive_visual_identity(site.brand_read)
+    best_logo = pick_logo(site)
+    visual, vwarn = extract.derive_visual_identity(site.brand_read, logo_dark=logo_dark_colour(best_logo))
     warnings += vwarn
     name = name or firm_name(site, ex) or dom.split(".")[0].title()
     c = store.create(name, url, package=package, practice_area=ex.main_practice_area, status="onboarding")
@@ -113,7 +128,7 @@ def new_client(website: str, name: str | None = None, package: str = "growth", m
     for p in site.pages:                                   # the proof behind every fact
         write_text(c.brand_dir / "site" / f"{slugify(p['name'])[:50]}.txt", f"URL: {p['url']}\nRead: {today}\nTitle: {p.get('title')}\n\n{p['text']}")
 
-    logo_info, lw = save_logos(site, c, visual["colors"]["ink"])
+    logo_info, lw = save_logos(best_logo, c, visual["colors"]["ink"])
     warnings += lw
     say("Collecting photos ...")
     pics = photos.collect(site.images, c.brand_dir / "photos", ex.people, dom)

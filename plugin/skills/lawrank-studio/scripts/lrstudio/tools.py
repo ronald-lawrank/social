@@ -5,11 +5,10 @@ import os
 import shutil
 import subprocess
 import sys
-import urllib.request
 from pathlib import Path
 
 from . import paths
-from .util import LRError, say
+from .util import LRError, fetch, say
 
 MODEL_FILES = {
     # face detector YuNet (MIT): OpenCV Zoo build, else the author's own export (works where Git LFS hosts are blocked)
@@ -17,6 +16,8 @@ MODEL_FILES = {
         "https://github.com/opencv/opencv_zoo/raw/main/models/face_detection_yunet/face_detection_yunet_2023mar.onnx",
         "https://raw.githubusercontent.com/ShiqiYu/libfacedetection.train/master/onnx/yunet_s_640_640.onnx",
     ],
+    # face recogniser SFace (Apache-2.0): is this the firm's attorney or a stock model?
+    "sface.onnx": ["https://github.com/opencv/opencv_zoo/raw/main/models/face_recognition_sface/face_recognition_sface_2021dec.onnx"],
     # voice (Kokoro-82M, Apache-2.0)
     "kokoro/kokoro-v1.0.fp16.onnx": ["https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/kokoro-v1.0.fp16.onnx"],
     "kokoro/voices-v1.0.bin": ["https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/voices-v1.0.bin"],
@@ -34,7 +35,7 @@ def model(name: str, required: bool = True) -> Path | None:
         try:
             say(f"Downloading {Path(name).name} (once) ...")
             tmp = p.with_suffix(p.suffix + ".part")
-            urllib.request.urlretrieve(url, tmp)
+            tmp.write_bytes(fetch(url, timeout=600))
             if tmp.stat().st_size > 100_000:
                 tmp.rename(p); return p
         except Exception as e:

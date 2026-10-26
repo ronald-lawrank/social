@@ -82,6 +82,17 @@ def design_key(template: str, size: str, data: dict, brand: dict, extra: str = "
     return h.hexdigest()[:16]
 
 
+def assets_sig(client_dir: Path) -> str:
+    """Fingerprint of the client files templates read besides brand.json: photos.json and every logo/mark SVG
+    (brand.json only names logos/logo-dark.svg, so a new logo under the same name must still redraw)."""
+    h = hashlib.sha1()
+    files = [client_dir / "brand" / "photos" / "photos.json"] + sorted((client_dir / "brand" / "logos").glob("*.svg"))
+    for f in files:
+        if f.exists():
+            h.update(f.name.encode()); h.update(hashlib.sha1(f.read_bytes()).digest())
+    return h.hexdigest()[:12]
+
+
 def render(client_dir: Path, brand: dict, designs: list[dict], out_dir: Path, cache: dict | None = None, flat: bool = False) -> list[dict]:
     """designs: [{id, template, size, data}]. Writes out_dir/previews/<id>.html and out_dir/images/<id>[_n].png.
 
@@ -92,11 +103,10 @@ def render(client_dir: Path, brand: dict, designs: list[dict], out_dir: Path, ca
     previews, images = (out_dir, out_dir) if flat else (out_dir / "previews", out_dir / "images")    # flat: one folder
     previews.mkdir(parents=True, exist_ok=True); images.mkdir(parents=True, exist_ok=True)
     font_css, font_notes = _font_assets(brand, previews)
-    photo_meta = (client_dir / "brand" / "photos" / "photos.json")
-    photo_sig = hashlib.sha1(photo_meta.read_bytes()).hexdigest()[:8] if photo_meta.exists() else ""
+    sig = assets_sig(client_dir)
     results, todo = [], []
     for d in designs:
-        key = design_key(d["template"], d["size"], d["data"], brand, photo_sig)
+        key = design_key(d["template"], d["size"], d["data"], brand, sig)
         prev = (cache or {}).get(d["id"])
         if prev and prev.get("key") == key and all((out_dir / p).exists() for p in prev.get("images", [])):
             results.append(dict(prev, cached=True)); continue
