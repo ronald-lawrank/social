@@ -1,0 +1,65 @@
+{
+ "family": "journey",
+ "voice": "am_michael",
+ "speed": 1.04,
+ "facts": [
+  "contact_methods",
+  "insurance_defense"
+ ],
+ "lines": [
+  {
+   "id": "hook",
+   "say": "After a crash, McMinn Law Firm helps you find the way forward."
+  },
+  {
+   "id": "s1",
+   "say": "We listen, and explain your options in plain language."
+  },
+  {
+   "id": "s2",
+   "say": "We investigate what happened."
+  },
+  {
+   "id": "s3",
+   "say": "We handle the insurance company."
+  },
+  {
+   "id": "s4",
+   "say": "And we fight for the compensation you deserve, in court if we have to."
+  },
+  {
+   "id": "cta",
+   "say": "You don't have to find the way alone. Talk to us today."
+  }
+ ],
+ "screen": {
+  "head": "Find the way forward.",
+  "stops": [
+   {
+    "icon": "chat",
+    "head": "We listen and explain your options."
+   },
+   {
+    "icon": "search",
+    "head": "We investigate what happened."
+   },
+   {
+    "icon": "phone",
+    "head": "We handle the insurance company."
+   },
+   {
+    "icon": "gavel",
+    "head": "We fight for what you deserve. **In court if needed.**"
+   }
+  ],
+  "close": "You don’t have to find the way alone.",
+  "end": "Talk to us today.",
+  "cta": "Talk to us",
+  "site": "mcminnlaw.com",
+  "disclaimer": "Attorney advertising."
+ },
+ "key": "A",
+ "template": "motion",
+ "caption": "(the post caption)",
+ "alt": "(what the animation shows)"
+}

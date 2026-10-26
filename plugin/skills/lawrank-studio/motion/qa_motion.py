@@ -66,7 +66,7 @@ async def _run(html):
         for x, y in zip(v, v[1:]): run = run + 1 if y[0] - x[0] < .21 else 1; best = max(best, run)
         return best
     low = [{'text': k, 't0': v[0][0], 't1': v[-1][0], 'ratio': min(x[1] for x in v)} for k, v in bad.items() if streak(v) >= 3]
-    issues = [f"{i['rule']}: {i['detail']} ({i['t0']}-{i['t1']}s)" for i in r['issues']] + [f'off-frame: "{e[1]}" at {e[0]}s' for e in edge[:5]] + [f'page error: {e}' for e in errs] + ([f'stage invisible at {hidden[:5]}s (a page element was animated by a family selector)'] if hidden else [])
+    issues = [{'rule': i['rule'], 'detail': i['detail'], 't': f"{i['t0']}-{i['t1']}"} for i in r['issues']] + [f'off-frame: "{e[1]}" at {e[0]}s' for e in edge[:5]] + [f'page error: {e}' for e in errs] + ([f'stage invisible at {hidden[:5]}s (a page element was animated by a family selector)'] if hidden else [])
     return {'frames': r['frames'], 'cta_hold': r['ctaHold'], 'issues': issues, 'low_contrast': low}
 
 def run_qa(html): return asyncio.run(_run(html))

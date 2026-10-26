@@ -96,7 +96,8 @@ def update_campaign(c: store.Client, campaign: str | None = None, plan: str = "s
                 if fresh["format"] != p.get("format"):
                     write_json(have[pid], fresh); converted.append(pid)
     log(c.dir, f"campaign update {d.name}: +{len(added)} posts, {len(converted)} reformatted")
-    return {"campaign": d.name, "package": pkg, "added": added, "now_motion" if authority else "now_carousel": converted,
+    motion = sorted(f.stem for f in (d / "posts").glob("*.json") if (read_json(f) or {}).get("format") == "motion")
+    return {"campaign": d.name, "package": pkg, "added": added, "reformatted": converted, "motion_posts": motion,
             "not_in_package": extra,
             "note": "Posts already written were left as they are." + (" `not_in_package` posts stay unless you delete them." if extra else "")}
 

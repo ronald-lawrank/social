@@ -5,7 +5,8 @@ window.QA = (pi, fps = 30) => {
   const css = document.createElement('style'); css.textContent = '.stage *{pointer-events:auto!important}'; document.head.appendChild(css);
   const effO = el => { let o = 1; for (let e = el; e && e !== st.parentElement; e = e.parentElement) { const cs = getComputedStyle(e); if (cs.visibility === 'hidden' || cs.display === 'none') return 0; o *= +cs.opacity; } return o; };
   const inter = (a, b) => { const x = Math.max(a.left, b.left), y = Math.max(a.top, b.top), r = Math.min(a.right, b.right), bt = Math.min(a.bottom, b.bottom); return r > x && bt > y ? { left: x, top: y, right: r, bottom: bt, w: r - x, h: bt - y } : null; };
-  const name = el => el.id ? '#' + el.id : (el.className && el.className.baseVal === undefined ? '.' + String(el.className).split(' ')[0] : el.tagName.toLowerCase());
+  const name = el => { const tx = (el.textContent || '').replace(/\s+/g, ' ').trim();   // the words on screen, so a writer can find them
+    return tx ? '"' + (tx.length > 32 ? tx.slice(0, 30) + '…' : tx) + '"' : (el.id ? '#' + el.id : (el.className && el.className.baseVal === undefined ? '.' + String(el.className).split(' ')[0] : el.tagName.toLowerCase())); };
   const paints = el => { if (['IMG', 'svg', 'path', 'polygon', 'rect', 'circle', 'ellipse', 'line', 'text', 'use', 'g'].includes(el.tagName)) return true;
     const cs = getComputedStyle(el); if (cs.backgroundImage !== 'none') return true; const bg = cs.backgroundColor.match(/[\d.]+/g); if (bg && (bg.length < 4 || +bg[3] > 0)) return true;
     if (parseFloat(cs.borderTopWidth) > 0 && cs.borderTopStyle !== 'none') return true;

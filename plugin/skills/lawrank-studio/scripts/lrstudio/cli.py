@@ -98,6 +98,9 @@ def cmd_templates(a):
     from . import templates
     if a.name:
         names = [n.strip() for n in a.name.split(",") if n.strip()]
+        from . import motion
+        if names[0] == "motion" or set(names) <= set(motion.FAMILIES):
+            return {"ok": True, **motion.families_detail(None if names[0] == "motion" else names)}
         if len(names) == 1:
             return {"ok": True, **templates.detail(names[0])}
         out = [templates.detail(n) for n in names]
@@ -106,7 +109,8 @@ def cmd_templates(a):
             d.pop("icons", None); d.pop("note", None)
         return {"ok": True, "templates": out, **({"icons": icons} if icons else {}),
                 "note": "Example photo keys belong to a test client: use this client's keys from `lr client show`."}
-    return {"ok": True, "templates": templates.catalog_summary(),
+    return {"ok": True, "templates": templates.catalog_summary() + [{"name": "motion", "format": "motion",
+            "use_for": "Video / Motion slots (Authority): four animated families. `lr templates motion` for their rules and examples."}],
             "next": "`lr templates <name>` gives a template's full slots and a worked example."}
 
 

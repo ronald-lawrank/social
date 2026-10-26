@@ -1,0 +1,82 @@
+{
+ "family": "flip",
+ "voice": "af_bella",
+ "speed": 1.1,
+ "facts": [
+  "recovered",
+  "reviews",
+  "testimonial"
+ ],
+ "lines": [
+  {
+   "id": "hook",
+   "say": "Hurt in a crash? Here's how McMinn Law Firm helps."
+  },
+  {
+   "id": "help",
+   "say": "We deal with the insurance company. You focus on getting better."
+  },
+  {
+   "id": "invest",
+   "say": "We investigate what happened, and go after your medical bills, lost wages, and other damages."
+  },
+  {
+   "id": "proof",
+   "say": "Over five hundred million dollars recovered for our clients. Like nine point eight million in a company vehicle crash. And four point one million after a rideshare accident."
+  },
+  {
+   "id": "rating",
+   "say": "Clients give us a four point nine on Google, from more than four hundred reviews."
+  },
+  {
+   "id": "cta",
+   "say": "Talk to us today."
+  }
+ ],
+ "screen": {
+  "hook": {
+   "pre": "Hurt in a",
+   "word": "crash?"
+  },
+  "after": "Here’s how we help.",
+  "help": [
+   "We deal with the **insurance company.**",
+   "You focus on getting **better.**"
+  ],
+  "invest": "We investigate what happened.",
+  "chips": [
+   "Medical bills",
+   "Lost wages",
+   "Other damages"
+  ],
+  "proof": {
+   "stat": "$500M+",
+   "statLine": "recovered for our clients",
+   "results": [
+    {
+     "n": "$9.8M",
+     "label": "Company vehicle collision"
+    },
+    {
+     "n": "$4.1M",
+     "label": "Rideshare accident"
+    }
+   ],
+   "disclaimer": "Past results do not guarantee future outcomes."
+  },
+  "rating": {
+   "score": "4.9",
+   "label": "on Google · 438 reviews",
+   "quote": "They really took care of me.",
+   "by": "Harry, McMinn client"
+  },
+  "end": "Talk to a **McMinn.**",
+  "cta": "Talk to us",
+  "site": "mcminnlaw.com",
+  "disclaimer": "Attorney advertising."
+ },
+ "key": "A",
+ "template": "motion",
+ "caption": "(the post caption)",
+ "alt": "(what the animation shows)"
+}

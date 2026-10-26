@@ -6,7 +6,11 @@ and one of four tested animation families does the craft. The narration is a fre
 the animation is timed to the measured speech.
 
 ## Flow and timing
-1. Write a storyboard option (or two, in different families) into the post. Use the shape below.
+1. Run `lr templates motion`. It gives each family's story, its line ids (and how many sentences
+   each line takes), its screen shape and a worked storyboard. Then write a storyboard option (or
+   two, in different families) into the post.
+   - "The month's motion post" means every motion slot in that month (Authority months have two).
+     Do them all and say so.
 2. Run `lr build "<client>" --post PI-006`. The first build takes about 30 seconds per option (voice
    plus preview) and is cached after that. You get a self-contained preview page that plays with
    sound, and a poster image, both shared via the gallery.
@@ -26,7 +30,7 @@ the animation is timed to the measured speech.
     {"id": "s1", "say": "We listen, and explain your options in plain language."},
     {"id": "s2", "say": "We investigate what happened."},
     {"id": "s3", "say": "We handle the insurance company."},
-    {"id": "cta", "say": "You don't have to find the way alone. Talk to a McMinn. Your consultation is free."}
+    {"id": "cta", "say": "You don't have to find the way alone. Talk to our team today."}
   ],
   "screen": {
     "head": "Find the way forward.",
@@ -34,10 +38,10 @@ the animation is timed to the measured speech.
               {"icon": "search", "head": "We investigate what happened."},
               {"icon": "phone", "head": "We handle the insurance company."}],
     "close": "You don't have to find the way alone.",
-    "end": "Talk to a McMinn.", "cta": "Free consultation", "site": "mcminnlaw.com",
+    "end": "Talk to our team.", "cta": "Talk to us", "site": "mcminnlaw.com",
     "disclaimer": "Attorney advertising."
   },
-  "confirm": ["The free consultation offer"],
+  "confirm": [],
   "caption": "After a crash, you don't have to find the way alone. ...",
   "alt": "Animated map: a route through the city with the firm's steps as pins."
 }
@@ -72,5 +76,11 @@ the animation is timed to the measured speech.
 
 ## When the build flags a motion option
 The QA checks look for text overlaps, text off frame, contrast on every frame, and an end card held
-for less than 2.5 seconds. Fix flags by shortening the screen text or splitting a long line in two.
-Never speed up the voice to fit.
+for less than 2.5 seconds. Each flag gives the time, the words on screen and a fix.
+- Overlaps usually mean the lines and screen items don't match one to one. Each screen item appears
+  when its line (or, for flip chips, its word) is spoken, so give each item its own sentence, in
+  order.
+- Never speed up the voice to fit.
+
+The gallery poster for a motion option is a still from the piece (`images/<post>-<option>-motion.png`).
+If that moment is mid-transition, the end card is used instead.

@@ -31,7 +31,7 @@ one. Never write HTML or CSS, and never edit templates.
 | Start the six-month plan | `lr campaign new "<client>"` | reference/writing.md |
 | Build a month or some posts | write the specs, then `lr build "<client>" --month N` | reference/writing.md |
 | Change one post | edit `posts/<ID>.json`, then `lr build "<client>" --post <ID>` | reference/writing.md |
-| Motion or video posts | write storyboards, `lr build`, then after approval `lr video "<client>"` | reference/motion.md |
+| Motion or video posts | `lr templates motion`, write storyboards, `lr build`, then after approval `lr video "<client>"` | reference/motion.md |
 | Package or send to the client | `lr package "<client>" --month N` | reference/delivery.md |
 | Status, or "what's left" | `lr client show "<client>"` | n/a |
 | The client changed package | `lr client set "<client>" package=authority`, then `lr campaign update "<client>"` | n/a |
@@ -59,6 +59,7 @@ after a direction is set (ask if it isn't).
   - Text problems (overflow, collisions): shorten the copy, then try another template.
   - Photo problems (a face covered, a head or neck cut): use another photo, then another template.
   - Never ask for smaller text.
+- `"ok": false` only means something above needs attention; everything else was built.
 - `check_before_posting` lists claims for a human to confirm, including your own `confirm` lines.
   They also go to review.xlsx. Pass these on; don't remove them.
 - Rebuild only what changed: `--post ID[,ID]`. Unchanged designs come from cache.

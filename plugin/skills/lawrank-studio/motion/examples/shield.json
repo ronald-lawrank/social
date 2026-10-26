@@ -1,0 +1,68 @@
+{
+ "family": "shield",
+ "voice": "am_fenrir",
+ "speed": 1.04,
+ "facts": [
+  "insurance_defense",
+  "trial_prep"
+ ],
+ "lines": [
+  {
+   "id": "hook",
+   "say": "After a crash, the storm hits fast. McMinn Law Firm has you covered."
+  },
+  {
+   "id": "pile",
+   "say": "Medical bills. Calls from the insurance company. Lost paychecks."
+  },
+  {
+   "id": "turn",
+   "say": "We stand between you and the insurance company."
+  },
+  {
+   "id": "work",
+   "say": "We investigate, we negotiate, and when we need to, we go to trial."
+  },
+  {
+   "id": "calm",
+   "say": "So you can focus on getting better."
+  },
+  {
+   "id": "cta",
+   "say": "McMinn Law Firm."
+  }
+ ],
+ "screen": {
+  "head": "After a crash, **the storm hits fast.**",
+  "items": [
+   {
+    "kind": "bill",
+    "label": "Medical bills"
+   },
+   {
+    "kind": "phone",
+    "label": "Insurance calls"
+   },
+   {
+    "kind": "pay",
+    "label": "Lost paychecks"
+   }
+  ],
+  "cloud": "Insurance Co.",
+  "turn": "We stand between you and the **insurance company.**",
+  "strikes": [
+   "We investigate.",
+   "We negotiate.",
+   "We go to trial."
+  ],
+  "calm": "Focus on **getting better.**",
+  "end": "You’re covered.",
+  "cta": "Talk to us",
+  "site": "mcminnlaw.com",
+  "disclaimer": "Attorney advertising."
+ },
+ "key": "A",
+ "template": "motion",
+ "caption": "(the post caption)",
+ "alt": "(what the animation shows)"
+}

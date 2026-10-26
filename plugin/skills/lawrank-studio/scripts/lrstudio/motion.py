@@ -27,6 +27,24 @@ VOICES = {"af_heart": "Heart (warm female voice)", "af_bella": "Bella (bright fe
           "bf_emma": "Emma (British female voice)"}
 
 
+def families_detail(only: list[str] | None = None) -> dict:
+    """What a writer needs per family: its story, the line ids and how many sentences each takes, the screen shape,
+    and a worked storyboard (from the family's header comment and motion/examples/<family>.json)."""
+    out = []
+    for f in FAMILIES:
+        if only and f not in only:
+            continue
+        src = (MOTION / "families" / f"{f}.js").read_text()
+        m = re.search(r"/\*(.*?)\*/", src, re.S)
+        notes = re.sub(r"\s+", " ", m.group(1)).strip() if m else ""
+        ex = MOTION / "examples" / f"{f}.json"
+        out.append({"family": f, "how_it_works": notes, "example": json.loads(ex.read_text()) if ex.exists() else None})
+    return {"families": out, "voices": VOICES,
+            "rules": ["Lines are spoken in order; each screen item appears when its line (or its named word) is spoken, so give "
+                      "each item its own sentence in the order shown.", "Numbers in `say` are written as words.",
+                      "Name the firm in the hook.", "The examples' claims belong to a test firm: write from this client's facts."]}
+
+
 def check_storyboard(pid: str, o: dict) -> list[str]:
     errs = []
     if o.get("family") not in FAMILIES:
@@ -202,8 +220,40 @@ def poster(html: Path, out: Path) -> float | None:
         t = pg.evaluate("(() => { const P = PLAYERS[0]; const t = P.cue && F.poster ? F.poster(P.cue) : P.end * .6; P.show(t); return t; })()")
         out.parent.mkdir(parents=True, exist_ok=True)
         pg.screenshot(path=str(out), clip={"x": 0, "y": 0, "width": 1080, "height": 1920})
+        if _nearly_blank(out):                    # caught mid-transition: the settled end card always says something
+            t = pg.evaluate("(() => { const P = PLAYERS[0]; const t = Math.max(0, P.end - 1.0); P.show(t); return t; })()")
+            pg.screenshot(path=str(out), clip={"x": 0, "y": 0, "width": 1080, "height": 1920})
         b.close()
     return t
+
+
+def _nearly_blank(png: Path) -> bool:
+    """Almost no detail: one or two flat colours (no text, no picture)."""
+    from PIL import Image, ImageFilter
+    import numpy as np
+    im = Image.open(png).convert("L").resize((270, 480))
+    edges = np.asarray(im.filter(ImageFilter.FIND_EDGES), "float32")
+    return float((edges > 40).mean()) < 0.025       # measured: a mid-transition blank 0.019; sparsest real frame 0.033
+
+
+QA_FIX = {
+    "text-overlap": "two pieces of screen text are on screen together. Each screen item appears when its line is spoken, so "
+                    "check the family's line rules (`lr templates motion`): one sentence per item, items named in order",
+    "over-face": "text passes over a person: shorten that screen text",
+    "face-cropped": "a face leaves its frame: use another photo",
+    "mark-on-text": "the highlight stroke crosses letters: shorten the accent word",
+}
+
+
+def _qa_msg(i) -> str:
+    """A motion QA finding in words a writer can act on."""
+    if not isinstance(i, dict):
+        return str(i)[:200]
+    rule = i.get("rule", "")
+    fix = next((v for k, v in QA_FIX.items() if rule.startswith(k)), "shorten the screen text at that moment, or split the voice line")
+    if rule.startswith("competing"):
+        fix = "two items compete for attention at once: give each its own spoken line"
+    return f"at {i.get('t')}s: {i.get('detail', rule)} ({rule}). Fix: {fix}"[:300]
 
 
 def preview(c: store.Client, d: Path, post: dict, o: dict, cache: dict) -> dict:
@@ -227,7 +277,7 @@ def preview(c: store.Client, d: Path, post: dict, o: dict, cache: dict) -> dict:
         from qa_motion import run_qa
         q = run_qa(html)
         for i in q.get("issues", [])[:6]:
-            issues.append({"rule": "motion", "level": "block", "msg": str(i)[:160]})
+            issues.append({"rule": "motion", "level": "block", "msg": _qa_msg(i)})
         for i in q.get("low_contrast", [])[:4]:
             issues.append({"rule": "contrast", "level": "block", "msg": f"low contrast in the video: {str(i)[:140]}"})
         if q.get("cta_hold") is not None and q["cta_hold"] < 2.5:

@@ -208,7 +208,7 @@ def test_package_upgrade_adds_posts_and_motion(client):
     write_post(client, "PI-001", [good_option("A")])
     run("client", "set", "mcminn", "package=authority")
     up = run("campaign", "update", "mcminn")
-    assert len(up["added"]) == 18 and "PI-006" in up["added"]
+    assert len(up["added"]) == 18 and "PI-006" in up["added"] and "PI-006" in up["motion_posts"]
     assert read_json(Path(out["folder"]) / "posts" / "PI-006.json")["format"] == "motion"
     assert read_json(Path(out["folder"]) / "posts" / "PI-001.json")["options"]          # written posts untouched
 

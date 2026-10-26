@@ -1,0 +1,66 @@
+{
+ "family": "weight",
+ "voice": "af_heart",
+ "speed": 1.05,
+ "facts": [
+  "mission",
+  "insurance_defense"
+ ],
+ "lines": [
+  {
+   "id": "hook",
+   "say": "At McMinn Law Firm, we know that after a crash, life gets complicated fast."
+  },
+  {
+   "id": "pile",
+   "say": "Doctor visits. Calls from the insurance company. Bills piling up."
+  },
+  {
+   "id": "turn",
+   "say": "That's where we come in."
+  },
+  {
+   "id": "a1",
+   "say": "We take the insurance company's calls."
+  },
+  {
+   "id": "a2",
+   "say": "We dig into what really happened."
+  },
+  {
+   "id": "a3",
+   "say": "And we fight for what you're owed."
+  },
+  {
+   "id": "life",
+   "say": "So you can focus on getting your life back."
+  },
+  {
+   "id": "cta",
+   "say": "McMinn Law Firm. We've got it from here."
+  }
+ ],
+ "screen": {
+  "head": "After a crash, life gets **complicated** fast.",
+  "items": [
+   "Doctor visits",
+   "Insurance calls",
+   "Bills"
+  ],
+  "turn": "That’s where **we** come in.",
+  "actions": [
+   "We take the calls.",
+   "We dig into what happened.",
+   "We fight for what you’re owed."
+  ],
+  "life": "Get back to **your life.**",
+  "end": "We’ve got it from here.",
+  "cta": "Talk to us",
+  "site": "mcminnlaw.com",
+  "disclaimer": "Attorney advertising."
+ },
+ "key": "A",
+ "template": "motion",
+ "caption": "(the post caption)",
+ "alt": "(what the animation shows)"
+}
