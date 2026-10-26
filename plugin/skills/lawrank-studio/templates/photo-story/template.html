@@ -1,0 +1,34 @@
+{% import 'carousel_parts.html' as cp with context %}
+{% set slides = c.get('slides', [])[:6] %}
+{% set cover_key = d.get('cover_photo') or pick_photo(('group', 'person')) %}
+{% set cycle = d.get('photos') or [] %}
+{{ cp.photo_cover(c.get('cover', {}), cover_key) }}
+{% for s in slides %}
+  {% set tr = ['dark', 'accent'][loop.index0 % 2] %}
+  {% set key = s.get('photo') or (cycle[loop.index0 % cycle|length] if cycle else None) %}
+  {% set side = key and photo_kind(key) == 'person' %}{% set sx = 600 if S.key == '1x1' else 580 %}
+  {% set ph = (S.h * 0.44)|int %}
+  {{ frame(tr, slide=loop.index + 1) }}
+    {% if side %}
+      {{ photo(key, sx, 0, S.w - sx, S.h, focus_y=0.08, portrait=True) }}
+      {{ shade(sx, 0, 130, S.h, 'to left', color=themes[tr].bg) }}
+    {% elif key %}
+      {{ photo(key, 0, 0, S.w, ph, fill=0.66, focus_y=0.07) }}
+      {{ shade(0, ph - 190, S.w, 192, 'to bottom', color=themes[tr].bg) }}
+    {% endif %}
+    <div class="safe" style="left:{{S.safe[3]}}px;{{ ('width:' ~ (sx - S.safe[3] - 60) ~ 'px') if side else 'right:' ~ S.safe[1] ~ 'px' }};top:{{ (ph + 18) if key and not side else S.safe[0] }}px;bottom:{{S.safe[2]}}px">
+      {% if side %}{{ logo(200, treatment=tr) }}<div class="grow"></div>{% endif %}
+      {% if not key and d.get('big_words', True) == False %}<div class="badge" style="width:120px;height:120px">{{ icon(s.get('icon', 'check'), 60, 2.2) }}</div>{% endif %}
+      {% if s.get('big') and d.get('big_words', True) %}
+        <div class="word {{ 'small-word' if key else '' }}" data-slot="big{{loop.index}}" data-role="headline">{{ s.big }}</div>
+      {% elif key and s.get('icon') %}
+        <div class="badge" style="width:110px;height:110px">{{ icon(s.icon, 56, 2.2) }}</div>
+      {% endif %}
+      {% if not key %}<div class="grow"></div>{% endif %}
+      <div class="h2" data-slot="title{{loop.index}}" data-role="headline" style="margin-top:30px">{{ s.title }}</div>
+      {% if s.get('text') %}<div class="body" data-slot="text{{loop.index}}" data-role="body" style="margin-top:20px">{{ s.text|br }}</div>{% endif %}
+      <div class="grow"></div>
+    </div>
+  </div>
+{% endfor %}
+{{ cp.close_slide(c.get('close', {}), d.get('close_photo') or pick_photo(('group',), avoid=[cover_key]), slides|length + 2, ['dark', 'accent'][slides|length % 2]) }}

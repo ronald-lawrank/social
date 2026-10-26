@@ -1,0 +1,17 @@
+{
+  "label": "Proof number",
+  "format": "static",
+  "sizes": ["4x5", "1x1", "9x16"],
+  "treatment": "dark",
+  "photo": "none",
+  "use_for": "One big, approved number: years in practice, cases handled, a rating, an approved result. Results need the firm's approval and get the past-results disclaimer.",
+  "slots": {
+    "label": {"max": 30},
+    "stat": {"max": 7, "required": true, "note": "e.g. 25+, 4.9, $4.2M, 1,000+"},
+    "stat_caption": {"max": 56, "required": true},
+    "support": {"max": 120},
+    "disclaimer": {"max": 120},
+    "cta": {"max": 26}
+  },
+  "options": {"treatment": ["dark", "accent", "light"], "stars": "true to show five stars under a rating"}
+}

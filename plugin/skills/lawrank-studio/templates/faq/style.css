@@ -1,0 +1,2 @@
+.qa-q { font-family: var(--f-head); font-weight: var(--w-head); font-size: 150px; line-height: .8; color: var(--acc); letter-spacing: -0.04em; }
+.qa-rule { width: 120px; height: 8px; background: var(--rule); margin: 44px 0 36px; }

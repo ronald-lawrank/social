@@ -1,0 +1,5 @@
+.items { display: flex; flex-direction: column; gap: 34px; }
+.sz-1x1 .items { gap: 22px; }
+.item { display: flex; align-items: center; gap: 34px; }
+.item .badge { background: var(--acc); color: var(--bg); }
+.item-text { flex: 1; min-width: 0; }

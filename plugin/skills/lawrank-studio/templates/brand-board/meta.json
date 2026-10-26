@@ -1,0 +1,9 @@
+{
+  "label": "Brand board",
+  "format": "board",
+  "sizes": ["board"],
+  "treatment": "light",
+  "photo": "any",
+  "use_for": "The brand reference made from the brand profile: logo, colours, type, buttons, treatments, photos.",
+  "slots": {}
+}

@@ -1,0 +1,15 @@
+{% set key = d.get('photo') or pick_photo(('group', 'person')) %}
+{% set px = 760 %}
+{{ frame() }}
+  {% if key %}
+    {{ photo(key, px, 0, S.w - px, S.h, focus_y=0.1) }}
+    {{ shade(px, 0, 120, S.h, 'to left') }}
+  {% endif %}
+  <div class="safe" style="left:{{S.safe[3]}}px;width:{{ px - S.safe[3] - 40 }}px;top:{{S.safe[0]}}px;bottom:{{S.safe[2]}}px">
+    <div class="grow"></div>
+    <div class="h2" data-slot="headline" data-role="headline">{{ c.headline|accent(c.get('accent')) }}</div>
+    {% if c.get('phone') %}<div class="phone" data-slot="phone" data-role="headline">{{ c.phone }}</div>
+    {% elif c.get('support') %}<div class="body" data-slot="support" data-role="body" style="margin-top:18px">{{ c.support }}</div>{% endif %}
+    <div class="grow"></div>
+  </div>
+</div>

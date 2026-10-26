@@ -222,12 +222,13 @@ def people_box(faces: list, region: str = "shoulders") -> list | None:
             min(1.0, max(b[2] for b in boxes)), min(1.0, max(b[3] for b in boxes))]
 
 
-def crop(meta: dict, fw: float, fh: float, fill: float = 0.0, focus_y: float = 0.12) -> dict:
+def crop(meta: dict, fw: float, fh: float, fill: float = 0.0, focus_y: float = 0.12, focus_x: float = 0.5) -> dict:
     """Scale and offset for showing a photo in an fw x fh frame (CSS: width = w, left = x, top = y).
 
     Keeps every head and the shoulders inside the frame when the frame allows it; otherwise keeps the heads.
     fill > 0 zooms so the people take that share of the frame height (portraits), never past MAX_UPSCALE.
     focus_y: where the top of the heads should sit (share of frame height) when there's room to choose.
+    focus_x: where the centre of the people should sit (share of frame width), e.g. 0.7 to leave room for text on the left.
     """
     iw, ih = meta["w"], meta["h"]
     cover = max(fw / iw, fh / ih)                       # smallest scale that fills the frame
@@ -243,7 +244,9 @@ def crop(meta: dict, fw: float, fh: float, fill: float = 0.0, focus_y: float = 0
     whole = (keep[2] - keep[0]) * W <= fw + 0.5 and (keep[3] - keep[1]) * H <= fh + 0.5
     t = keep if whole else heads
     left, right, top, bottom = t[0] * W, t[2] * W, t[1] * H, t[3] * H
-    x = fw / 2 - (left + right) / 2                     # centre the people
+    x = focus_x * fw - (left + right) / 2               # people centred on focus_x ...
+    x = min(x, fw - right - 0.02 * fw) if right + x > fw else x
+    x = max(x, 0.02 * fw - left)                        # ... but never pushed off either side
     y = focus_y * fh - top                              # heads at focus_y ...
     y = min(y, fh - bottom)                             # ... but shoulders (or heads) inside the bottom edge
     y = max(y, 0.03 * fh - top)                         # ... and a little headroom above the heads

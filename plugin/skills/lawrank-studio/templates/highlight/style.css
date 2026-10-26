@@ -1,0 +1,2 @@
+.hl { position: absolute; left: 190px; top: 610px; width: 700px; height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 28px; color: var(--fg); }
+.hl-label { font-family: var(--f-ui); font-weight: var(--w-ui); font-size: 64px; letter-spacing: .04em; text-transform: uppercase; color: var(--fg); }

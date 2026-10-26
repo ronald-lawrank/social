@@ -1,0 +1,16 @@
+{
+  "label": "Statement",
+  "format": "static",
+  "sizes": ["4x5", "1x1", "9x16"],
+  "treatment": "dark",
+  "photo": "none",
+  "use_for": "One strong message: firm introductions, positioning, a clear point of view, FAQ answers that fit in a line.",
+  "slots": {
+    "label": {"max": 30},
+    "headline": {"max": 64, "required": true},
+    "accent": {"max": 30, "note": "words from the headline to colour"},
+    "support": {"max": 130},
+    "cta": {"max": 26}
+  },
+  "options": {"footer": ["band", "site", "none"], "treatment": ["dark", "light", "accent"]}
+}

@@ -8,6 +8,7 @@
   lr client list
   lr client set <client> key=value ...   direction=B, practice_area="Family law", package=authority ...
   lr client photos <client>              re-detect people in photos (after adding or replacing photos)
+  lr client import <old client folder>   bring a client over from the old LawRank template
   lr directions <client>                 test designs in 3-4 directions
   lr campaign new <client> [--name N] [--plan six-month] [--start 2026-11]
   lr build <client> [--campaign C] [--month N | --post ID[,ID]] [--sizes 4x5,1x1,9x16] [--force]
@@ -44,6 +45,9 @@ def cmd_client(a):
     if a.action == "new":
         from . import onboard
         return onboard.new_client(a.target, name=a.name, package=a.package, max_pages=a.pages, manual=a.manual)
+    if a.action == "import":
+        from . import legacy
+        return legacy.import_folder(a.target, package=a.package)
     if a.action == "list":
         return {"ok": True, "clients": [{"name": c.name, "website": c.data.get("domain"), "status": c.data.get("status"),
                                          "direction": c.data.get("direction")} for c in store.all_clients()]}
@@ -97,7 +101,7 @@ def parser():
     sp = ap.add_subparsers(dest="cmd", required=True)
     p = sp.add_parser("setup"); p.add_argument("--home"); p.add_argument("--skip-models", action="store_true"); p.set_defaults(fn=cmd_setup)
     sp.add_parser("doctor").set_defaults(fn=cmd_doctor)
-    p = sp.add_parser("client"); p.add_argument("action", choices=["new", "show", "list", "set", "photos"]); p.add_argument("target", nargs="?")
+    p = sp.add_parser("client"); p.add_argument("action", choices=["new", "show", "list", "set", "photos", "import"]); p.add_argument("target", nargs="?")
     p.add_argument("pairs", nargs="*"); p.add_argument("--name"); p.add_argument("--package", default="growth"); p.add_argument("--pages", type=int, default=10)
     p.add_argument("--manual", action="store_true", help="site blocks scanning: create the folder and add the brand by hand")
     p.set_defaults(fn=cmd_client)

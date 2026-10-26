@@ -1,0 +1,15 @@
+{
+  "label": "Facebook cover",
+  "format": "kit",
+  "sizes": ["fb-cover"],
+  "treatment": "dark",
+  "photo": "people",
+  "use_for": "The Facebook page cover: the firm's people on the right, one calm line (or a phone number) on the left, clear of the profile picture.",
+  "slots": {
+    "headline": {"max": 44, "required": true},
+    "accent": {"max": 22},
+    "support": {"max": 70},
+    "phone": {"max": 16}
+  },
+  "options": {"photo": "a group photo key", "treatment": ["dark", "accent", "light"]}
+}

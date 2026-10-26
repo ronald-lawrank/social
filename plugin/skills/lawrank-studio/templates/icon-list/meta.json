@@ -1,0 +1,17 @@
+{
+  "label": "Icon list",
+  "format": "static",
+  "sizes": ["4x5", "1x1", "9x16"],
+  "treatment": "light",
+  "photo": "none",
+  "use_for": "Three or four short points: who we help, cases we handle, what to bring, what we do for you.",
+  "slots": {
+    "label": {"max": 30},
+    "headline": {"max": 54, "required": true},
+    "accent": {"max": 26},
+    "items": {"min": 3, "max": 4, "item": {"icon": "icon name", "title": {"max": 30}, "text": {"max": 58}}},
+    "cta": {"max": 26}
+  },
+  "options": {"treatment": ["light", "dark", "accent"], "footer": ["site", "cta", "none"]},
+  "icons": "car truck bus bike footprints motorbike scale gavel shield shield-check phone phone-call clock map-pin users user home briefcase dollar-sign hospital heart-pulse search message-circle file-text files clipboard-list camera stethoscope landmark award star check circle-check calendar mail handshake hard-hat baby siren triangle-alert receipt car-front building-2 messages-square languages hand-heart route bandage"
+}

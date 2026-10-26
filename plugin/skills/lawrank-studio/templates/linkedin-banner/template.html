@@ -1,0 +1,12 @@
+{% set key = d.get('photo') or pick_photo(('group', 'person')) %}
+{% set px = 1520 %}
+{{ frame() }}
+  {% if key %}
+    {{ photo(key, px, 0, S.w - px, S.h, focus_y=0.08) }}
+    {{ shade(px, 0, 150, S.h, 'to left') }}
+  {% endif %}
+  <div class="accent-block"></div>
+  <div class="safe" style="left:{{S.safe[3]}}px;width:{{ px - S.safe[3] }}px;top:{{S.safe[0]}}px;bottom:{{S.safe[2]}}px;justify-content:center">
+    <div class="h2" data-slot="headline" data-role="headline" style="font-size:72px">{{ c.headline|accent(c.get('accent')) }}</div>
+  </div>
+</div>

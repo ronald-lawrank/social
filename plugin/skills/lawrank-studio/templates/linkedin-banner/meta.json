@@ -1,0 +1,10 @@
+{
+  "label": "LinkedIn banner",
+  "format": "kit",
+  "sizes": ["li-banner"],
+  "treatment": "dark",
+  "photo": "people",
+  "use_for": "The LinkedIn company banner: a short two-line headline right of the logo area, the firm's people on the right.",
+  "slots": {"headline": {"max": 50, "required": true}, "accent": {"max": 24}},
+  "options": {"photo": "a group photo key", "treatment": ["dark", "accent", "light"]}
+}

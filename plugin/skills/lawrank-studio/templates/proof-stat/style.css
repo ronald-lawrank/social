@@ -1,0 +1,2 @@
+.stat-bar { position: absolute; left: 0; top: 0; bottom: 0; width: 22px; background: var(--rule); }
+.caption { max-width: 860px; }

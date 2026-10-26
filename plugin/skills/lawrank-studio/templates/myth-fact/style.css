@@ -1,0 +1,6 @@
+.tag { display: inline-flex; font-family: var(--f-ui); font-weight: var(--w-ui); font-size: var(--label); letter-spacing: .16em; text-transform: uppercase;
+       padding: 12px 20px; border-radius: min(var(--radius), 8px); align-self: flex-start; }
+.tag-myth { background: color-mix(in srgb, var(--ink) 10%, transparent); color: var(--fg); }
+.tag-fact { background: var(--btn-bg); color: var(--btn-fg); }
+.myth { color: var(--fg2); text-decoration: line-through; text-decoration-color: var(--accent); text-decoration-thickness: 8px; }
+.fact-panel { position: absolute; left: 0; right: 0; bottom: 0; }

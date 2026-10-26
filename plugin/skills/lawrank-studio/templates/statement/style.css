@@ -1,0 +1,7 @@
+.band { position: absolute; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: space-between;
+        padding: 0 96px; background: var(--btn-bg); color: var(--btn-fg); }
+.band-cta { white-space: nowrap; font-family: var(--f-ui); font-weight: var(--w-ui); font-size: 34px; letter-spacing: var(--cta-track); text-transform: var(--cta-case); }
+.band-cta::after { content: "  →"; }
+.band-site { font-family: var(--f-ui); font-weight: var(--w-ui); font-size: 24px; letter-spacing: .08em; opacity: .9; }
+.sz-9x16 .band { padding: 70px 88px 0; flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 22px; }
+.sz-9x16 .band-cta { font-size: 40px; }

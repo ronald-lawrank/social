@@ -1,0 +1,15 @@
+{
+  "label": "Photo poster",
+  "format": "static",
+  "sizes": ["4x5", "1x1", "9x16"],
+  "treatment": "dark",
+  "photo": "people",
+  "use_for": "Bold, photo-led statements: brand posts, 'we're here for you', community, results intros (with an approved claim).",
+  "slots": {
+    "sticker": {"max": 22},
+    "headline": {"max": 48, "required": true},
+    "accent": {"max": 22},
+    "support": {"max": 100}
+  },
+  "options": {"photo": "a group or person photo key (people in the upper half)"}
+}

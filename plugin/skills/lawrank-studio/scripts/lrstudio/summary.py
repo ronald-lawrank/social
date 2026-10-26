@@ -32,7 +32,7 @@ def client_summary(c: store.Client) -> dict:
                   "not_verified": sorted(k for k, f in facts.items() if f["status"] == "not verified")},
         "campaigns": camps,
         "warnings": b.get("warnings", []),
-        "board": str(c.brand_dir / "board.html") if (c.brand_dir / "board.html").exists() else None,
+        "board": str(c.brand_dir / "board" / "board.html") if (c.brand_dir / "board" / "board.html").exists() else None,
     }
 
 

@@ -1,0 +1,21 @@
+{% set steps = c.get('steps', [])[:4] %}
+{{ frame() }}
+  <div class="safe" style="left:{{S.safe[3]}}px;right:{{S.safe[1]}}px;top:{{S.safe[0]}}px;bottom:{{S.safe[2]}}px">
+    <div class="footer">{% if c.get('label') %}<div class="label" data-slot="label" data-role="label">{{ c.label }}</div>{% else %}<div></div>{% endif %}{{ logo(220) }}</div>
+    <div class="h1" data-slot="headline" data-role="headline" style="margin-top:48px">{{ c.headline|accent(c.get('accent')) }}</div>
+    <div class="grow" style="flex-grow:.4"></div>
+    <div class="steps">
+      {% for st in steps %}
+      <div class="step">
+        <div class="num">{{ loop.index }}</div>
+        <div class="step-text">
+          <div class="h3" data-slot="step{{loop.index}}" data-role="subhead">{{ st.title }}</div>
+          {% if st.get('text') %}<div class="body" data-slot="step{{loop.index}}_text" data-role="body" style="margin-top:6px">{{ st.text }}</div>{% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="grow"></div>
+    {% if c.get('note') %}<div class="small" data-slot="note" data-role="body">{{ c.note }}</div>{% endif %}
+  </div>
+</div>

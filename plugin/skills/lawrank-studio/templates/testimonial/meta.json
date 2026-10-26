@@ -1,0 +1,17 @@
+{
+  "label": "Testimonial",
+  "format": "static",
+  "sizes": ["4x5", "1x1", "9x16"],
+  "treatment": "light",
+  "photo": "none",
+  "use_for": "A verbatim client review (approved, with consent). Never reword the quote.",
+  "slots": {
+    "label": {"max": 26},
+    "quote": {"max": 190, "required": true},
+    "attribution": {"max": 40, "required": true},
+    "stars": {"type": "number"},
+    "cta": {"max": 26}
+  },
+  "options": {"treatment": ["light", "dark", "accent"]},
+  "compliance": "testimonial"
+}

@@ -1,0 +1,16 @@
+{
+  "label": "Photo split",
+  "format": "static",
+  "sizes": ["4x5", "1x1", "9x16"],
+  "treatment": "dark",
+  "photo": "people",
+  "use_for": "Introductions, 'meet the team', welcome posts, practice spotlights with the firm's own people front and centre.",
+  "slots": {
+    "label": {"max": 30},
+    "headline": {"max": 58, "required": true},
+    "accent": {"max": 28},
+    "support": {"max": 120},
+    "cta": {"max": 26}
+  },
+  "options": {"photo": "a group or person photo key", "treatment": ["dark", "light", "accent"]}
+}

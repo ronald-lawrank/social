@@ -1,0 +1,3 @@
+.word { color: var(--acc); }
+.word.small-word { font-size: calc(var(--word) * 0.58); line-height: .86; }
+.frame[data-treatment="accent"] .word { color: var(--fg); }

@@ -1,0 +1,10 @@
+{
+  "label": "Story highlight cover",
+  "format": "kit",
+  "sizes": ["highlight"],
+  "treatment": "accent",
+  "photo": "none",
+  "use_for": "Instagram story highlight covers: one icon and a short label in the centre circle, one colour per set.",
+  "slots": {"label": {"max": 14, "required": true}, "icon": {"note": "icon name"}},
+  "options": {"treatment": ["accent", "dark", "light"]}
+}

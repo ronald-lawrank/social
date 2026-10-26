@@ -1,0 +1,2 @@
+.seam { position: absolute; left: 0; height: 12px; width: 100%; background: var(--rule); }
+.seam::after { content: ""; position: absolute; left: 96px; top: -26px; width: 12px; height: 38px; background: var(--rule); }

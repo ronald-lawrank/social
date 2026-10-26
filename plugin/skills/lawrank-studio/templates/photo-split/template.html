@@ -1,0 +1,16 @@
+{% set ph = {'4x5': 690, '1x1': 500, '9x16': 860}[S.key] %}
+{% set key = d.get('photo') or pick_photo(('group', 'person')) %}
+{{ frame() }}
+  {{ photo(key, 0, 0, S.w, ph, focus_y=0.1) }}
+  <div class="seam" style="top:{{ph}}px"></div>
+  <div class="safe" style="left:{{S.safe[3]}}px;right:{{S.safe[1]}}px;top:{{ph + 70}}px;bottom:{{S.safe[2]}}px">
+    {% if c.get('label') %}<div class="label" data-slot="label" data-role="label">{{ c.label }}</div>{% endif %}
+    <div class="h1" data-slot="headline" data-role="headline" style="margin-top:26px">{{ c.headline|accent(c.get('accent')) }}</div>
+    {% if c.get('support') %}<div class="body" data-slot="support" data-role="body" style="margin-top:26px">{{ c.support|br }}</div>{% endif %}
+    <div class="grow"></div>
+    <div class="footer">
+      {% if c.get('cta') %}{{ cta(c.cta) }}{% else %}<div class="site" data-slot="site" data-role="label">{{ site }}</div>{% endif %}
+      {{ logo(230) }}
+    </div>
+  </div>
+</div>

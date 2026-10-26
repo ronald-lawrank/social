@@ -1,0 +1,18 @@
+{
+  "label": "Attorney portrait",
+  "format": "static",
+  "sizes": ["4x5", "1x1", "9x16"],
+  "treatment": "dark",
+  "photo": "person",
+  "use_for": "Attorney spotlights, 'meet the team', a quote or point of view from one named attorney.",
+  "slots": {
+    "label": {"max": 26},
+    "headline": {"max": 52, "required": true},
+    "accent": {"max": 24},
+    "name": {"max": 30, "required": true},
+    "role": {"max": 40},
+    "support": {"max": 110},
+    "cta": {"max": 24}
+  },
+  "options": {"photo": "a person photo key (one attorney)", "treatment": ["dark", "light"]}
+}

@@ -1,0 +1,23 @@
+{% import 'carousel_parts.html' as cp with context %}
+{% set groups = c.get('groups', [])[:5] %}
+{% set cover_key = d.get('cover_photo') or pick_photo(('group', 'person')) %}
+{{ cp.photo_cover(c.get('cover', {}), cover_key) }}
+{% for g in groups %}
+  {% set tr = ['light', 'dark'][loop.index0 % 2] %}
+  {{ frame(tr, slide=loop.index + 1) }}
+    <div class="safe" style="left:{{S.safe[3]}}px;right:{{S.safe[1]}}px;top:{{S.safe[0]}}px;bottom:{{S.safe[2]}}px">
+      {{ logo(200, treatment=tr) }}
+      <div class="grow"></div>
+      <div class="badge" style="width:120px;height:120px">{{ icon(g.get('icon', 'clipboard-list'), 60, 2.2) }}</div>
+      <div class="h1" data-slot="group{{loop.index}}" data-role="headline" style="margin-top:40px">{{ g.title }}</div>
+      <div class="checks">
+        {% set gi = loop.index %}
+        {% for it in g.get('items', [])[:4] %}
+        <div class="check-row"><span class="box">{{ icon('check', 34, 3) }}</span><div class="h3 check-text" data-slot="g{{gi}}i{{loop.index}}" data-role="subhead">{{ it }}</div></div>
+        {% endfor %}
+      </div>
+      <div class="grow"></div>
+    </div>
+  </div>
+{% endfor %}
+{{ cp.close_slide(c.get('close', {}), d.get('close_photo'), groups|length + 2, ['light', 'dark'][groups|length % 2]) }}

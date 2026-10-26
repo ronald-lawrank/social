@@ -1,0 +1,15 @@
+{
+  "label": "Big type carousel",
+  "format": "carousel",
+  "sizes": ["4x5", "1x1"],
+  "treatment": "dark",
+  "photo": "none",
+  "use_for": "Bold type-led carousels when photos are thin, or to vary the month: myths, tips, definitions, quick checklists.",
+  "slots": {
+    "cover": {"label": {"max": 30}, "headline": {"max": 44, "required": true}, "accent": {"max": 22}},
+    "slides": {"min": 3, "max": 6, "item": {"big": {"max": 8, "required": true}, "title": {"max": 40, "required": true}, "text": {"max": 120}}},
+    "close": {"headline": {"max": 46, "required": true}, "accent": {"max": 24}, "support": {"max": 100}, "cta": {"max": 26}},
+    "disclosure": {"max": 120}
+  },
+  "options": {}
+}

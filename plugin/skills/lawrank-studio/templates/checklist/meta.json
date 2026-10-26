@@ -1,0 +1,15 @@
+{
+  "label": "Checklist carousel",
+  "format": "carousel",
+  "sizes": ["4x5", "1x1"],
+  "treatment": "dark",
+  "photo": "optional",
+  "use_for": "Save-worthy checklists: what to do after an accident, documents to keep, questions to ask.",
+  "slots": {
+    "cover": {"label": {"max": 30}, "headline": {"max": 52, "required": true}, "accent": {"max": 26}},
+    "groups": {"min": 2, "max": 5, "item": {"title": {"max": 36, "required": true}, "icon": "icon name", "items": {"min": 2, "max": 4, "item": {"max": 48}}}},
+    "close": {"headline": {"max": 46, "required": true}, "accent": {"max": 24}, "support": {"max": 100}, "cta": {"max": 26}},
+    "disclosure": {"max": 120}
+  },
+  "options": {"cover_photo": "photo key for the opener (optional)"}
+}

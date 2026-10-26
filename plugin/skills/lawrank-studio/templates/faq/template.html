@@ -1,0 +1,12 @@
+{{ frame() }}
+  <div class="safe" style="left:{{S.safe[3]}}px;right:{{S.safe[1]}}px;top:{{S.safe[0]}}px;bottom:{{S.safe[2]}}px">
+    <div class="footer">{% if c.get('label') %}<div class="label" data-slot="label" data-role="label">{{ c.label }}</div>{% else %}<div></div>{% endif %}{{ logo(220) }}</div>
+    <div class="grow" style="flex-grow:.6"></div>
+    <div class="qa-q">Q</div>
+    <div class="h1" data-slot="question" data-role="headline" style="margin-top:8px">{{ c.question|accent(c.get('accent')) }}</div>
+    <div class="qa-rule"></div>
+    <div class="lead" data-slot="answer" data-role="body" style="color:var(--fg)">{{ c.answer|br }}</div>
+    <div class="grow"></div>
+    {% if c.get('cta') %}{{ cta(c.cta) }}{% endif %}
+  </div>
+</div>

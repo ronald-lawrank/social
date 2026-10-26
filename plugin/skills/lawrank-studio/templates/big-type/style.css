@@ -1,0 +1,2 @@
+.word { color: var(--acc); }
+.frame[data-treatment="accent"] .word { color: var(--fg); }

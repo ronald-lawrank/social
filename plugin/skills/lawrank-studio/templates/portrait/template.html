@@ -1,0 +1,27 @@
+{% set key = d.get('photo') or pick_photo(('person',)) %}
+{{ frame() }}
+{% if S.key == '9x16' %}
+  {% set ph = 820 %}
+  {{ photo(key, 0, 0, S.w, ph, fill=0.6, focus_y=0.13, portrait=True) }}
+  {{ shade(0, ph - 220, S.w, 220, 'to bottom', start=0.0) }}
+  <div class="safe" style="left:{{S.safe[3]}}px;right:{{S.safe[1]}}px;top:{{ph + 24}}px;bottom:{{S.safe[2]}}px">
+{% else %}
+  {% set px = (S.w * 0.45)|int %}
+  {{ photo(key, px, 0, S.w - px, S.h, fill=0.86 if S.key == '4x5' else 0.9, focus_y=0.1, focus_x=0.57, portrait=True) }}
+  {{ shade(px, 0, 250, S.h, 'to left', start=0.0) }}
+  <div class="safe" style="left:{{S.safe[3]}}px;width:{{ 500 if S.key == '4x5' else 480 }}px;top:{{S.safe[0]}}px;bottom:{{S.safe[2]}}px">
+    {{ logo(230) }}
+    <div class="grow"></div>
+{% endif %}
+    {% if c.get('label') %}<div class="label" data-slot="label" data-role="label">{{ c.label }}</div>{% endif %}
+    <div class="{{ 'h1' if S.key == '9x16' else 'h2' }}" data-slot="headline" data-role="headline" style="margin-top:24px">{{ c.headline|accent(c.get('accent')) }}</div>
+    <div class="nametag" style="margin-top:{{ 40 if S.key != '9x16' else 48 }}px">
+      <div class="h3" data-slot="name" data-role="subhead">{{ c.name }}</div>
+      {% if c.get('role') %}<div class="small" data-slot="role" data-role="label" style="margin-top:6px">{{ c.role }}</div>{% endif %}
+    </div>
+    {% if c.get('support') and S.key != '1x1' %}<div class="body" data-slot="support" data-role="body" style="margin-top:28px">{{ c.support|br }}</div>{% endif %}
+    <div class="grow"></div>
+    {% if S.key == '9x16' %}<div class="footer">{% if c.get('cta') %}{{ cta(c.cta) }}{% endif %}{{ logo(240) }}</div>
+    {% elif c.get('cta') %}{{ cta(c.cta) }}{% endif %}
+  </div>
+</div>

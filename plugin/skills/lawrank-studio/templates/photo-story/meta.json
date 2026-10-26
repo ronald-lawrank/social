@@ -1,0 +1,15 @@
+{
+  "label": "Photo story carousel",
+  "format": "carousel",
+  "sizes": ["4x5", "1x1"],
+  "treatment": "dark",
+  "photo": "people",
+  "use_for": "The default carousel: a photo opener, then one point per slide with a giant word and the firm's photos fading into brand colour. Explainers, checklists, 'what we do', practice areas.",
+  "slots": {
+    "cover": {"label": {"max": 30}, "headline": {"max": 52, "required": true}, "accent": {"max": 26}},
+    "slides": {"min": 3, "max": 6, "item": {"big": {"max": 9, "note": "1-2 short words: Cars, Evidence, 24/7"}, "title": {"max": 40, "required": true}, "text": {"max": 110}, "photo": "optional photo key", "icon": "icon name"}},
+    "close": {"headline": {"max": 46, "required": true}, "accent": {"max": 24}, "support": {"max": 100}, "cta": {"max": 26}},
+    "disclosure": {"max": 120}
+  },
+  "options": {"cover_photo": "photo key for the opener", "photos": "photo keys to cycle through the slides", "close_photo": "photo key for the last slide", "big_words": "false for icon badges instead of giant words"}
+}

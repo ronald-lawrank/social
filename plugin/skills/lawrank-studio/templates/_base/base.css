@@ -1,0 +1,70 @@
+/* LawRank Studio design system. Every template builds on this; brand values arrive as CSS variables:
+   --ink --accent --paper --muted --body --line, fonts --f-head --f-body --f-ui, --w-head, CTA --radius --cta-case,
+   and per treatment (dark / light / accent): --bg --fg --fg2 --acc --acc-small --rule --line --btn-bg --btn-fg. */
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: #E9EAEC; }
+body { -webkit-font-smoothing: antialiased; text-rendering: geometricPrecision; font-kerning: normal; }
+.deck { display: flex; flex-wrap: wrap; gap: 40px; padding: 40px; align-items: flex-start; }
+body.render .deck { display: block; padding: 0; gap: 0; }
+body.render .frame { margin: 0; }
+
+.frame { position: relative; overflow: hidden; flex: none; background: var(--bg); color: var(--fg);
+         font-family: var(--f-body); font-weight: 400; }
+.frame .safe { position: absolute; display: flex; flex-direction: column; }
+
+/* ---------- type scale (1080-wide canvases; stories run larger so copy fills the tall frame) */
+.frame { --display: 108px; --display-lh: 1.0; --h1: 84px; --h1-lh: 1.04; --h2: 64px; --h2-lh: 1.1; --h3: 44px;
+         --lead: 38px; --body-size: 32px; --small: 26px; --label: 24px; --cta-size: 28px; --stat: 260px; --word: 300px;
+         --quote: 64px; --gap: 32px; }
+.sz-1x1 .frame, .frame.sz-1x1 { --display: 96px; --h1: 74px; --h2: 58px; --lead: 34px; --stat: 220px; --word: 250px; --quote: 56px; --gap: 26px; }
+.sz-9x16 .frame, .frame.sz-9x16 { --display: 128px; --h1: 100px; --h2: 78px; --h3: 52px; --lead: 46px; --body-size: 38px; --small: 30px;
+         --label: 28px; --cta-size: 34px; --stat: 320px; --word: 380px; --quote: 80px; --gap: 40px; }
+
+.display, .h1, .h2, .h3, .stat, .word { font-family: var(--f-head); font-weight: var(--w-head); color: var(--fg);
+         letter-spacing: -0.015em; text-wrap: balance; }
+.display { font-size: var(--display); line-height: var(--display-lh); letter-spacing: -0.025em; }
+.h1 { font-size: var(--h1); line-height: var(--h1-lh); letter-spacing: -0.02em; }
+.h2 { font-size: var(--h2); line-height: var(--h2-lh); }
+.h3 { font-size: var(--h3); line-height: 1.15; font-family: var(--f-ui); font-weight: var(--w-ui); letter-spacing: -0.005em; }
+.stat { font-size: var(--stat); line-height: 0.86; letter-spacing: -0.045em; color: var(--acc); }
+.word { font-size: var(--word); line-height: 0.82; letter-spacing: -0.05em; }
+.acc { color: var(--acc); }
+.lead { font-size: var(--lead); line-height: 1.32; color: var(--fg2); text-wrap: pretty; }
+.body { font-size: var(--body-size); line-height: 1.38; color: var(--fg2); text-wrap: pretty; }
+.small { font-size: var(--small); line-height: 1.35; color: var(--fg2); }
+.fine { font-size: 22px; line-height: 1.35; color: var(--fg2); opacity: .92; }
+.sz-9x16 .fine, .frame.sz-9x16 .fine { font-size: 26px; }
+
+.label { display: flex; align-items: center; gap: 18px; font-family: var(--f-ui); font-weight: var(--w-ui);
+         font-size: var(--label); letter-spacing: 0.16em; text-transform: uppercase; color: var(--acc-small); }
+.label::before { content: ""; width: 44px; height: 4px; background: var(--rule); flex: none; }
+.label.plain::before { display: none; }
+
+/* ---------- buttons and footers */
+.btn { display: inline-flex; align-items: center; gap: 16px; align-self: flex-start; background: var(--btn-bg); color: var(--btn-fg);
+       font-family: var(--f-ui); font-weight: var(--w-ui); font-size: var(--cta-size); letter-spacing: var(--cta-track);
+       text-transform: var(--cta-case); padding: 0 40px; height: 76px; border-radius: var(--radius); white-space: nowrap; }
+.sz-9x16 .btn, .frame.sz-9x16 .btn { height: 88px; padding: 0 48px; }
+.btn .arrow { width: 26px; height: 26px; }
+.footer { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+.site { font-family: var(--f-ui); font-weight: var(--w-ui); font-size: 24px; letter-spacing: 0.08em; color: var(--fg2); }
+.swipe { display: inline-flex; align-items: center; gap: 14px; font-family: var(--f-ui); font-weight: var(--w-ui);
+         font-size: var(--cta-size); color: var(--fg); letter-spacing: 0.04em; }
+.logo { display: block; flex: none; }
+.logo svg { display: block; width: 100%; height: auto; }
+
+/* ---------- layout helpers */
+.stack { display: flex; flex-direction: column; }
+.grow { flex: 1 1 auto; min-height: 0; }
+.ph { position: absolute; overflow: hidden; }
+.ph img { position: absolute; max-width: none; display: block; }
+.fill { position: absolute; inset: 0; }
+.icon { display: inline-block; flex: none; }
+.icon svg { width: 100%; height: 100%; display: block; }
+.badge { flex: none; display: grid; place-items: center; border-radius: 50%; background: var(--acc); color: var(--bg); }
+.stars { display: flex; gap: 8px; color: var(--acc); }
+.stars svg { width: 44px; height: 44px; fill: currentColor; stroke: none; }
+.rule { height: 6px; width: 120px; background: var(--rule); }
+.disclaimer { font-size: 20px; line-height: 1.3; color: var(--fg2); opacity: .9; }
+.sz-9x16 .disclaimer, .frame.sz-9x16 .disclaimer { font-size: 24px; }

@@ -1,0 +1,4 @@
+.quote-wrap { position: relative; padding-top: 60px; }
+.qmark { position: absolute; left: -10px; top: -106px; font-family: var(--f-head); font-weight: 800; font-size: 360px; line-height: 1; color: var(--acc); }
+.sz-9x16 .qmark { font-size: 420px; top: -128px; }
+.quote { position: relative; letter-spacing: -0.01em; }

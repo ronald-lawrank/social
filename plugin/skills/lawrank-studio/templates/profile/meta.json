@@ -1,0 +1,10 @@
+{
+  "label": "Profile picture",
+  "format": "kit",
+  "sizes": ["profile"],
+  "treatment": "light",
+  "photo": "none",
+  "use_for": "Facebook, Instagram and LinkedIn profile pictures: the logo inside the circle crop, on white, accent or ink.",
+  "slots": {},
+  "options": {"treatment": ["light", "accent", "dark"]}
+}

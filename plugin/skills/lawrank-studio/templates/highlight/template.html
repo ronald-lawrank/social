@@ -1,0 +1,6 @@
+{{ frame() }}
+  <div class="hl">
+    {{ icon(d.get('icon') or c.get('icon') or 'scale', 280, 1.6) }}
+    <div class="hl-label" data-slot="label" data-role="headline">{{ c.label }}</div>
+  </div>
+</div>

@@ -1,0 +1,16 @@
+{
+  "label": "Steps",
+  "format": "static",
+  "sizes": ["4x5", "9x16"],
+  "treatment": "dark",
+  "photo": "none",
+  "use_for": "A short process in 3 to 4 steps: what happens after you call, how a claim works, your first consultation.",
+  "slots": {
+    "label": {"max": 30},
+    "headline": {"max": 50, "required": true},
+    "accent": {"max": 24},
+    "steps": {"min": 3, "max": 4, "item": {"title": {"max": 28}, "text": {"max": 60}}},
+    "note": {"max": 90}
+  },
+  "options": {"treatment": ["dark", "light", "accent"]}
+}

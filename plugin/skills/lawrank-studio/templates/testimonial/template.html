@@ -1,0 +1,18 @@
+{% set q = c.quote %}
+{% set big = q|length < 90 %}
+{{ frame() }}
+  <div class="safe" style="left:{{S.safe[3]}}px;right:{{S.safe[1]}}px;top:{{S.safe[0]}}px;bottom:{{S.safe[2]}}px">
+    <div class="footer">{% if c.get('label') %}<div class="label" data-slot="label" data-role="label">{{ c.label }}</div>{% else %}<div></div>{% endif %}{{ logo(220) }}</div>
+    <div class="grow"></div>
+    <div class="quote-wrap">
+      <div class="qmark" data-ov="quote-mark">“</div>
+      <div class="{{ 'h1' if big else 'h2' }} quote" data-slot="quote" data-role="headline">{{ q|br }}</div>
+    </div>
+    <div class="attrib" style="margin-top:44px">
+      {% if c.get('stars') %}{{ stars(c.stars) }}{% endif %}
+      <div class="h3" data-slot="attribution" data-role="subhead" style="margin-top:18px">— {{ c.attribution }}</div>
+    </div>
+    <div class="grow"></div>
+    {% if c.get('cta') %}{{ cta(c.cta) }}{% endif %}
+  </div>
+</div>

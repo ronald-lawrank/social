@@ -1,0 +1,14 @@
+{{ frame() }}
+  <div class="safe" style="left:{{S.safe[3]}}px;right:{{S.safe[1]}}px;top:{{S.safe[0]}}px;bottom:{{S.safe[2]}}px">
+    <div class="footer">{% if c.get('label') %}<div class="label" data-slot="label" data-role="label">{{ c.label }}</div>{% else %}<div></div>{% endif %}{{ logo(230) }}</div>
+    <div class="grow"></div>
+    <div class="stat" data-slot="stat" data-role="headline">{{ c.stat }}</div>
+    {% if d.get('stars') %}<div style="margin-top:18px">{{ stars(5) }}</div>{% endif %}
+    <div class="h2 caption" data-slot="stat_caption" data-role="headline" style="margin-top:34px">{{ c.stat_caption|accent(c.get('accent')) }}</div>
+    {% if c.get('support') %}<div class="body" data-slot="support" data-role="body" style="margin-top:30px;max-width:820px">{{ c.support|br }}</div>{% endif %}
+    <div class="grow"></div>
+    {% if c.get('cta') %}{{ cta(c.cta) }}{% endif %}
+    {% if c.get('disclaimer') %}<div class="disclaimer" data-slot="disclaimer" data-role="fine" style="margin-top:28px">{{ c.disclaimer }}</div>{% endif %}
+  </div>
+  <div class="stat-bar"></div>
+</div>
