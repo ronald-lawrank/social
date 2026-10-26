@@ -10,6 +10,18 @@ MODEL = Path(os.environ.get('LR_KOKORO_DIR', Path(__file__).resolve().parent.par
 
 def load(): return Kokoro(str(MODEL / 'kokoro-v1.0.fp16.onnx'), str(MODEL / 'voices-v1.0.bin'))
 
+def create_args(k, **kw):
+    """Only the arguments this kokoro-onnx accepts: sentence_pause/clause_pause exist in some builds and not in
+    released ones (0.4.x takes text, voice, speed, lang, is_phonemes, trim), so they're dropped when unsupported."""
+    import inspect
+    try:
+        params = inspect.signature(k.create).parameters
+    except (TypeError, ValueError):
+        return kw
+    if any(p.kind == p.VAR_KEYWORD for p in params.values()):
+        return kw
+    return {n: v for n, v in kw.items() if n in params}
+
 def trim(a, sr):
     loud = np.where(np.abs(a) > .008)[0]; a = a[max(0, loud[0] - int(.03 * sr)): min(len(a), loud[-1] + int(.16 * sr))].copy()
     f = int(.012 * sr); a[-f:] *= np.linspace(1, 0, f); return a
@@ -44,7 +56,8 @@ def run(script_path, out_dir):
     S = json.load(open(script_path)); k = load(); out = Path(out_dir); out.mkdir(parents=True, exist_ok=True)
     T, t = {'voice': S['voice'], 'lines': []}, 0.0
     for L in S['lines']:
-        kw = dict(voice=S['voice'], speed=L.get('speed', S.get('speed', 1.0)), lang='en-us', sentence_pause=S.get('sentence_pause', .3), clause_pause=S.get('clause_pause', .12))
+        kw = create_args(k, voice=S['voice'], speed=L.get('speed', S.get('speed', 1.0)), lang='en-us',
+                         sentence_pause=S.get('sentence_pause', .3), clause_pause=S.get('clause_pause', .12))
         if S.get('exact_sentences') or L.get('exact_sentences'):
             # read each sentence on its own and join them with the same natural pause: exact sync points
             parts, pieces, off = [s.strip() for s in re.findall(r'[^.?!]+[.?!]*', L['say']) if s.strip()], [], 0.0

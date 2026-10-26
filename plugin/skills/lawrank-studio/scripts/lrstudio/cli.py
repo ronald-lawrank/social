@@ -16,7 +16,8 @@
   lr video <client> [--campaign C] [--post ID]   MP4s for approved motion options
   lr package <client> [--campaign C] [--month N]
   lr library search "<text>" [--client C]
-  lr templates [name[,name]]             list templates; with names: full slots, worked examples, icon names
+  lr templates [name[,name]] [--client C] list templates; with names: full slots, worked examples, icon names
+                                         (motion --client C: only the families that suit the firm's practice)
 """
 import argparse
 import sys
@@ -100,7 +101,8 @@ def cmd_templates(a):
         names = [n.strip() for n in a.name.split(",") if n.strip()]
         from . import motion
         if names[0] == "motion" or set(names) <= set(motion.FAMILIES):
-            return {"ok": True, **motion.families_detail(None if names[0] == "motion" else names)}
+            area = _client(a.client).data.get("practice_area") if a.client else None
+            return {"ok": True, **motion.families_detail(None if names[0] == "motion" else names, area)}
         if len(names) == 1:
             return {"ok": True, **templates.detail(names[0])}
         out = [templates.detail(n) for n in names]
@@ -110,7 +112,7 @@ def cmd_templates(a):
         return {"ok": True, "templates": out, **({"icons": icons} if icons else {}),
                 "note": "Example photo keys belong to a test client: use this client's keys from `lr client show`."}
     return {"ok": True, "templates": templates.catalog_summary() + [{"name": "motion", "format": "motion",
-            "use_for": "Video / Motion slots (Authority): four animated families. `lr templates motion` for their rules and examples."}],
+            "use_for": "Video / Motion slots (Authority): four animated families. `lr templates motion --client <client>` for their rules and examples."}],
             "next": "`lr templates <name>` gives a template's full slots and a worked example."}
 
 
@@ -134,7 +136,7 @@ def parser():
     p = sp.add_parser("package"); p.add_argument("client"); p.add_argument("--campaign"); p.add_argument("--month", type=int); p.set_defaults(fn=cmd_package)
     p = sp.add_parser("library"); p.add_argument("action", choices=["search"]); p.add_argument("text"); p.add_argument("--client")
     p.add_argument("--limit", type=int, default=8); p.set_defaults(fn=cmd_library)
-    p = sp.add_parser("templates"); p.add_argument("name", nargs="?"); p.set_defaults(fn=cmd_templates)
+    p = sp.add_parser("templates"); p.add_argument("name", nargs="?"); p.add_argument("--client"); p.set_defaults(fn=cmd_templates)
     return ap
 
 

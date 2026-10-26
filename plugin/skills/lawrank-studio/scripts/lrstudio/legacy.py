@@ -53,7 +53,7 @@ def import_folder(src: str, package: str = "growth") -> dict:
                      "source": p.get("source"), "why": "imported from the old template"}
     write_json(c.brand_dir / "photos" / "photos.json", meta)
     people = [{"name": m["name"], "role": "Attorney", "source": m.get("source")} for m in meta.values() if m.get("name")]
-    brand = {"name": c.name, "short": old.get("short") or c.name.split()[0], "website": c.data["domain"],
+    brand = {"name": c.name, "short": old.get("short") or store.short_name(c.name), "website": c.data["domain"],
              "colors": old["colors"], "fonts": fonts, "cta": old.get("cta", {"radius": 4, "upper": True}),
              "treatments": old.get("treatments") or {}, "logo": {"status": "vector", "dark": "logos/logo-dark.svg", "white": "logos/logo-white.svg"},
              "evidence": old.get("evidence") or {}, "voice": {"tagline": None, "positioning": None, "notes": []},

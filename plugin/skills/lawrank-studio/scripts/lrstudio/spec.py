@@ -106,12 +106,12 @@ def validate_option(post: dict, o: dict, facts: dict, photos: dict) -> tuple[lis
     return errs, issues
 
 
-def validate_post(post: dict, facts: dict, photos: dict) -> dict:
+def validate_post(post: dict, facts: dict, photos: dict, practice_area: str | None = None) -> dict:
     out = {"errors": [], "issues": {}}
     if post.get("format") == "motion":
         from . import motion
         for o in post.get("options", []):
-            out["errors"] += [f"{post['id']} option {o.get('key')}: {e}" for e in motion.check_storyboard(post["id"], o)]
+            out["errors"] += [f"{post['id']} option {o.get('key')}: {e}" for e in motion.check_storyboard(post["id"], o, practice_area)]
             iss = motion.lint(o, facts)
             out["issues"][o.get("key")] = iss
             out["errors"] += [f"{post['id']} option {o.get('key')}: {x['msg']}" for x in iss if x["level"] == "block"]

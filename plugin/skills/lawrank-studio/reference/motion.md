@@ -6,7 +6,8 @@ and one of four tested animation families does the craft. The narration is a fre
 the animation is timed to the measured speech.
 
 ## Flow and timing
-1. Run `lr templates motion`. It gives each family's story, its line ids (and how many sentences
+1. Run `lr templates motion --client "<client>"` (journey, shield and weight open on a car crash, so
+   they're offered to personal-injury firms only; other practices get flip). It gives each family's story, its line ids (and how many sentences
    each line takes), its screen shape and a worked storyboard. Then write a storyboard option (or
    two, in different families) into the post.
    - "The month's motion post" means every motion slot in that month (Authority months have two).
@@ -69,6 +70,7 @@ the animation is timed to the measured speech.
 3. Each line is one idea, and the screen text says the same idea in fewer words.
 4. Vary the family and the voice across the campaign; don't put the same family in two motion slots
    in a row. Voices: af_heart, af_bella, af_nicole, am_michael, am_fenrir, am_puck and bf_emma.
+   For non-injury firms only flip is offered, so vary the voice and the story instead.
    `speed` runs from 0.9 to 1.15 (1.04 is natural).
 5. Claims follow the same rules as stills (reference/writing.md). Results, ratings and testimonials
    need approved facts, a `confirm` line and the disclaimer.

@@ -5,7 +5,7 @@ import re
 from pathlib import Path
 
 from . import paths, store, templates
-from .util import LRError, log, read_json, write_json
+from .util import LRError, log, read_json, slugify, write_json
 
 # Which templates suit each kind of slot in the plan (Claude picks from these first; any template can be used).
 SUGGEST = {
@@ -28,13 +28,34 @@ SUGGEST = {
 MOTION_SLOTS = {"Video / Motion"}
 
 
-def plan_rows(name: str = "six-month") -> list[dict]:
-    """The plan from Drive (LawRank Studio/plan/six_month_plan.csv) if present, else the copy bundled with the skill."""
+def area_group(practice_area: str | None) -> str | None:
+    """The umbrella practice for plans and sample copy: "Divorce" -> "family law", "Car accidents" -> "personal injury"."""
+    from .extract import MAIN_AREA_GROUP
+    a = (practice_area or "").strip()
+    a = MAIN_AREA_GROUP.get(a, a).lower()
+    return AREA_GROUP.get(a, a) or None
+
+
+def plan_file(name: str = "six-month", practice_area: str | None = None) -> tuple[Path, bool]:
+    """(the plan CSV, whether it was written for this practice). A practice-specific plan is
+    plan/<practice>.csv (e.g. plan/family-law.csv) in Drive's LawRank Studio folder or the skill's data/plans/, with the same
+    columns as six_month_plan.csv. Without one, the default plan (written for personal injury) is used."""
     h = paths.home(required=False)
-    f = h / paths.STUDIO_DIR / "plan" / "six_month_plan.csv" if h else None
+    drive = h / paths.STUDIO_DIR / "plan" if h else None
+    group = area_group(practice_area)
+    if group:
+        for d in (drive, paths.SKILL / "data" / "plans"):
+            if d and (d / f"{slugify(group)}.csv").exists():
+                return d / f"{slugify(group)}.csv", True
+    f = drive / "six_month_plan.csv" if drive else None
     if not (f and f.exists()):
         f = paths.SKILL / "data" / "six_month_plan.csv"
-    with open(f, encoding="utf-8-sig") as fh:
+    return f, group == "personal injury"
+
+
+def plan_rows(name: str = "six-month", practice_area: str | None = None) -> list[dict]:
+    """The plan from Drive (LawRank Studio/plan/) if present, else the copy bundled with the skill."""
+    with open(plan_file(name, practice_area)[0], encoding="utf-8-sig") as fh:
         return list(csv.DictReader(fh))
 
 
@@ -79,7 +100,7 @@ def update_campaign(c: store.Client, campaign: str | None = None, plan: str = "s
     d = campaign_dir(c, campaign)
     pkg = c.data.get("package") or "growth"
     authority = pkg == "authority"
-    rows = plan_rows(plan)
+    rows = plan_rows(plan, (read_json(d / "campaign.json", {}) or {}).get("practice_area") or c.data.get("practice_area"))
     have = {f.stem: f for f in (d / "posts").glob("*.json")}
     added, converted, extra = [], [], []
     for r in rows:
@@ -111,7 +132,8 @@ def new_campaign(c: store.Client, name: str | None = None, plan: str = "six-mont
     if d.exists():
         raise LRError(f"Campaign '{name}' already exists", fix="Build it with `lr build`, or choose another --name.")
     pkg = c.data.get("package") or "growth"
-    rows = [r for r in plan_rows(plan) if _included(r.get("Included in", ""), pkg)]
+    plan_csv, fits = plan_file(plan, c.data.get("practice_area"))
+    rows = [r for r in plan_rows(plan, c.data.get("practice_area")) if _included(r.get("Included in", ""), pkg)]
     authority = pkg == "authority"
     (d / "posts").mkdir(parents=True)
     for r in rows:
@@ -120,15 +142,17 @@ def new_campaign(c: store.Client, name: str | None = None, plan: str = "six-mont
     # the profile picture + cover kit goes with every six-month build
     b = c.brand()
     line = ((b.get("voice") or {}).get("tagline") or (f"{c.data['practice_area'].capitalize()} lawyers" if c.data.get("practice_area") else "Local lawyers"))[:44]
-    group = next((k for k, ph in (read_json(c.brand_dir / "photos" / "photos.json", {}) or {}).items() if ph.get("use", True) and ph["kind"] == "group"), None)
+    pics = read_json(c.brand_dir / "photos" / "photos.json", {}) or {}
+    group = next((k for k, ph in pics.items() if ph.get("use", True) and ph["kind"] == "group"), None)
+    people = any(ph.get("use", True) and ph["kind"] in ("person", "group") for ph in pics.values())   # covers need one
     from . import logos
     ld = c.brand_dir / "logos"
     rev = next((f for f in (ld / "mark-white.svg", ld / "logo-white.svg") if f.exists()), None)
     dark_ok = not (rev and logos.blends(rev.read_text(), b["colors"]["ink"]))   # part of the reversed logo would vanish on ink
     kit = [{"key": "P1", "template": "profile", "treatment": "light"}, {"key": "P2", "template": "profile", "treatment": "accent"},
            *([{"key": "P3", "template": "profile", "treatment": "dark"}] if dark_ok else []),
-           {"key": "FB", "template": "facebook-cover", "copy": {"headline": line, "support": b.get("website", "")}, **({"photo": group} if group else {})},
-           {"key": "LI", "template": "linkedin-banner", "copy": {"headline": line}, **({"photo": group} if group else {})},
+           *([{"key": "FB", "template": "facebook-cover", "copy": {"headline": line, "support": b.get("website", "")}, **({"photo": group} if group else {})},
+              {"key": "LI", "template": "linkedin-banner", "copy": {"headline": line}, **({"photo": group} if group else {})}] if people else []),
            {"key": "H1", "template": "highlight", "icon": "scale", "copy": {"label": "Results"}},
            {"key": "H2", "template": "highlight", "icon": "users", "copy": {"label": "Our team"}},
            {"key": "H3", "template": "highlight", "icon": "message-circle", "copy": {"label": "FAQ"}}]
@@ -137,13 +161,22 @@ def new_campaign(c: store.Client, name: str | None = None, plan: str = "six-mont
     write_json(d / "posts" / "KIT.json", {"id": "KIT", "month": 1, "week": 1, "topic": "Profile pictures and covers", "format": "kit",
                                           "slot_type": "Profile & cover kit", "options": kit})
     write_json(d / "campaign.json", {"name": name, "plan": plan, "start": start, "package": c.data.get("package"),
-                                     "practice_area": c.data.get("practice_area"), "created": dt.datetime.now().isoformat(timespec="minutes")})
+                                     "practice_area": c.data.get("practice_area"), "plan_file": plan_csv.name,
+                                     "created": dt.datetime.now().isoformat(timespec="minutes")})
     write_json(d / "status.json", {"posts": len(rows), "written": 0, "approved": 0})
     log(c.dir, f"campaign new {name}")
-    return {"campaign": name, "folder": str(d), "posts": len(rows),
+    out = {"campaign": name, "folder": str(d), "posts": len(rows), "plan_file": plan_csv.name,
             "motion_posts": sum(1 for r in rows if r["Proposed format"] in MOTION_SLOTS and authority),
             "practice_area": c.data.get("practice_area"),
             "next": "Write options A/B/C into each posts/<ID>.json (see reference/writing.md), one month at a time, then `lr build --month N`."}
+    if not people:
+        out["kit_note"] = ("The Facebook cover and LinkedIn banner were left out of the kit: they need a photo of the firm's people. "
+                           "Add photos to brand/photos, run `lr client refresh`, then add FB and LI options to posts/KIT.json.")
+    if not fits and c.data.get("practice_area"):
+        out["plan_note"] = (f"There's no {c.data['practice_area']} plan yet, so the default plan (written for personal injury) was "
+                            "used: rewrite each post's topic and angles for this practice before writing options, or add "
+                            f"plan/{slugify(area_group(c.data['practice_area']) or 'practice')}.csv in the LawRank Studio folder.")
+    return out
 
 
 # ---------------------------------------------------------------- test designs
@@ -163,6 +196,7 @@ DIRECTIONS = {
 _CLOSE = {"headline": "Questions? We're here.", "cta": "Talk to us"}
 SAMPLE_COPY = {
     "personal injury": {
+        "headline": ["Hurt in an accident?", "Know your options."], "tile": ["Questions after a crash?", "Ask a lawyer."],
         "faq": {"question": "Do I need a lawyer after an accident?",
                 "answer": "Not always. If you were hurt or the insurer is pushing you to settle quickly, a conversation with a lawyer helps you understand your options."},
         "help": [{"icon": "message-circle", "title": "We listen", "text": "Tell us what happened"},
@@ -177,6 +211,7 @@ SAMPLE_COPY = {
                                  {"title": "Afterwards", "icon": "file-text", "items": ["Medical bills", "Time off work", "Letters from insurers"]}]},
     },
     "family law": {
+        "headline": ["Facing divorce?", "Know your options."], "tile": ["Questions about custody?", "Ask a lawyer."],
         "faq": {"question": "Do I need a lawyer to get divorced?",
                 "answer": "Not always. If you share children, a home or retirement accounts, a conversation with a lawyer helps you understand your options before you agree to anything."},
         "help": [{"icon": "message-circle", "title": "We listen", "text": "Your family, your priorities"},
@@ -191,6 +226,7 @@ SAMPLE_COPY = {
                                  {"title": "Family", "icon": "users", "items": ["School and medical details", "Your current schedule", "Messages about the children"]}]},
     },
     "criminal defense": {
+        "headline": ["Arrested or charged?", "Know your rights."], "tile": ["Questions about a charge?", "Ask a lawyer."],
         "faq": {"question": "Should I talk to the police without a lawyer?",
                 "answer": "You have the right to remain silent and to ask for a lawyer. Saying \"I want to speak to a lawyer\" is enough, and it can't be held against you."},
         "help": [{"icon": "message-circle", "title": "We listen", "text": "Your side of the story"},
@@ -205,6 +241,7 @@ SAMPLE_COPY = {
                                  {"title": "Your notes", "icon": "camera", "items": ["What happened, written down", "Witness names", "Officer names or badge numbers"]}]},
     },
     None: {                                       # any other practice area: nothing specific to one kind of case
+        "headline": ["A legal question?", "Know your options."], "tile": ["Not sure what to do next?", "Ask a lawyer."],
         "faq": {"question": "When should I talk to a lawyer?",
                 "answer": "Earlier than most people think. A short conversation before you sign, reply or decide helps you understand your options."},
         "help": [{"icon": "message-circle", "title": "We listen", "text": "Tell us what's going on"},
@@ -224,11 +261,17 @@ AREA_GROUP = {"divorce": "family law", "child custody": "family law", "dui / dwi
 
 def sample_copy(practice_area: str | None) -> dict:
     """Educational sample copy that fits the firm's main practice area (a neutral set when there isn't a match)."""
-    from .extract import MAIN_AREA_GROUP
-    a = (practice_area or "").strip()
-    a = MAIN_AREA_GROUP.get(a, a).lower()
     import copy
-    return copy.deepcopy(SAMPLE_COPY.get(AREA_GROUP.get(a, a)) or SAMPLE_COPY[None])
+    return copy.deepcopy(SAMPLE_COPY.get(area_group(practice_area)) or SAMPLE_COPY[None])
+
+
+def fees_usable(facts: dict) -> bool:
+    """A fees fact (free consultation, no fee unless...) the firm has approved: only then may copy say "free"."""
+    return any(f["category"] == "fees" and f["usable"] for f in facts.values())
+
+
+def consult_cta(facts: dict) -> str:
+    return "Free consultation" if fees_usable(facts) else "Talk to us"
 
 
 def _default_copy(c: store.Client, b: dict, facts: dict) -> dict:
@@ -274,7 +317,7 @@ def directions(c: store.Client, only: str | None = None) -> dict:
                  "caption": f"{dc['tagline']} Talk to our team{loc} today.", "alt": f"{b['name']} social post: {dc['tagline']}"}
             if tpl in ("photo-split", "poster", "statement"):
                 o["copy"] = {"label": "Meet the firm", "headline": dc["tagline"][:56], "support": f"{dc['support']}{loc}.",
-                             "cta": "Free consultation" if any(f["category"] == "fees" and f["usable"] for f in facts.values()) else "Talk to us"}
+                             "cta": consult_cta(facts)}
                 if tpl == "poster":
                     o["copy"] = {"sticker": dc["city"] or "Local lawyers", "headline": dc["tagline"][:46], "support": f"{dc['support']}{loc}."}
             elif tpl == "portrait" and person:

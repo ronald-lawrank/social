@@ -58,4 +58,6 @@ picks it up automatically when it starts, depending on your settings).
   there: it stays in Drive.
 - The six-month plan ships with the skill. To change it for everyone, put an edited
   `six_month_plan.csv` in `LawRank Studio/plan/`. To change a template for everyone, put an edited
-  copy of its folder in `LawRank Studio/templates/`. Copies in Drive override the built-in ones.
+  copy of its folder in `LawRank Studio/templates/`. A plan for one practice goes next to it as
+  `plan/<practice>.csv` (e.g. `family-law.csv`, same columns); `lr campaign new` uses it for firms in
+  that practice and says so when it falls back to the default (personal injury) plan. Copies in Drive override the built-in ones.

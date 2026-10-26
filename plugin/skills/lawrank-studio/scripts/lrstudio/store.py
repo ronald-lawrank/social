@@ -34,6 +34,22 @@ def normalize_url(url: str) -> str:
     return f"{p.scheme.lower()}://{host}{p.path or '/'}"
 
 
+_LEAD = re.compile(r"^(?:the\s+)?(?:(?:law\s+)?offices?\s+of|law\s+firm\s+of|firm\s+of)\s+|^the\s+", re.I)
+_TAIL = re.compile(r",.*$|\s+&\s+.*$|\s+(?:law|attorneys?|lawyers?|legal|injury|trial|firm|group)\b.*$|"
+                   r"\s+(?:pllc|llp|llc|pc|p\.c\.|pa|p\.a\.|ltd|inc)\.?$", re.I)
+
+
+def short_name(name: str) -> str:
+    """The name the firm goes by in copy: "The Law Office of Ben Carrasco, PLLC" -> "Ben Carrasco",
+    "Smith & Jones Law Firm" -> "Smith", "The McMinn Law Firm" -> "McMinn". Never a bare article."""
+    n = re.sub(r"\s+", " ", name or "").strip()
+    s = _LEAD.sub("", n).strip()
+    s = _TAIL.sub("", s).strip(" ,.-") or s
+    if not s or s.lower() in ("the", "a", "an", "law", "office", "offices", "firm"):
+        s = n
+    return s[:24].strip()
+
+
 @dataclass
 class Client:
     dir: Path

@@ -195,46 +195,81 @@ main{padding:20px 28px 60px;max-width:1500px;margin:0 auto}
 details{margin-top:8px;font-size:13px;color:#374151}summary{cursor:pointer;color:var(--muted)}
 .strip{display:flex;gap:6px;overflow-x:auto;padding:8px 12px 0}.strip img{height:90px;width:auto;border-radius:4px}
 a{color:inherit}
+.tabs{display:flex;gap:6px}.tabs button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 14px;cursor:pointer;font:inherit;font-weight:600}
+.tabs button.on{background:var(--ink);color:#fff;border-color:var(--ink)}.empty{color:var(--muted);padding:40px 0;text-align:center}[hidden]{display:none!important}
 """
 
 
+def _post_html(pid: str, rs: list[dict]) -> str:
+    first = rs[0]
+    parts = [f"<section class='post' data-m='{first['month']}'><h2>{html.escape(pid)} · {html.escape(first['topic'])}</h2>"
+             f"<div class='meta'>{'Month ' + str(first['month']) + ' · week ' + str(first['week']) + ' · ' if first['month'] else ''}"
+             f"{html.escape(first.get('slot_type') or '')} · {html.escape(first.get('format') or '')}</div><div class='opts'>"]
+    for r in rs:
+        st_cls = r["status"].split()[0]
+        img = f"<a href='{html.escape(r['html'] or '#')}'><img loading='lazy' src='{html.escape(r['image'] or '')}' alt=''></a>" if r["image"] else "<div style='height:200px;display:grid;place-items:center;color:#999'>not drawn yet</div>"
+        strip = ""
+        if len(r["images"]) > 1:
+            strip = "<div class='strip'>" + "".join(f"<img loading='lazy' src='{html.escape(i)}' alt=''>" for i in r["images"][1:12]) + "</div>"
+        pills = f"<span class='pill {st_cls}'>{html.escape(r['status'])}</span>"
+        if r["blocking"]:
+            pills += "<span class='pill fix'>Needs fixing</span>"
+        elif r["warnings"]:
+            pills += "<span class='pill look'>Look at</span>"
+        det = ""
+        notes = r["blocking"] + r["warnings"] + [f"Confirm: {x}" for x in r["confirm"]]
+        if notes:
+            det = "<details><summary>Checks</summary><ul>" + "".join(f"<li>{html.escape(n)}</li>" for n in notes) + "</ul></details>"
+        parts.append(f"<div class='opt'>{img}{strip}<div class='b'><span class='k'>Option {html.escape(r['option'])}</span> "
+                     f"<span class='tpl'>{html.escape(r['template'])}</span><div>{pills}</div>"
+                     f"<details><summary>Caption</summary><p>{html.escape(r['caption'])}</p></details>{det}</div></div>")
+    parts.append("</div></section>")
+    return "".join(parts)
+
+
+TABS = [("posts", "Posts"), ("kit", "Profile &amp; covers"), ("design", "Design")]
+GALLERY_JS = """<script>(function(){
+var tabs=['posts','kit','design'],fl=document.querySelector('.filters');
+function show(t){if(tabs.indexOf(t)<0)t='posts';
+document.querySelectorAll('.tabs button').forEach(function(b){b.classList.toggle('on',b.dataset.t===t)});
+document.querySelectorAll('.tabp').forEach(function(p){p.hidden=p.id!=='tab-'+t});
+if(fl)fl.style.display=t==='posts'?'':'none';}
+document.querySelectorAll('.tabs button').forEach(function(b){b.onclick=function(){history.replaceState(null,'','#'+b.dataset.t);show(b.dataset.t);window.scrollTo(0,0)}});
+window.addEventListener('hashchange',function(){show(location.hash.slice(1))});
+document.querySelectorAll('.filters button').forEach(function(b){b.onclick=function(){
+document.querySelectorAll('.filters button').forEach(function(x){x.classList.toggle('on',x===b)});
+document.querySelectorAll('#tab-posts .post').forEach(function(p){p.style.display=(b.dataset.m==='all'||p.dataset.m===b.dataset.m)?'':'none'})}});
+show(location.hash.slice(1));})();</script>"""
+
+
 def gallery(c: store.Client, d: Path, rows: list[dict]):
-    """index.html: every option, grouped by post, with status and checks. Open it from Drive for desktop."""
+    """index.html, three tabs: Posts (every option, grouped by post, with status and checks; month filters), Profile &
+    covers (the kit) and Design (the brand guide, design.py). The tab is kept in the URL hash: #posts, #kit, #design.
+    Open it from Drive for desktop."""
+    from . import design
     posts = {}
     for r in rows:
         posts.setdefault(r["post"], []).append(r)
-    months = sorted({r["month"] for r in rows if r["month"] is not None})
+    kit = {k: v for k, v in posts.items() if v[0].get("format") == "kit"}
+    feed = {k: v for k, v in posts.items() if k not in kit}
+    months = sorted({r["month"] for r in rows if r["month"] is not None and r["post"] in feed})
+    try:
+        dcss, dhtml = design.panel(c, d, rows)
+    except Exception as e:                       # the guide is a companion: never let it stop a build
+        from .util import log_error
+        log_error(e, "design tab")
+        dcss, dhtml = "", "<p class='empty'>The design guide couldn't be made this time; it's rebuilt with the next build.</p>"
+    empty = lambda msg: f"<p class='empty'>{msg}</p>"
     parts = [f"<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width'>"
-             f"<title>{html.escape(c.name)} · {html.escape(d.name)}</title><style>{CSS}</style></head><body>"
-             f"<header><h1>{html.escape(c.name)}</h1><span class='sub'>{html.escape(d.name)} · {len(posts)} posts · "
-             f"{sum(r['status'] == 'Approved' for r in rows)} approved options</span><div class='filters'>"
-             f"<button class='on' data-m='all'>All</button>" + "".join(f"<button data-m='{m}'>Month {m}</button>" for m in months if m)
-             + "</div></header><main>"]
-    for pid, rs in posts.items():
-        first = rs[0]
-        parts.append(f"<section class='post' data-m='{first['month']}'><h2>{html.escape(pid)} · {html.escape(first['topic'])}</h2>"
-                     f"<div class='meta'>{'Month ' + str(first['month']) + ' · week ' + str(first['week']) + ' · ' if first['month'] else ''}"
-                     f"{html.escape(first.get('slot_type') or '')} · {html.escape(first.get('format') or '')}</div><div class='opts'>")
-        for r in rs:
-            st_cls = r["status"].split()[0]
-            img = f"<a href='{html.escape(r['html'] or '#')}'><img loading='lazy' src='{html.escape(r['image'] or '')}' alt=''></a>" if r["image"] else "<div style='height:200px;display:grid;place-items:center;color:#999'>not drawn yet</div>"
-            strip = ""
-            if len(r["images"]) > 1:
-                strip = "<div class='strip'>" + "".join(f"<img loading='lazy' src='{html.escape(i)}' alt=''>" for i in r["images"][1:12]) + "</div>"
-            pills = f"<span class='pill {st_cls}'>{html.escape(r['status'])}</span>"
-            if r["blocking"]:
-                pills += f"<span class='pill fix'>Needs fixing</span>"
-            elif r["warnings"]:
-                pills += f"<span class='pill look'>Look at</span>"
-            det = ""
-            notes = r["blocking"] + r["warnings"] + [f"Confirm: {x}" for x in r["confirm"]]
-            if notes:
-                det = "<details><summary>Checks</summary><ul>" + "".join(f"<li>{html.escape(n)}</li>" for n in notes) + "</ul></details>"
-            parts.append(f"<div class='opt'>{img}{strip}<div class='b'><span class='k'>Option {html.escape(r['option'])}</span> "
-                         f"<span class='tpl'>{html.escape(r['template'])}</span><div>{pills}</div>"
-                         f"<details><summary>Caption</summary><p>{html.escape(r['caption'])}</p></details>{det}</div></div>")
-        parts.append("</div></section>")
-    parts.append("""</main><script>document.querySelectorAll('.filters button').forEach(b=>b.onclick=()=>{
-document.querySelectorAll('.filters button').forEach(x=>x.classList.toggle('on',x===b));
-document.querySelectorAll('.post').forEach(p=>p.style.display=(b.dataset.m==='all'||p.dataset.m===b.dataset.m)?'':'none');});</script></body></html>""")
+             f"<title>{html.escape(c.name)} · {html.escape(d.name)}</title><style>{CSS}\n{dcss}</style></head><body>"
+             f"<header><h1>{html.escape(c.name)}</h1><span class='sub'>{html.escape(d.name)} · {len(feed)} posts · "
+             f"{sum(r['status'] == 'Approved' for r in rows)} approved options</span>"
+             "<nav class='tabs'>" + "".join(f"<button data-t='{k}'{" class='on'" if k == "posts" else ""}>{t}</button>" for k, t in TABS)
+             + "</nav><div class='filters'><button class='on' data-m='all'>All</button>"
+             + "".join(f"<button data-m='{m}'>Month {m}</button>" for m in months if m) + "</div></header><main>",
+             "<div class='tabp' id='tab-posts'>" + ("".join(_post_html(k, v) for k, v in feed.items()) or empty("No posts written yet.")) + "</div>",
+             "<div class='tabp' id='tab-kit' hidden>" + ("".join(_post_html(k, v) for k, v in kit.items())
+                                                         or empty("No profile pictures or covers in this campaign.")) + "</div>",
+             f"<div class='tabp' id='tab-design' hidden>{dhtml}</div>",
+             f"</main>{GALLERY_JS}</body></html>"]
     write_text(d / "index.html", "".join(parts))
