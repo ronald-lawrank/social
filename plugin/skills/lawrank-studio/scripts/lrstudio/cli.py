@@ -153,11 +153,15 @@ def main(argv=None) -> int:
         emit({"ok": False, "error": str(e), **({"fix": e.fix} if e.fix else {}), **e.extra}); return 1
     except KeyboardInterrupt:
         emit({"ok": False, "error": "stopped"}); return 130
-    except Exception as e:
+    except Exception as e:                         # unexpected: a plain message for the person, the details in a log
         import os
+        from .util import log_error
+        logf = log_error(e, f"lr {a.cmd}")
         detail = traceback.format_exc()[-1500:] if os.environ.get("LR_DEBUG") else None
-        emit({"ok": False, "error": f"{type(e).__name__}: {e}", "fix": "This is a bug in the studio scripts. Re-run with LR_DEBUG=1 and share the output.",
-              **({"trace": detail} if detail else {})})
+        emit({"ok": False, "error": f"Something unexpected went wrong during `lr {a.cmd}` ({type(e).__name__}: {str(e)[:160]}).",
+              "fix": "Work saved before this point is kept. Try the same command once more; if it happens again, carry on with "
+                     "other work and tell the studio maintainer" + (f" (details are in {logf})" if logf else "") + ".",
+              **({"log": logf} if logf else {}), **({"trace": detail} if detail else {})})
         return 2
 
 

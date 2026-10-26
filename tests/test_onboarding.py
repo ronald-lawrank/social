@@ -98,7 +98,7 @@ def test_duplicate_client_and_blocked_site(home, site_url, private_ok):
     out = run("client", "new", site_url)
     assert not out["ok"] and "already a client" in out["error"]
     out = run("client", "new", "http://unreachable-firm.invalid/")
-    assert not out["ok"] and "--manual" in out["fix"]
+    assert not out["ok"] and "typos" in out["fix"]
 
 
 def test_private_addresses_are_refused(home, monkeypatch):

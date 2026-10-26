@@ -23,8 +23,10 @@ are cached, and longer when it renders the other sizes for the first time.
   - **`… - Posts.zip`**: every PNG at every size, the approved MP4s and `captions.csv` (post, month,
     topic, option, template, caption and alt text) for scheduling.
 - The output lists what's `included` and which posts have `no_approved_option` yet. Report both.
-- It refuses to package designs that still fail a check. Fix what it lists (the same way you would
-  after `lr build`), then package again.
+- Designs that still fail a check are left out (`left_out`, with the reason) and everything else is
+  packaged. Fix those (the same way you would after `lr build`) and package again to add them.
+- If one of the three files can't be made, the others are still delivered (`not_made`); packaging
+  again retries it.
 
 ## Importing into Figma (tell the person)
 1. Unzip the plugin somewhere permanent (moving it later breaks the link).

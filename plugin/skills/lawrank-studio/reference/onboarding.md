@@ -58,10 +58,11 @@ When the client picks a direction, run `lr client set "<client>" direction=B`.
   until someone approves them.
 
 ## When the site can't be scanned
-If `lr client new` reports that the site blocks scanning (a firewall or bot protection), run
-`lr client new <url> --name "Firm Name" --manual`. Then ask the person for the logo (SVG), a few
-photos of the attorneys, the brand colours and fonts if known, and the claims they want to use. Add
-them as described above.
+If the site blocks scanning (a firewall or bot protection), `lr client new` sets the client up by
+hand automatically and lists what's `needed`. Ask the person for those items (the logo, a few photos
+of the attorneys, brand colours and fonts if known, and the claims they want to use), add them as
+described above, then run `lr client refresh` and `lr directions`. If any single part of the scan
+fails (facts, logo, colours or photos), the rest is still saved and `warnings` says what to add.
 
 ## Clients from the old LawRank template
 `lr client import "<path to old clients/<slug> folder>"` brings over the logos, photos (with their

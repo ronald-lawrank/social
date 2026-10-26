@@ -79,7 +79,14 @@ def build(c: store.Client, campaign: str | None = None, month: int | None = None
                 continue
             for o in [o for o in p["options"] if options is None or (p["id"], o["key"]) in options]:
                 say(f"Motion preview {p['id']} {o['key']} ...")
-                r = motion.preview(c, d, p, o, cache)
+                try:
+                    r = motion.preview(c, d, p, o, cache)
+                except Exception as e:            # voice or preview trouble: report it, keep building the rest
+                    from .util import log_error
+                    log_error(e, f"motion preview {p['id']} {o['key']}")
+                    r = {"id": f"{p['id']}-{o['key']}-motion", "key": None, "template": "motion", "size": "9x16", "html": None,
+                         "images": [], "frames": 0, "issues": [{"level": "block", "rule": "motion",
+                         "msg": f"the preview couldn't be made ({type(e).__name__}: {str(e)[:120]}); rebuild this post, or try another family"}]}
                 newcache[r["id"]] = {k: v for k, v in r.items() if k != "cached"}
                 designs.append({"id": r["id"], "post": p["id"], "option": o["key"], "template": "motion", "size": "9x16", "data": o, "result": r})
                 results.append(r)
@@ -114,7 +121,9 @@ def build(c: store.Client, campaign: str | None = None, month: int | None = None
     if motion_posts:
         out["motion_previews"] = [str(d / "previews" / f"{p['id']}-{o['key']}-motion.html") for p in motion_posts if p["id"] not in problems for o in p["options"]]
         out["motion_note"] = "Previews play in a browser with sound. MP4s are rendered after approval with `lr video`."
-    out["ok"] = not problems and not flagged
+    # ok = the build did its job (something was drawn); what still needs a look is listed, not treated as a failure
+    out["ok"] = bool(designs) or not problems
+    out["needs_attention"] = bool(problems or flagged)
     return out
 
 

@@ -50,7 +50,7 @@ def test_preview_then_mp4_after_approval(home):
     again = run("build", "mcminn", "--post", "PI-006")
     assert again["redrawn"] == 0                                                  # cached: no re-voicing
     refused = run("video", "mcminn")
-    assert not refused["ok"] and "PI-006 A (Draft)" in refused["waiting"]
+    assert refused["ok"] and not refused["videos"] and "PI-006 A (Draft)" in refused["waiting"]
     wb = load_workbook(d / "review.xlsx"); ws = wb.active
     for r in ws.iter_rows(min_row=2):
         r[11].value = "Approved"

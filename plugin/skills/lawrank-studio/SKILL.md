@@ -59,7 +59,7 @@ after a direction is set (ask if it isn't).
   - Text problems (overflow, collisions): shorten the copy, then try another template.
   - Photo problems (a face covered, a head or neck cut): use another photo, then another template.
   - Never ask for smaller text.
-- `"ok": false` only means something above needs attention; everything else was built.
+- `needs_attention: true` means some items above need a look; everything else was built and is fine.
 - `check_before_posting` lists claims for a human to confirm, including your own `confirm` lines.
   They also go to review.xlsx. Pass these on; don't remove them.
 - Rebuild only what changed: `--post ID[,ID]`. Unchanged designs come from cache.
@@ -81,10 +81,19 @@ Reply in plain language and keep it short:
    with an offer to handle them.
 Don't paste JSON, file listings or check internals.
 
-## If something fails
-Every error carries a `fix`. Do what it says, or tell the person if it needs them (for example,
-"the site blocks scanning, so send me the logo and photos"). If a command says another person is
-building the same campaign, wait or ask; don't delete `.lr-lock`.
+## When something doesn't go perfectly
+The studio is built to keep going: a page that won't load, a font that won't download, a photo it
+can't read or one design that won't draw is skipped or replaced with a fallback, and the output says
+so in plain words (`warnings`, `needs_attention`, `left_out`, `failed`). Work the same way:
+- **Don't stop the job for one problem.** Finish everything else, then deal with what's listed.
+- **Fix what you can yourself:** shorten copy, pick another photo or template, rebuild just that post,
+  or run the command once more (brief network trouble usually clears on a retry).
+- **Ask the person only for what needs a human:** a logo or photos the site didn't give, approval of
+  a claim, or a choice between directions. Ask once, together, at the end.
+- `"ok": false` means nothing useful could be done; a `fix` says what to do. A message saying
+  "Something unexpected went wrong" means retry once; if it repeats, carry on with other work and
+  mention it in your reply (the details are logged for the maintainer).
+- If a command says another person is building the same campaign, wait or ask; don't delete `.lr-lock`.
 
 ## Where things are (the shared Drive folder "Claude")
 - `Clients/<Firm>/`: client.json, `brand/` (brand.json, facts.xlsx, logos, photos,

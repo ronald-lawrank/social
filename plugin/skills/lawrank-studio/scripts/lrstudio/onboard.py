@@ -96,6 +96,40 @@ def save_logos(best: dict | None, client: store.Client, ink: str) -> tuple[dict,
     return info, warnings
 
 
+DEFAULT_VISUAL = {"colors": DEFAULT_BRAND["colors"], "fonts": {"head": {"family": "Montserrat", "bold": "Bold"}, "body": {"family": "Lato"}},
+                  "cta": DEFAULT_BRAND["cta"], "treatments": {}, "evidence": {}}
+
+
+def _soft(fn, default, warnings: list, message: str):
+    """Run one onboarding step; if it fails, note it in plain words, keep the details for debugging and carry on."""
+    try:
+        return fn()
+    except Exception as e:
+        from .util import log_error
+        log_error(e)
+        warnings.append(message)
+        say(f"  {message}")
+        return default
+
+
+def _manual_client(url: str, dom: str, name: str | None, package: str, reason: str | None = None) -> dict:
+    """A client whose site can't be scanned: placeholders for the brand, and a clear list of what to add by hand."""
+    guessed = not name
+    name = name or " ".join(w.capitalize() for w in re.split(r"[-_.]", dom.split(".")[0]) if w)
+    c = store.create(name, url, package=package, status="needs brand")
+    write_json(c.brand_dir / "brand.json", dict(DEFAULT_BRAND, name=name, short=name.split()[0], website=dom, reliable=False,
+                                                warnings=["Brand colours and fonts are placeholders: set them with `lr client set`."]))
+    log(c.dir, "client new (manual)" + (f": {reason[:120]}" if reason else ""))
+    return {"client": c.name, "folder": str(c.dir), "status": "needs brand", "needs_attention": True,
+            **({"why": f"The site couldn't be scanned ({reason[:160]}), so the client was set up by hand instead."} if reason else {}),
+            "needed": ["the firm's logo (SVG or PNG) saved in brand/logos/ as logo-dark.svg (and logo-white.svg if they have one)",
+                       "a few photos of the attorneys in brand/photos/",
+                       "brand colours and fonts if known: `lr client set \"%s\" brand.colors.accent=#...`" % c.name,
+                       "the claims they want to use, as rows in brand/facts.xlsx"],
+            "next": f"Add what you have, then run `lr client refresh \"{c.name}\"` and `lr directions \"{c.name}\"`."
+                    + (f" The name '{name}' was guessed from the web address: fix it with `lr client set \"{name}\" name=\"Firm Name\"`." if guessed else "")}
+
+
 def new_client(website: str, name: str | None = None, package: str = "growth", max_pages: int = 10, manual: bool = False) -> dict:
     url = store.normalize_url(website)
     dom = store.domain_of(url)
@@ -105,20 +139,20 @@ def new_client(website: str, name: str | None = None, package: str = "growth", m
     if package not in ("essentials", "growth", "authority"):
         raise LRError("package must be essentials, growth or authority")
     warnings = []
-    if manual:
-        if not name:
-            raise LRError("A manual client needs a name", fix='lr client new <url> --name "Firm Name" --manual')
-        c = store.create(name, url, package=package, status="needs brand")
-        write_json(c.brand_dir / "brand.json", dict(DEFAULT_BRAND, name=name, short=name.split()[0], website=dom, reliable=False,
-                                                    warnings=["Brand colours and fonts are placeholders: set them with `lr client set`."]))
-        log(c.dir, "client new (manual)")
-        return {"client": c.name, "folder": str(c.dir), "status": "needs brand",
-                "next": "Drop the logo (SVG) into brand/logos/ as logo-dark.svg and logo-white.svg and the firm's photos into "
-                        "brand/photos/, then run `lr client photos` and set colours/fonts with `lr client set`."}
-    site = crawl(url, max_pages=max_pages)
-    ex = extract.extract(site.pages, site.jsonld, firm_name=name)
-    best_logo = pick_logo(site)
-    visual, vwarn = extract.derive_visual_identity(site.brand_read, logo_dark=logo_dark_colour(best_logo))
+    if not manual:
+        try:
+            site = crawl(url, max_pages=max_pages)
+        except SiteBlocked as e:                  # don't stop: set the client up by hand and say what's needed
+            say(f"  {e}")
+            return _manual_client(url, dom, name, package, reason=str(e))
+    else:
+        return _manual_client(url, dom, name, package)
+    # each step below has a safe default: one odd page or file never stops the whole onboarding
+    ex = _soft(lambda: extract.extract(site.pages, site.jsonld, firm_name=name), extract.Extraction(), warnings,
+               "Facts couldn't be read from the site; add the firm's claims to brand/facts.xlsx by hand.")
+    best_logo = _soft(lambda: pick_logo(site), None, warnings, "The logo couldn't be read; add it to brand/logos/ and run `lr client refresh`.")
+    visual, vwarn = _soft(lambda: extract.derive_visual_identity(site.brand_read, logo_dark=logo_dark_colour(best_logo)),
+                          (DEFAULT_VISUAL, []), warnings, "Brand colours and fonts couldn't be read; placeholders are in use (set them with `lr client set`).")
     warnings += vwarn
     name = name or firm_name(site, ex) or dom.split(".")[0].title()
     c = store.create(name, url, package=package, practice_area=ex.main_practice_area, status="onboarding")
@@ -128,11 +162,13 @@ def new_client(website: str, name: str | None = None, package: str = "growth", m
     for p in site.pages:                                   # the proof behind every fact
         write_text(c.brand_dir / "site" / f"{slugify(p['name'])[:50]}.txt", f"URL: {p['url']}\nRead: {today}\nTitle: {p.get('title')}\n\n{p['text']}")
 
-    logo_info, lw = save_logos(best_logo, c, visual["colors"]["ink"])
+    logo_info, lw = _soft(lambda: save_logos(best_logo, c, visual["colors"]["ink"]), ({"status": "missing"}, []), warnings,
+                          "The logo couldn't be saved; add it to brand/logos/ and run `lr client refresh`.")
     warnings += lw
     say("Collecting photos ...")
     logo_refs = [l["url"] for l in site.logos if l.get("url")] + ([best_logo["data"]] if best_logo and best_logo.get("data") else [])
-    pics = photos.collect(site.images, c.brand_dir / "photos", ex.people, dom, logos=tuple(logo_refs))
+    pics = _soft(lambda: photos.collect(site.images, c.brand_dir / "photos", ex.people, dom, logos=tuple(logo_refs)), {}, warnings,
+                 "Photos couldn't be collected; drop the firm's photos into brand/photos/ and run `lr client refresh`.")
     write_json(c.brand_dir / "photos" / "photos.json", pics)
     usable = [k for k, p in pics.items() if p["use"]]
     if not any(pics[k]["kind"] in ("person", "group") for k in usable):

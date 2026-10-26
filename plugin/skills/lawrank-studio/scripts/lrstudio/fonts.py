@@ -60,14 +60,14 @@ def ensure(family: str, weight: int) -> tuple[str, bool] | None:
     for lic, d, f, variable in _candidates(family, weight):
         url = GF_RAW.format(lic=lic, dir=d, file=urllib.parse.quote(f))
         try:
-            data = fetch(url, timeout=20)
+            data = fetch(url, timeout=20, tries=2)
         except urllib.error.HTTPError as e:
             if e.code != 404:
                 trouble = f"HTTP {e.code}"
             continue
         except Exception as e:                       # SSL, DNS, timeout: say so, and try again next time
             trouble = str(getattr(e, "reason", None) or e)[:120]
-            continue
+            break                                    # the network is the problem, not this file: don't wait on the rest
         if len(data) > 10_000:
             p = paths.FONTS / (f"{key}-var.ttf" if variable else f"{key}-{weight}.ttf")
             p.write_bytes(data)

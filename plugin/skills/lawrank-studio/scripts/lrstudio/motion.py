@@ -330,14 +330,25 @@ def video(c: store.Client, campaign: str | None = None, posts: str | None = None
             else:
                 skipped.append(f"{p['id']} {o['key']} ({st})")
     if not todo:
-        raise LRError("No approved motion options to render", fix="Approve them in review.xlsx (Status = Approved), or name one with --post to render a draft.",
-                      waiting=skipped[:12])
-    done = []
+        return {"client": c.name, "campaign": d.name, "videos": [], "waiting": skipped[:12],      # a normal state, not an error
+                "note": "Nothing to render yet: no motion option is marked Approved in review.xlsx. "
+                        "Name one with --post to render a draft anyway."}
+    done, failed = [], {}
     with Lock(d, "video"):
-        for p, o in todo:
+        for p, o in todo:                          # each video on its own: one failing never stops the rest
+            name = f"{p['id']} {o['key']}"
             errs = check_storyboard(p["id"], o)
             if errs:
-                raise LRError("; ".join(errs))
-            done.append(render_mp4(c, d, p, o))
-    log(c.dir, f"video {d.name} {', '.join(x['post'] + ' ' + x['option'] for x in done)}")
-    return {"client": c.name, "campaign": d.name, "videos": done, "not_approved_yet": skipped[:12], "folder": str(d / "video")}
+                failed[name] = "; ".join(errs)[:300]; continue
+            try:
+                done.append(render_mp4(c, d, p, o))
+            except Exception as e:
+                from .util import log_error
+                log_error(e, f"video {name}")
+                failed[name] = (e.fix if isinstance(e, LRError) and e.fix else f"{type(e).__name__}: {str(e)[:160]}")
+    log(c.dir, f"video {d.name} {', '.join(x['post'] + ' ' + x['option'] for x in done)}" + (f"; failed {', '.join(failed)}" if failed else ""))
+    out = {"client": c.name, "campaign": d.name, "videos": done, "not_approved_yet": skipped[:12], "folder": str(d / "video")}
+    if failed:
+        out.update(failed=failed, needs_attention=True, ok=bool(done),
+                   note="Videos listed under `failed` weren't rendered; the rest are done. Fix or retry those with --post.")
+    return out

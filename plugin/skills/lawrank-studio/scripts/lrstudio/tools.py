@@ -85,9 +85,14 @@ def ffmpeg() -> str:
 
 
 # ---------------------------------------------------------------- setup / doctor
-def _run(cmd, **kw):
+def _run(cmd, tries: int = 2, **kw):
     say("  $ " + " ".join(str(c) for c in cmd[:6]))
-    r = subprocess.run([str(c) for c in cmd], capture_output=True, text=True, **kw)
+    for n in range(tries):                        # installs fail on brief network trouble; one more try first
+        r = subprocess.run([str(c) for c in cmd], capture_output=True, text=True, **kw)
+        if not r.returncode:
+            break
+        if n < tries - 1:
+            say("  (retrying)")
     if r.returncode:
         raise LRError(f"{Path(str(cmd[0])).name} failed: {(r.stderr or r.stdout)[-600:]}", fix="Check the internet connection and run `lr setup` again.")
     return r.stdout
@@ -106,12 +111,20 @@ def setup(home: str | None = None, skip_models: bool = False) -> dict:
     if not py.exists():
         say("Creating the studio's Python environment ...")
         _run([sys.executable, "-m", "venv", venv]); done.append("venv")
+    warnings, failed = [], {}
+
+    def step(label: str, fn):
+        """Each install step on its own: a failure is noted and setup carries on with the rest."""
+        try:
+            fn(); done.append(label)
+        except Exception as e:
+            failed[label] = str(e)[-300:]
+
     say("Installing Python packages ...")
-    _run([py, "-m", "pip", "install", "-q", "--upgrade", "pip"])
-    _run([py, "-m", "pip", "install", "-q", "-r", paths.SCRIPTS / "requirements.txt"]); done.append("python packages")
+    step("pip", lambda: _run([py, "-m", "pip", "install", "-q", "--upgrade", "pip"]))
+    step("python packages", lambda: _run([py, "-m", "pip", "install", "-q", "-r", paths.SCRIPTS / "requirements.txt"]))
     say("Installing the browser used for rendering ...")
-    _run([py, "-m", "playwright", "install", "chromium"]); done.append("chromium")
-    warnings = []
+    step("chromium", lambda: _run([py, "-m", "playwright", "install", "chromium"]))
     if not skip_models:
         for name in MODEL_FILES:
             try:
@@ -125,15 +138,24 @@ def setup(home: str | None = None, skip_models: bool = False) -> dict:
         paths.NODE_DIR.mkdir(parents=True, exist_ok=True)
         shutil.copy(paths.SCRIPTS / "node" / "package.json", paths.NODE_DIR / "package.json")
         say("Installing the video renderer ...")
-        _run(["npm" if os.name != "nt" else "npm.cmd", "install", "--no-audit", "--no-fund", "--loglevel=error"], cwd=paths.NODE_DIR)
-        hf = hyperframes_cmd()
-        subprocess.run(hf + ["telemetry", "disable"], capture_output=True, env=node_env())
-        _run(hf + ["browser", "ensure"], env=node_env()); done.append("video renderer")
+
+        def video():
+            _run(["npm" if os.name != "nt" else "npm.cmd", "install", "--no-audit", "--no-fund", "--loglevel=error"], cwd=paths.NODE_DIR)
+            hf = hyperframes_cmd()
+            subprocess.run(hf + ["telemetry", "disable"], capture_output=True, env=node_env())
+            _run(hf + ["browser", "ensure"], env=node_env())
+        step("video renderer", video)
     else:
         warnings.append("Node.js isn't installed, so MP4 videos can't be rendered yet (everything else works). "
                         "Install Node.js 22 LTS from https://nodejs.org and run `lr setup` again.")
     res = doctor()
     res["installed"] = done
+    if failed:
+        failed.pop("pip", None) if "python packages" in done else None      # an old pip is harmless once packages are in
+    if failed:
+        res["failed_steps"] = failed
+        res["needs_attention"] = True
+        warnings.append("Some steps didn't finish (usually a network hiccup): run `lr setup` again; finished steps are skipped quickly.")
     if warnings:
         res["warnings"] = warnings
     return res

@@ -35,9 +35,19 @@ def package(c: store.Client, campaign: str | None = None, month: int | None = No
     ids = ",".join(sorted({p["id"] for p, _ in chosen}))
     res = builder.build(c, campaign=d.name, posts=ids, sizes="all",           # every size of what's delivered, checked
                         options={(p["id"], o["key"]) for p, o in chosen})
-    if res.get("flagged") or res.get("not_built"):
-        raise LRError("Some designs still need fixing before they can be packaged", fix="Fix what `lr build` lists, then package again.",
-                      flagged=res.get("flagged"), not_built=res.get("not_built"))
+    # package what's ready; anything that still fails a check is left out and listed (never the whole package refused)
+    left_out = {}
+    for f in res.get("flagged") or []:
+        pid, key = parse_id(f["design"])
+        left_out.setdefault(f"{pid} {key}", f["fix"][:2])
+    for pid, errs in (res.get("not_built") or {}).items():
+        for p, o in chosen:
+            if p["id"] == pid:
+                left_out.setdefault(f"{pid} {o['key']}", errs[:2])
+    chosen = [(p, o) for p, o in chosen if f"{p['id']} {o['key']}" not in left_out]
+    if not chosen:
+        raise LRError("Nothing is ready to package yet: every chosen design still needs a fix",
+                      fix="Fix what's listed (as after `lr build`), then package again.", left_out=left_out)
     cache = read_json(d / ".build.json", {}) or {}
     exports = d / "exports"; exports.mkdir(exist_ok=True)
     safe = lambda s: re.sub(r'[<>:"/\\|?*]+', "", s).strip()
@@ -67,8 +77,13 @@ def package(c: store.Client, campaign: str | None = None, month: int | None = No
             if parse_id(did) in keep and r.get("html") and r.get("template") != "motion":
                 html.append((did, d / r["html"]))
         say(f"Exporting {len(html)} design(s) to Figma layers ...")
-        designs, images = figma_export.collect(html)
-        plugin = figma_export.plugin_zip(f"{c.name} · {d.name}", designs, images, exports / f"{stem} - Figma plugin.zip")
+        made, not_made = {"posts": exports / f"{stem} - Posts.zip"}, {}
+        try:                                      # each file stands alone: one failing never costs the others
+            designs, images = figma_export.collect(html)
+            made["plugin"] = (figma_export.plugin_zip(f"{c.name} · {d.name}", designs, images, exports / f"{stem} - Figma plugin.zip"))
+        except Exception as e:
+            from .util import log_error
+            log_error(e, "figma plugin"); not_made["Figma plugin"] = f"{type(e).__name__}: {str(e)[:120]}"
         # client deck: one slide per option (4:5 + story where present), captions, what to confirm
         groups = []
         facts = store.read_facts(c)
@@ -84,12 +99,22 @@ def package(c: store.Client, campaign: str | None = None, month: int | None = No
                     confirm.add(f["text"][:160])
             for x in spec.confirm_list(o):
                 confirm.add(x)
-        deck_path = deck.build_deck(c, d, c.brand(), groups, sorted(confirm), exports / f"{stem} - Deck.pptx",
-                                    f"{c.name}: {d.name}" + (f", Month {month}" if month else ""))
+        try:
+            made["deck"] = (deck.build_deck(c, d, c.brand(), groups, sorted(confirm), exports / f"{stem} - Deck.pptx",
+                                           f"{c.name}: {d.name}" + (f", Month {month}" if month else "")))
+        except Exception as e:
+            from .util import log_error
+            log_error(e, "client deck"); not_made["Client deck"] = f"{type(e).__name__}: {str(e)[:120]}"
     log(c.dir, f"package {d.name}" + (f" month {month}" if month else ""))
     return {"client": c.name, "campaign": d.name, "options": len(chosen), "review_set": review_set,
-            "files": [str(exports / f"{stem} - Deck.pptx"), str(plugin), str(exports / f"{stem} - Posts.zip")],
+            "files": [str(made[k]) for k in ("deck", "plugin", "posts") if k in made],
+            **({"not_made": not_made, "needs_attention": True,
+                "not_made_note": "These files couldn't be made this time; the others are complete. Package again to retry them."}
+               if not_made else {}),
             "included": [f"{p['id']} {o['key']}" for p, o in chosen],
+            **({"left_out": left_out, "needs_attention": True,
+                "note": "These weren't packaged because they still fail a check: fix them, rebuild, and package again to add them."}
+               if left_out else {}),
             "no_approved_option": [] if review_set else sorted({p["id"] for p in posts} - {p["id"] for p, _ in chosen}),
             "to_confirm": len(confirm),
             "figma_steps": "Unzip the plugin somewhere permanent, then in the Figma desktop app: Plugins > Development > "

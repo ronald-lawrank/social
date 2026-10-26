@@ -33,12 +33,58 @@ def ssl_context():
         return ssl.create_default_context()
 
 
-def fetch(url: str, timeout: float = 30) -> bytes:
-    """GET a URL (certifi-verified). Raises urllib.error.HTTPError on 4xx/5xx, other errors on network trouble."""
+def transient(e: Exception) -> bool:
+    """Worth another try: network trouble, timeouts, rate limits and server errors (not a real 'not found')."""
+    if isinstance(e, LRError):
+        return False
+    code = getattr(e, "code", None) or getattr(getattr(e, "response", None), "status_code", None)
+    if isinstance(code, int):
+        return code in (408, 425, 429) or code >= 500
+    try:
+        import httpx
+        if isinstance(e, httpx.TransportError):
+            return True
+    except ImportError:
+        pass
+    return isinstance(e, (OSError, TimeoutError))       # urllib's URLError, timeouts, connection resets
+
+
+def retry(fn, tries: int = 3, wait: float = 1.5):
+    """Run fn(); on a transient error wait and try again (1.5s, then 4.5s). Other errors are raised at once."""
+    import time
+    for n in range(tries):
+        try:
+            return fn()
+        except Exception as e:
+            if n == tries - 1 or not transient(e):
+                raise
+            time.sleep(wait * (3 ** n))
+
+
+def fetch(url: str, timeout: float = 30, tries: int = 3) -> bytes:
+    """GET a URL (certifi-verified), retrying brief network trouble. Raises urllib.error.HTTPError on a real 4xx."""
     import urllib.request
-    req = urllib.request.Request(url, headers={"User-Agent": "lawrank-studio"})
-    with urllib.request.urlopen(req, timeout=timeout, context=ssl_context()) as r:
-        return r.read()
+
+    def once():
+        req = urllib.request.Request(url, headers={"User-Agent": "lawrank-studio"})
+        with urllib.request.urlopen(req, timeout=timeout, context=ssl_context()) as r:
+            return r.read()
+    return retry(once, tries)
+
+
+def log_error(e: BaseException, where: str = "") -> str:
+    """Keep the technical details of an unexpected problem for whoever fixes it; the person sees a plain message."""
+    import traceback
+    try:
+        from . import paths
+        f = paths.STATE / "logs" / "errors.log"
+        f.parent.mkdir(parents=True, exist_ok=True)
+        with f.open("a", encoding="utf-8") as out:
+            out.write(f"\n--- {now()} {where} {' '.join(sys.argv[1:])[:200]}\n")
+            out.write("".join(traceback.format_exception(type(e), e, e.__traceback__))[-6000:])
+        return str(f)
+    except Exception:
+        return ""
 
 
 def say(msg: str):

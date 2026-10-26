@@ -110,7 +110,10 @@ def render(client_dir: Path, brand: dict, designs: list[dict], out_dir: Path, ca
         prev = (cache or {}).get(d["id"])
         if prev and prev.get("key") == key and all((out_dir / p).exists() for p in prev.get("images", [])):
             results.append(dict(prev, cached=True)); continue
-        html, used = templates.render_html(d["template"], brand, client_dir, d["size"], d["data"], previews, font_css, title=d.get("title", d["id"]))
+        try:
+            html, used = templates.render_html(d["template"], brand, client_dir, d["size"], d["data"], previews, font_css, title=d.get("title", d["id"]))
+        except Exception as e:                    # one design that can't be drawn never stops the others
+            results.append(_not_drawn(d, e)); continue
         write_text(previews / f"{d['id']}.html", html)
         todo.append((d, key, used))
     if todo:
@@ -119,27 +122,51 @@ def render(client_dir: Path, brand: dict, designs: list[dict], out_dir: Path, ca
             page = browser.new_page(device_scale_factor=1)
             for i, (d, key, used) in enumerate(todo, 1):
                 say(f"  drawing {d['id']} ({i}/{len(todo)})")
-                size = templates.SIZES[d["size"]]
-                page.set_viewport_size({"width": size["w"], "height": size["h"]})
-                page.goto((previews / f"{d['id']}.html").resolve().as_uri() + "#render")
-                page.evaluate("document.fonts.ready.then(() => window.__fit && window.__fit())")
-                page.wait_for_function("[...document.images].every(i => i.complete)", timeout=20000)
-                frames = page.evaluate(MEASURE_JS)
-                shots = []
-                els = page.query_selector_all(".frame")
-                for n, el in enumerate(els):
-                    name = f"{d['id']}.png" if len(els) == 1 else f"{d['id']}_{n + 1:02d}.png"
-                    write_bytes(images / name, el.screenshot(type="png"))
-                    shots.append(name if flat else f"images/{name}")
-                issues = []
-                for n, f in enumerate(frames):
-                    issues += [dict(x, frame=n) for x in checks.check_frame(f, out_dir / shots[n])]
-                results.append({"id": d["id"], "key": key, "template": d["template"], "size": d["size"],
-                                "html": f"{d['id']}.html" if flat else f"previews/{d['id']}.html", "images": shots, "photos": used,
-                                "issues": issues, "frames": len(frames)})
+                try:
+                    results.append(_draw(page, d, key, used, previews, images, out_dir, flat))
+                except Exception as e:
+                    results.append(_not_drawn(d, e))
+                    try:
+                        page.close()
+                    except Exception:
+                        pass
+                    page = browser.new_page(device_scale_factor=1)      # a fresh page for the rest
             browser.close()
     order = {d["id"]: i for i, d in enumerate(designs)}
     results.sort(key=lambda r: order.get(r["id"], 0))
     for r in results:
         r.setdefault("font_notes", font_notes)
     return results
+
+
+def _not_drawn(d: dict, e: Exception) -> dict:
+    """A design that failed to draw: reported with the reason (and the details logged); not cached, so it retries next build."""
+    from .util import log_error
+    log_error(e, f"drawing {d['id']}")
+    return {"id": d["id"], "key": None, "template": d["template"], "size": d["size"], "html": None, "images": [], "photos": [],
+            "frames": 0, "issues": [{"level": "block", "rule": "render",
+                                     "msg": f"couldn't be drawn ({type(e).__name__}: {str(e)[:120]}); rebuild it, or try another template"}]}
+
+
+def _draw(page, d, key, used, previews, images, out_dir, flat) -> dict:
+    size = templates.SIZES[d["size"]]
+    page.set_viewport_size({"width": size["w"], "height": size["h"]})
+    page.goto((previews / f"{d['id']}.html").resolve().as_uri() + "#render")
+    page.evaluate("document.fonts.ready.then(() => window.__fit && window.__fit())")
+    try:
+        page.wait_for_function("[...document.images].every(i => i.complete)", timeout=20000)
+    except Exception:
+        say(f"  {d['id']}: an image was slow to load; drawing anyway")
+    frames = page.evaluate(MEASURE_JS)
+    shots = []
+    els = page.query_selector_all(".frame")
+    for n, el in enumerate(els):
+        name = f"{d['id']}.png" if len(els) == 1 else f"{d['id']}_{n + 1:02d}.png"
+        write_bytes(images / name, el.screenshot(type="png"))
+        shots.append(name if flat else f"images/{name}")
+    issues = []
+    for n, f in enumerate(frames):
+        issues += [dict(x, frame=n) for x in checks.check_frame(f, out_dir / shots[n])]
+    return {"id": d["id"], "key": key, "template": d["template"], "size": d["size"],
+            "html": f"{d['id']}.html" if flat else f"previews/{d['id']}.html", "images": shots, "photos": used,
+            "issues": issues, "frames": len(frames)}

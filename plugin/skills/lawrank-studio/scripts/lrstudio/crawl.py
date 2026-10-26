@@ -139,7 +139,7 @@ LOGOS_JS = r"""() => {
 def crawl(url: str, max_pages: int = 10, timeout_s: int = 30) -> Site:
     from playwright.sync_api import sync_playwright
     if not url_allowed(url):
-        raise SiteBlocked(f"{url} isn't a public website address", fix="Check the URL.")
+        raise LRError(f"{url} isn't a public website address", fix="Check the web address for typos.")
     site = Site(url=url)
     brand_js = (JS_DIR / "brand_scan.js").read_text().strip().rstrip(";")
     with sync_playwright() as p:
@@ -150,10 +150,18 @@ def crawl(url: str, max_pages: int = 10, timeout_s: int = 30) -> Site:
         pg = ctx.new_page()
         pg.on("requestfailed", lambda r: failed.append((r.resource_type, urllib.parse.urlparse(r.url).hostname)))
         say(f"Reading {url} ...")
-        try:
-            resp = pg.goto(url, wait_until="domcontentloaded", timeout=timeout_s * 1000)
-        except Exception as e:
+        resp, err = None, None
+        for attempt in range(2):                          # a slow first load is common; one more try before giving up
+            try:
+                resp = pg.goto(url, wait_until="domcontentloaded", timeout=timeout_s * 1000 * (attempt + 1)); err = None
+                break
+            except Exception as e:
+                err = e
+        if err is not None:
+            e = err
             browser.close()
+            if "ERR_NAME_NOT_RESOLVED" in str(e):      # no such address: a typo, not a site that blocks us
+                raise LRError(f"{url} doesn't exist (no website at that address)", fix="Check the web address for typos.")
             raise SiteBlocked(f"Couldn't open {url}: {str(e).splitlines()[0][:140]}",
                               fix="Check the address. If the site blocks automated browsers, create the client with "
                                   "`lr client new <url> --name \"Firm Name\" --manual` and drop its logo and photos into the brand folder.")
@@ -167,13 +175,21 @@ def crawl(url: str, max_pages: int = 10, timeout_s: int = 30) -> Site:
         try: pg.wait_for_load_state("networkidle", timeout=8000)
         except Exception: pass
         site.final_url = pg.url
-        site.brand_read = json.loads(pg.evaluate(brand_js))
+        try:
+            site.brand_read = json.loads(pg.evaluate(brand_js))
+        except Exception as e:                            # odd markup: carry on with defaults, marked unreliable
+            say(f"  brand styles couldn't be read: {str(e).splitlines()[0][:80]}")
+            site.brand_read = {"reliable": False, "why_unreliable": "the page's styles couldn't be read"}
         css_blocked = sorted({h for t, h in failed if t == "stylesheet" and h})
         default_look = "Times New Roman" in (site.brand_read.get("h1") or "") or any(c.startswith("#0000EE") for c in site.brand_read.get("top", [])[:3])
         site.brand_read["reliable"] = not (css_blocked or default_look)
         if not site.brand_read["reliable"]:
             site.brand_read["why_unreliable"] = (f"stylesheets blocked from {', '.join(css_blocked)}; " if css_blocked else "") + ("page renders in browser defaults" if default_look else "")
-        site.logos = [dict(l, page=pg.url) for l in pg.evaluate(LOGOS_JS)]
+        try:
+            site.logos = [dict(l, page=pg.url) for l in pg.evaluate(LOGOS_JS)]
+        except Exception as e:
+            say(f"  logo search failed: {str(e).splitlines()[0][:80]}")
+            site.logos = []
 
         queue, seen, i = [("home", pg.url)], {pg.url.rstrip("/")}, 0
         while i < len(queue) and len(site.pages) < max_pages:
@@ -224,7 +240,12 @@ def crawl(url: str, max_pages: int = 10, timeout_s: int = 30) -> Site:
 
 
 def download(url: str, referer: str | None = None) -> tuple[bytes, str]:
-    """Fetch an image, re-checking every redirect hop against the address guard."""
+    """Fetch an image, re-checking every redirect hop against the address guard (brief network trouble is retried)."""
+    from .util import retry
+    return retry(lambda: _download_once(url, referer))
+
+
+def _download_once(url: str, referer: str | None = None) -> tuple[bytes, str]:
     import httpx
     hops = 0
     headers = {"User-Agent": UA, **({"Referer": referer} if referer else {})}

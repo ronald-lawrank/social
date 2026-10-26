@@ -21,20 +21,20 @@ def test_font_download_errors_are_not_cached_as_missing(tmp_path, monkeypatch):
     monkeypatch.setattr(paths, "FONTS", tmp_path)
     assert util.ssl_context().cert_store_stats()["x509_ca"] > 0          # certifi's CA bundle, not the empty system one
 
-    def ssl_fail(url, timeout=0):
+    def ssl_fail(url, timeout=0, **kw):
         raise urllib.error.URLError(ssl.SSLCertVerificationError("unable to get local issuer certificate"))
     monkeypatch.setattr(fonts, "fetch", ssl_fail)
     assert fonts.ensure("Jost", 700) is None
     assert not (tmp_path / "Jost.missing").exists()
 
-    def not_found(url, timeout=0):
+    def not_found(url, timeout=0, **kw):
         raise urllib.error.HTTPError(url, 404, "Not Found", {}, None)
     monkeypatch.setattr(fonts, "fetch", not_found)
     assert fonts.ensure("Nosuchfont", 700) is None
     assert (tmp_path / "Nosuchfont.missing").read_text().startswith("404")
 
     (tmp_path / "Jost.missing").write_text("not found in Google Fonts")   # left by an older version after an SSL error
-    monkeypatch.setattr(fonts, "fetch", lambda url, timeout=0: b"\0" * 20_000)
+    monkeypatch.setattr(fonts, "fetch", lambda url, timeout=0, **kw: b"\0" * 20_000)
     path, variable = fonts.ensure("Jost", 700)
     assert variable and path.endswith("Jost-var.ttf") and not (tmp_path / "Jost.missing").exists()
 
