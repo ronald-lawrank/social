@@ -1,6 +1,7 @@
 """`lr client new <website>`: read the firm's site once and save everything the studio needs to remember."""
 import datetime as dt
 import re
+import urllib.parse
 
 from . import extract, logos, photos, store
 from .crawl import SiteBlocked, crawl, download
@@ -34,8 +35,34 @@ def _fonts(fonts: dict) -> dict:
     return out
 
 
+# Logos of review widgets, badges, social networks and directories that sit on firm sites. Never the firm's logo.
+THIRD_PARTY = re.compile(r"trustindex|google|gstatic|facebook|fbcdn|instagram|linkedin|twitter|x\.com|youtube|yelp|avvo|bbb\.org|"
+                         r"superlawyers|martindale|justia|lawyers\.com|findlaw|nolo|expertise\.com|birdeye|podium|trustpilot|"
+                         r"elfsight|reviewsonmywebsite|nationaltrial|bestlawyers|millionaire|multi-million|forum|"
+                         r"/(badges?|awards?|seals?|ratings?|reviews?|platform|widgets?)/", re.I)
+
+
+def _logo_score(l: dict, kind: str, site_host: str, stem: str) -> float | None:
+    """How likely a candidate is the firm's own logo; None when it clearly isn't (a widget or badge from another site)."""
+    url = l.get("url") or ""
+    host = urllib.parse.urlparse(url).hostname or site_host
+    if url and THIRD_PARTY.search(url):
+        return None
+    own = host.removeprefix("www.").endswith(site_host.removeprefix("www.")) or host == site_host
+    named = bool(stem) and stem in re.sub(r"[^a-z0-9]", "", (l.get("alt", "") + url).lower())
+    score = {"svg": 3.0, "raster": 2.0}[kind] + (l["where"] == "header") + 2 * named
+    if not own:
+        score -= 2                                   # a CDN can be fine, but the firm's own host is the safer bet
+    if kind == "raster":
+        score += min(1, (l.get("w") or 0) / 600)
+    return score
+
+
 def pick_logo(site) -> dict | None:
-    """The best logo candidate on the site: {kind: svg|raster, svg|data, where, url?}."""
+    """The best logo candidate on the site: {kind: svg|raster, svg|data, where, url?}. Logos of review widgets,
+    badges and social networks are skipped, and one that names the firm (alt text or file name) is preferred."""
+    site_host = urllib.parse.urlparse(site.final_url or site.url).hostname or ""
+    stem = re.sub(r"[^a-z0-9]", "", site_host.removeprefix("www.").split(".")[0])[:8]
     cands = []
     for i, l in enumerate(site.logos):
         try:
@@ -43,15 +70,19 @@ def pick_logo(site) -> dict | None:
                 svg = logos.sanitize(l["svg"])
                 if logos.aspect(svg) < 0.5 and l["where"] == "header" and len(site.logos) > 1:
                     continue                                    # hamburger icons and the like
-                cands.append({"kind": "svg", "svg": svg, "where": l["where"], "bg": l.get("bg"), "score": 3 + (l["where"] == "header") + (logos.aspect(svg) > 1.6)})
+                score = _logo_score(l, "svg", site_host, stem)
+                cands.append({"kind": "svg", "svg": svg, "where": l["where"], "bg": l.get("bg"), "score": score + (logos.aspect(svg) > 1.6)})
             elif l.get("url"):
+                score = _logo_score(l, "raster", site_host, stem)
+                if score is None:
+                    say(f"  skipped a third-party logo: {l['url'][:80]}")
+                    continue
                 data, ctype = download(l["url"], l.get("page"))
                 if ctype == "image/svg+xml":
                     svg = logos.sanitize(data.decode("utf-8", "replace"))
-                    cands.append({"kind": "svg", "svg": svg, "where": l["where"], "url": l["url"], "score": 3.5 + (l["where"] == "header")})
+                    cands.append({"kind": "svg", "svg": svg, "where": l["where"], "url": l["url"], "score": score + 1})
                 else:
-                    cands.append({"kind": "raster", "data": data, "where": l["where"], "url": l["url"],
-                                  "score": 1 + (l["where"] == "header") + min(1, (l.get("w") or 0) / 600)})
+                    cands.append({"kind": "raster", "data": data, "where": l["where"], "url": l["url"], "score": score})
         except Exception as e:
             say(f"  logo candidate {i} skipped: {str(e)[:80]}")
     return max(cands, key=lambda c: c["score"]) if cands else None

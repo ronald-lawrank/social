@@ -116,3 +116,26 @@ def test_test_designs_use_approved_or_neutral_copy_only(mcminn):
     assert all("tagline" in o["facts"] for o in opts if o["copy"].get("headline") == "Helping the Injured Get Justice.")
     assert not any(h in str(opts) for h in ("Our promise", "Straight answers", "Here when you need answers"))
     assert not any(o["copy"].get("cta") == "Free consultation" for o in opts)  # McMinn's fees fact isn't approved
+
+
+def test_third_party_logos_are_never_picked(monkeypatch):
+    from types import SimpleNamespace
+    from lrstudio import onboard
+    site = SimpleNamespace(url="https://aldersandlewellyn.com/", final_url="https://aldersandlewellyn.com/", logos=[
+        {"url": "https://cdn.trustindex.io/assets/platform/Google/logo.svg", "where": "page", "alt": "", "w": 120},
+        {"url": "https://aldersandlewellyn.com/wp-content/uploads/aldersandlewellyn-logo.png", "where": "header", "alt": "", "w": 400}])
+    fetched = []
+
+    def fake_download(url, referer=None):
+        fetched.append(url)
+        return (b"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'/>", "image/svg+xml") if url.endswith(".svg") else (b"PNG", "image/png")
+    monkeypatch.setattr(onboard, "download", fake_download)
+    best = onboard.pick_logo(site)
+    assert best["url"].endswith("aldersandlewellyn-logo.png") and not any("trustindex" in u for u in fetched)
+
+
+def test_small_text_reads_on_a_light_accent():
+    from lrstudio import theme
+    from lrstudio.extract import contrast
+    t = theme.treatments({"colors": {"ink": "#344952", "accent": "#C9A977", "paper": "#F4F4F4"}})["accent"]
+    assert contrast(t["fg"], "#C9A977") >= 4.5

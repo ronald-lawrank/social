@@ -21,7 +21,8 @@ are included.
 
 ## 2. Read the result and tell the person
 From the output, report in plain words:
-- the colours, fonts and logo that were found, with a link to the brand board;
+- the colours, fonts and logo that were found (the brand board is on the gallery's Design tab, so don't
+  link it separately);
 - `warnings`, such as "no logo found", "logo is an image, not a vector" or "no photos of people";
 - `facts.need_approval`: the claims that need the firm's sign-off before they can be used;
 - `photos_not_used`, but only if good photos were skipped.

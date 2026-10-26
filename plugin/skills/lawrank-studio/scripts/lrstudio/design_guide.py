@@ -61,6 +61,8 @@ CSS = """
 .dg table{border-collapse:collapse;width:100%;font-size:14px}.dg td,.dg th{text-align:left;padding:7px 10px;border-bottom:1px solid #E5E7EB;vertical-align:top}
 .dg th{color:#6B7280;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.06em}
 .dg .note{font-size:13px;color:#6B7280}
+.dg .boards{display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:12px}
+.dg .boards img{width:100%;border-radius:6px;border:1px solid #E5E7EB}
 """
 
 
@@ -133,6 +135,12 @@ def render(c: store.Client, d: Path, font_css: str = "") -> tuple[str, str]:
     if total:
         lead += " So far in this campaign: " + ", ".join(f"{tr} {round(100 * n / total)}%" for tr, n in mix.most_common()) + "."
     out.append(f"<section><h2>Direction</h2>{lead}</p></section>")
+
+    # the brand board, so this one page holds everything (no separate board link needed)
+    boards = sorted((c.brand_dir / "board").glob("board_*.png"))
+    if boards:
+        out.append("<section><h2>Brand board</h2><div class='boards'>" + "".join(
+            f"<img loading='lazy' src='{e(_rel(f, d))}' alt='Brand board, page {n}'>" for n, f in enumerate(boards, 1)) + "</div></section>")
 
     # logo
     logo = b.get("logo") or {}

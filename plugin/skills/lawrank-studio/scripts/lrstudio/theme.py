@@ -60,6 +60,8 @@ def treatments(brand: dict) -> dict:
     tr = (brand.get("treatments") or {}).get("accent") or {}
     if tr.get("head"):
         fg = c.get(tr["head"][0], fg) if isinstance(tr["head"], list) else fg
+    if fg != WHITE:                                   # dark text on a light accent (e.g. gold): deepen it just enough
+        fg = readable(fg, accent, SMALL)              # that small text (site, labels, answers) reads too
     out["accent"] = {"bg": accent, "fg": fg, "fg2": readable(fg, accent, SMALL), "acc": ink if fg == WHITE else WHITE,
                      "acc_small": readable(ink if fg == WHITE else WHITE, accent, SMALL),
                      "rule": fg, "line": mix(fg, accent, 0.7), "btn_bg": ink, "btn_fg": WHITE,
