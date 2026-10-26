@@ -192,3 +192,22 @@ def write_facts(client: Client, facts: list[dict], replace: bool = False):
     import io
     buf = io.BytesIO(); wb.save(buf)
     write_bytes(client.brand_dir / "facts.xlsx", buf.getvalue())
+
+
+_LEAD = re.compile(r"^(the\s+)?((law\s+)?offices?\s+of|law\s+firm\s+of|law\s+group\s+of)\s+", re.I)
+_TAIL = re.compile(r"[\s,]+(law\s+(firm|group|offices?|center|partners)|law|attorneys?(\s+at\s+law)?|lawyers|legal(\s+group)?|"
+                   r"injury\s+(lawyers|attorneys|law)|&\s+associates|and\s+associates|associates|pllc|p\.?l\.?l\.?c\.?|llp|llc|p\.?a\.?|p\.?c\.?)$", re.I)
+
+
+def short_name(name: str) -> str:
+    """How a firm is called in copy: 'The Law Office of Ben Carrasco, PLLC' -> 'Ben Carrasco', 'McMinn Law Firm' -> 'McMinn',
+    'Harbor & Vale Injury Lawyers' -> 'Harbor & Vale'. Never just an article."""
+    n = (name or "").split(",")[0].strip()
+    n = _LEAD.sub("", n)
+    n = re.sub(r"^the\s+", "", n, flags=re.I)
+    for _ in range(3):                              # 'Smith & Associates Law Firm' sheds both
+        n2 = _TAIL.sub("", n).strip()
+        if n2 == n or not n2:
+            break
+        n = n2
+    return (n or (name or "").strip())[:24]

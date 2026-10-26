@@ -66,11 +66,14 @@ def build(c: store.Client, campaign: str | None = None, month: int | None = None
             if p.get("format") != "motion":
                 ds = designs_for_all(p) if every else designs_for(p, size_list)
                 designs += [x for x in ds if options is None or (x["post"], x["option"]) in options]
-        cache = {} if force else (read_json(d / ".build.json", {}) or {})
+        # the build record covers the whole campaign: a partial build (--post, --month, --force) only replaces the
+        # designs it drew and keeps every other post's record, so the gallery never loses designs
+        record = read_json(d / ".build.json", {}) or {}
+        cache = {} if force else record                  # --force: redraw the selected designs, not forget the rest
         say(f"Drawing {len(designs)} design(s) for {c.name} ...")
         results = render.render(c.dir, brand, designs, d, cache=cache) if designs else []
         existing = {f.stem for f in (d / "posts").glob("*.json")}
-        newcache = {k: v for k, v in cache.items() if k.rsplit("-", 2)[0] in existing}      # forget deleted posts
+        newcache = {k: v for k, v in record.items() if templates.split_id(k)[0] in existing}      # forget deleted posts only
         for r in results:
             newcache[r["id"]] = {k: v for k, v in r.items() if k != "cached"}
         from . import motion

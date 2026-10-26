@@ -133,7 +133,7 @@ def test_sample_copy_follows_the_practice_area():
     for other in ("Immigration", "Estate planning", None):
         assert not re.search(r"accident|insurer|crash|divorce|arrest", words(other))
     for area in ("Personal injury", "Family law", "Criminal defense", None):     # every set fills every template
-        assert set(campaign.sample_copy(area)) == {"faq", "help", "story", "checklist"}
+        assert set(campaign.sample_copy(area)) == {"statement", "faq", "help", "story", "checklist"}
 
 
 # 8. banners with text, and people who aren't the firm's, are flagged for a check

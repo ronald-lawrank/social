@@ -23,14 +23,14 @@
     <div>
       <div class="small" style="color:#666">Headlines · {{ brand.fonts.head.family }} {{ brand.fonts.head.weight }}</div>
       <div class="display" style="color:{{ C.ink }};font-size:120px;margin-top:10px">Aa Bb 123</div>
-      <div class="h1" style="color:{{ C.ink }};margin-top:24px;font-size:72px">Helping the injured <span style="color:{{ themes['light'].acc }}">get justice.</span></div>
+      <div class="h1" style="color:{{ C.ink }};margin-top:24px;font-size:72px">{{ c.headline|accent(c.accent) }}</div>
     </div>
     <div>
       <div class="small" style="color:#666">Body · {{ brand.fonts.body.family }}</div>
       <div class="lead" style="color:{{ themes['light'].fg2 }};margin-top:14px">Support copy is set in the body font: plain, readable sentences that explain the headline. Never smaller than 30 px at full size.</div>
       <div style="display:flex;gap:28px;margin-top:48px;align-items:center;{{ tvars('light') }}">
-        {{ cta('Free consultation') }}
-        <div style="{{ tvars('dark') }};background:var(--bg);padding:26px 30px">{{ cta('Call today') }}</div>
+        {{ cta(c.cta) }}
+        <div style="{{ tvars('dark') }};background:var(--bg);padding:26px 30px">{{ cta(c.cta2) }}</div>
       </div>
       <div style="margin-top:44px;{{ tvars('light') }}"><div class="label">Section label</div></div>
     </div>
@@ -43,9 +43,9 @@
     {% for t in ['dark', 'light', 'accent'] %}
     <div class="bb-tile" style="{{ tvars(t) }};background:var(--bg);color:var(--fg)">
       <div class="label">{{ t|capitalize }}</div>
-      <div class="h2" style="margin-top:24px;font-size:54px">A family-owned firm that <span class="acc">puts clients first.</span></div>
-      <div class="body" style="margin-top:20px;font-size:26px">Support text in the body colour for this field.</div>
-      <div style="margin-top:30px">{{ cta('Free consultation') }}</div>
+      <div class="h2" style="margin-top:24px;font-size:54px">{{ c.headline|accent(c.accent) }}</div>
+      <div class="body" style="margin-top:20px;font-size:26px">{{ c.support }}</div>
+      <div style="margin-top:30px">{{ cta(c.cta) }}</div>
     </div>
     {% endfor %}
   </div>

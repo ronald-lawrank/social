@@ -199,42 +199,86 @@ a{color:inherit}
 
 
 def gallery(c: store.Client, d: Path, rows: list[dict]):
-    """index.html: every option, grouped by post, with status and checks. Open it from Drive for desktop."""
+    """index.html, in three tabs: Posts (with month filters), Profile & covers (the kit) and Design (the client's design
+    guide). The tab is kept in the address (#posts, #kit, #design), so a link can open straight to it."""
     posts = {}
     for r in rows:
         posts.setdefault(r["post"], []).append(r)
-    months = sorted({r["month"] for r in rows if r["month"] is not None})
+    kit = {k: v for k, v in posts.items() if v[0].get("format") == "kit"}
+    feed = {k: v for k, v in posts.items() if k not in kit}
+    months = sorted({r["month"] for k, v in feed.items() for r in v if r["month"] is not None})
+    design_css, design_html = _design(c, d)
     parts = [f"<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width'>"
-             f"<title>{html.escape(c.name)} · {html.escape(d.name)}</title><style>{CSS}</style></head><body>"
-             f"<header><h1>{html.escape(c.name)}</h1><span class='sub'>{html.escape(d.name)} · {len(posts)} posts · "
-             f"{sum(r['status'] == 'Approved' for r in rows)} approved options</span><div class='filters'>"
-             f"<button class='on' data-m='all'>All</button>" + "".join(f"<button data-m='{m}'>Month {m}</button>" for m in months if m)
-             + "</div></header><main>"]
-    for pid, rs in posts.items():
-        first = rs[0]
-        parts.append(f"<section class='post' data-m='{first['month']}'><h2>{html.escape(pid)} · {html.escape(first['topic'])}</h2>"
-                     f"<div class='meta'>{'Month ' + str(first['month']) + ' · week ' + str(first['week']) + ' · ' if first['month'] else ''}"
-                     f"{html.escape(first.get('slot_type') or '')} · {html.escape(first.get('format') or '')}</div><div class='opts'>")
-        for r in rs:
-            st_cls = r["status"].split()[0]
-            img = f"<a href='{html.escape(r['html'] or '#')}'><img loading='lazy' src='{html.escape(r['image'] or '')}' alt=''></a>" if r["image"] else "<div style='height:200px;display:grid;place-items:center;color:#999'>not drawn yet</div>"
-            strip = ""
-            if len(r["images"]) > 1:
-                strip = "<div class='strip'>" + "".join(f"<img loading='lazy' src='{html.escape(i)}' alt=''>" for i in r["images"][1:12]) + "</div>"
-            pills = f"<span class='pill {st_cls}'>{html.escape(r['status'])}</span>"
-            if r["blocking"]:
-                pills += f"<span class='pill fix'>Needs fixing</span>"
-            elif r["warnings"]:
-                pills += f"<span class='pill look'>Look at</span>"
-            det = ""
-            notes = r["blocking"] + r["warnings"] + [f"Confirm: {x}" for x in r["confirm"]]
-            if notes:
-                det = "<details><summary>Checks</summary><ul>" + "".join(f"<li>{html.escape(n)}</li>" for n in notes) + "</ul></details>"
-            parts.append(f"<div class='opt'>{img}{strip}<div class='b'><span class='k'>Option {html.escape(r['option'])}</span> "
-                         f"<span class='tpl'>{html.escape(r['template'])}</span><div>{pills}</div>"
-                         f"<details><summary>Caption</summary><p>{html.escape(r['caption'])}</p></details>{det}</div></div>")
-        parts.append("</div></section>")
-    parts.append("""</main><script>document.querySelectorAll('.filters button').forEach(b=>b.onclick=()=>{
-document.querySelectorAll('.filters button').forEach(x=>x.classList.toggle('on',x===b));
-document.querySelectorAll('.post').forEach(p=>p.style.display=(b.dataset.m==='all'||p.dataset.m===b.dataset.m)?'':'none');});</script></body></html>""")
+             f"<title>{html.escape(c.name)} · {html.escape(d.name)}</title><style>{CSS}{TABS_CSS}{design_css}</style></head><body>"
+             f"<header><h1>{html.escape(c.name)}</h1><span class='sub'>{html.escape(d.name)} · {len(feed)} posts · "
+             f"{sum(r['status'] == 'Approved' for r in rows)} approved options</span>"
+             "<nav class='tabs'><a href='#posts' data-t='posts'>Posts</a>"
+             + (f"<a href='#kit' data-t='kit'>Profile &amp; covers</a>" if kit else "")
+             + "<a href='#design' data-t='design'>Design</a></nav>"
+             "<div class='filters'><button class='on' data-m='all'>All</button>"
+             + "".join(f"<button data-m='{m}'>Month {m}</button>" for m in months if m) + "</div></header>"]
+    parts.append("<main class='tab' id='tab-posts'>" + "".join(_post_html(pid, rs) for pid, rs in feed.items())
+                 + ("" if feed else "<p class='empty'>No posts written yet.</p>") + "</main>")
+    if kit:
+        parts.append("<main class='tab' id='tab-kit'><p class='intro'>Profile pictures, the Facebook cover, the LinkedIn banner and "
+                     "story highlight covers: set these up once on each profile.</p>"
+                     + "".join(_post_html(pid, rs) for pid, rs in kit.items()) + "</main>")
+    parts.append(f"<main class='tab' id='tab-design'>{design_html}</main>")
+    parts.append("""<script>(function(){
+var tabs=[...document.querySelectorAll('.tabs a')],fl=document.querySelector('.filters');
+function show(t){if(!document.getElementById('tab-'+t))t='posts';
+ document.querySelectorAll('.tab').forEach(m=>m.style.display=m.id==='tab-'+t?'':'none');
+ tabs.forEach(a=>a.classList.toggle('on',a.dataset.t===t));fl.style.display=t==='posts'?'':'none';}
+window.addEventListener('hashchange',()=>show(location.hash.slice(1)));show(location.hash.slice(1)||'posts');
+document.querySelectorAll('.filters button').forEach(b=>b.onclick=()=>{
+ document.querySelectorAll('.filters button').forEach(x=>x.classList.toggle('on',x===b));
+ document.querySelectorAll('#tab-posts .post').forEach(p=>p.style.display=(b.dataset.m==='all'||p.dataset.m===b.dataset.m)?'':'none');});
+})();</script></body></html>""")
     write_text(d / "index.html", "".join(parts))
+
+
+TABS_CSS = """
+.tabs{display:flex;gap:6px}.tabs a{border:1px solid var(--line);border-radius:999px;padding:6px 14px;text-decoration:none;color:inherit;background:#fff}
+.tabs a.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.intro,.empty{color:var(--muted);margin:6px 0 14px}
+"""
+
+
+def _design(c: store.Client, d: Path) -> tuple[str, str]:
+    """The Design tab (never stops the gallery: a problem shows as a note in the tab)."""
+    try:
+        from . import design_guide, render
+        css, _ = render._font_assets(c.brand(), d / "previews")
+        css = css.replace("url('assets/fonts/", "url('previews/assets/fonts/")
+        return design_guide.render(c, d, css)
+    except Exception as e:
+        from .util import log_error
+        log_error(e, "design tab")
+        return "", f"<p class='empty'>The design guide couldn't be made this time ({html.escape(type(e).__name__)}); rebuild to retry.</p>"
+
+
+def _post_html(pid: str, rs: list[dict]) -> str:
+    first = rs[0]
+    out = [f"<section class='post' data-m='{first['month']}'><h2>{html.escape(pid)} · {html.escape(first['topic'])}</h2>"
+           f"<div class='meta'>{'Month ' + str(first['month']) + ' · week ' + str(first['week']) + ' · ' if first['month'] and first.get('format') != 'kit' else ''}"
+           f"{html.escape(first.get('slot_type') or '')} · {html.escape(first.get('format') or '')}</div><div class='opts'>"]
+    for r in rs:
+        st_cls = r["status"].split()[0]
+        img = f"<a href='{html.escape(r['html'] or '#')}'><img loading='lazy' src='{html.escape(r['image'] or '')}' alt=''></a>" if r["image"] else "<div style='height:200px;display:grid;place-items:center;color:#999'>not drawn yet</div>"
+        strip = ""
+        if len(r["images"]) > 1:
+            strip = "<div class='strip'>" + "".join(f"<img loading='lazy' src='{html.escape(i)}' alt=''>" for i in r["images"][1:12]) + "</div>"
+        pills = f"<span class='pill {st_cls}'>{html.escape(r['status'])}</span>"
+        if r["blocking"]:
+            pills += "<span class='pill fix'>Needs fixing</span>"
+        elif r["warnings"]:
+            pills += "<span class='pill look'>Look at</span>"
+        det = ""
+        notes = r["blocking"] + r["warnings"] + [f"Confirm: {x}" for x in r["confirm"]]
+        if notes:
+            det = "<details><summary>Checks</summary><ul>" + "".join(f"<li>{html.escape(n)}</li>" for n in notes) + "</ul></details>"
+        out.append(f"<div class='opt'>{img}{strip}<div class='b'><span class='k'>Option {html.escape(r['option'])}</span> "
+                   f"<span class='tpl'>{html.escape(r['template'])}</span><div>{pills}</div>"
+                   f"<details><summary>Caption</summary><p>{html.escape(r['caption'])}</p></details>{det}</div></div>")
+    out.append("</div></section>")
+    return "".join(out)

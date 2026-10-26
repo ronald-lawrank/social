@@ -28,12 +28,30 @@ SUGGEST = {
 MOTION_SLOTS = {"Video / Motion"}
 
 
-def plan_rows(name: str = "six-month") -> list[dict]:
-    """The plan from Drive (LawRank Studio/plan/six_month_plan.csv) if present, else the copy bundled with the skill."""
+def plan_file(practice_area: str | None = None) -> tuple[Path, bool]:
+    """(plan CSV, written for this practice area?). Practice plans are six_month_plan_<area>.csv, e.g.
+    six_month_plan_family-law.csv, same columns as the default; Drive (LawRank Studio/plan/) wins over the bundled copy.
+    Without one, the default plan (personal injury) is used."""
+    from .extract import MAIN_AREA_GROUP
+    from .util import slugify
     h = paths.home(required=False)
-    f = h / paths.STUDIO_DIR / "plan" / "six_month_plan.csv" if h else None
-    if not (f and f.exists()):
-        f = paths.SKILL / "data" / "six_month_plan.csv"
+    dirs = ([h / paths.STUDIO_DIR / "plan"] if h else []) + [paths.SKILL / "data"]
+    area = (practice_area or "").strip()
+    area = AREA_GROUP.get(MAIN_AREA_GROUP.get(area, area).lower(), MAIN_AREA_GROUP.get(area, area).lower())
+    if area:
+        for dd in dirs:
+            f = dd / f"six_month_plan_{slugify(area)}.csv"
+            if f.exists():
+                return f, True
+    for dd in dirs:
+        f = dd / "six_month_plan.csv"
+        if f.exists():
+            return f, area in ("", "personal injury")
+    raise LRError("The six-month plan is missing", fix="Reinstall the plugin, or put six_month_plan.csv in LawRank Studio/plan/.")
+
+
+def plan_rows(name: str = "six-month", practice_area: str | None = None) -> list[dict]:
+    f, _ = plan_file(practice_area)
     with open(f, encoding="utf-8-sig") as fh:
         return list(csv.DictReader(fh))
 
@@ -79,7 +97,7 @@ def update_campaign(c: store.Client, campaign: str | None = None, plan: str = "s
     d = campaign_dir(c, campaign)
     pkg = c.data.get("package") or "growth"
     authority = pkg == "authority"
-    rows = plan_rows(plan)
+    rows = plan_rows(plan, c.data.get("practice_area"))
     have = {f.stem: f for f in (d / "posts").glob("*.json")}
     added, converted, extra = [], [], []
     for r in rows:
@@ -111,7 +129,8 @@ def new_campaign(c: store.Client, name: str | None = None, plan: str = "six-mont
     if d.exists():
         raise LRError(f"Campaign '{name}' already exists", fix="Build it with `lr build`, or choose another --name.")
     pkg = c.data.get("package") or "growth"
-    rows = [r for r in plan_rows(plan) if _included(r.get("Included in", ""), pkg)]
+    pfile, fits = plan_file(c.data.get("practice_area"))
+    rows = [r for r in plan_rows(plan, c.data.get("practice_area")) if _included(r.get("Included in", ""), pkg)]
     authority = pkg == "authority"
     (d / "posts").mkdir(parents=True)
     for r in rows:
@@ -140,7 +159,11 @@ def new_campaign(c: store.Client, name: str | None = None, plan: str = "six-mont
                                      "practice_area": c.data.get("practice_area"), "created": dt.datetime.now().isoformat(timespec="minutes")})
     write_json(d / "status.json", {"posts": len(rows), "written": 0, "approved": 0})
     log(c.dir, f"campaign new {name}")
-    return {"campaign": name, "folder": str(d), "posts": len(rows),
+    plan_note = {} if fits else {"plan_note": f"There's no six-month plan written for {c.data.get('practice_area')} yet, so the "
+                 "personal-injury plan is used: adapt each post's topic to this firm's practice as you write it (and skip "
+                 "topics that don't fit, using the plan's fallback). A practice plan can be added as "
+                 f"LawRank Studio/plan/six_month_plan_<area>.csv."}
+    return {"campaign": name, "folder": str(d), "posts": len(rows), "plan": pfile.name, **plan_note,
             "motion_posts": sum(1 for r in rows if r["Proposed format"] in MOTION_SLOTS and authority),
             "practice_area": c.data.get("practice_area"),
             "next": "Write options A/B/C into each posts/<ID>.json (see reference/writing.md), one month at a time, then `lr build --month N`."}
@@ -163,6 +186,7 @@ DIRECTIONS = {
 _CLOSE = {"headline": "Questions? We're here.", "cta": "Talk to us"}
 SAMPLE_COPY = {
     "personal injury": {
+        "statement": {"headline": "Hurt in an accident? Know your options.", "accent": "Know your options."},
         "faq": {"question": "Do I need a lawyer after an accident?",
                 "answer": "Not always. If you were hurt or the insurer is pushing you to settle quickly, a conversation with a lawyer helps you understand your options."},
         "help": [{"icon": "message-circle", "title": "We listen", "text": "Tell us what happened"},
@@ -177,6 +201,7 @@ SAMPLE_COPY = {
                                  {"title": "Afterwards", "icon": "file-text", "items": ["Medical bills", "Time off work", "Letters from insurers"]}]},
     },
     "family law": {
+        "statement": {"headline": "Facing divorce? Know your options.", "accent": "Know your options."},
         "faq": {"question": "Do I need a lawyer to get divorced?",
                 "answer": "Not always. If you share children, a home or retirement accounts, a conversation with a lawyer helps you understand your options before you agree to anything."},
         "help": [{"icon": "message-circle", "title": "We listen", "text": "Your family, your priorities"},
@@ -191,6 +216,7 @@ SAMPLE_COPY = {
                                  {"title": "Family", "icon": "users", "items": ["School and medical details", "Your current schedule", "Messages about the children"]}]},
     },
     "criminal defense": {
+        "statement": {"headline": "Facing charges? Know your rights.", "accent": "Know your rights."},
         "faq": {"question": "Should I talk to the police without a lawyer?",
                 "answer": "You have the right to remain silent and to ask for a lawyer. Saying \"I want to speak to a lawyer\" is enough, and it can't be held against you."},
         "help": [{"icon": "message-circle", "title": "We listen", "text": "Your side of the story"},
@@ -205,6 +231,7 @@ SAMPLE_COPY = {
                                  {"title": "Your notes", "icon": "camera", "items": ["What happened, written down", "Witness names", "Officer names or badge numbers"]}]},
     },
     None: {                                       # any other practice area: nothing specific to one kind of case
+        "statement": {"headline": "Questions about your case? Start here.", "accent": "Start here."},
         "faq": {"question": "When should I talk to a lawyer?",
                 "answer": "Earlier than most people think. A short conversation before you sign, reply or decide helps you understand your options."},
         "help": [{"icon": "message-circle", "title": "We listen", "text": "Tell us what's going on"},

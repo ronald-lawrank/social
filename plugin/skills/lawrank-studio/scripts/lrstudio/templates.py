@@ -55,6 +55,17 @@ def get(name: str) -> dict:
     return cat[name]
 
 
+def split_id(did: str) -> tuple[str, str, str]:
+    """'PI-001-A-4x5' -> ('PI-001', 'A', '4x5'). Sizes can contain hyphens ('KIT-FB-fb-cover', 'KIT-LI-li-banner'),
+    so the size is matched against the known sizes first; post ids can too ('DIR-A-A1-4x5')."""
+    for size in sorted([*SIZES, "motion"], key=len, reverse=True):
+        if did.endswith("-" + size):
+            post, key = did[:-len(size) - 1].rsplit("-", 1)
+            return post, key, size
+    post, key, size = did.rsplit("-", 2)
+    return post, key, size
+
+
 def detail(name: str) -> dict:
     """Everything needed to write one template: slots with limits and notes, options, sizes and a known-good example."""
     m = get(name)

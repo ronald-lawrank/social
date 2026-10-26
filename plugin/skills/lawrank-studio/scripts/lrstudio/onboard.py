@@ -117,7 +117,7 @@ def _manual_client(url: str, dom: str, name: str | None, package: str, reason: s
     guessed = not name
     name = name or " ".join(w.capitalize() for w in re.split(r"[-_.]", dom.split(".")[0]) if w)
     c = store.create(name, url, package=package, status="needs brand")
-    write_json(c.brand_dir / "brand.json", dict(DEFAULT_BRAND, name=name, short=name.split()[0], website=dom, reliable=False,
+    write_json(c.brand_dir / "brand.json", dict(DEFAULT_BRAND, name=name, short=store.short_name(name), website=dom, reliable=False,
                                                 warnings=["Brand colours and fonts are placeholders: set them with `lr client set`."]))
     log(c.dir, "client new (manual)" + (f": {reason[:120]}" if reason else ""))
     return {"client": c.name, "folder": str(c.dir), "status": "needs brand", "needs_attention": True,
@@ -174,7 +174,7 @@ def new_client(website: str, name: str | None = None, package: str = "growth", m
     if not any(pics[k]["kind"] in ("person", "group") for k in usable):
         warnings.append("No usable photos of the firm's people. Ask for attorney headshots and a team photo; until then designs use type-led layouts.")
 
-    brand = {"name": c.name, "short": c.name.split(",")[0].split(" Law")[0].split(" &")[0].strip()[:24], "website": dom,
+    brand = {"name": c.name, "short": store.short_name(c.name), "website": dom,
              "colors": visual["colors"], "fonts": _fonts(visual["fonts"]), "cta": visual["cta"],
              "treatments": visual["treatments"], "logo": logo_info, "evidence": visual["evidence"],
              "voice": {"tagline": ex.tagline, "positioning": ex.positioning, "notes": []},

@@ -8,6 +8,9 @@ checks every option. Good copy and a fitting template choice are what make a pos
    (keys and text) and the `direction` (its name, feel, templates and treatments) in mind.
 2. Run `lr library search "<monthly focus>" --client "<client>"` to see what's already been done for
    this firm. Search once more without `--client` for ideas that worked elsewhere.
+   If `lr campaign new` returned a `plan_note`, there's no plan written for this practice area yet:
+   adapt each post's topic to the firm's practice as you write it, and use the plan's fallback for
+   topics that don't fit (say which in your reply).
 3. Read the month's posts: `campaigns/<campaign>/posts/PI-0NN.json`. Each has the `plan` row (topic,
    angles, info needed, fallback) and `suggested_templates`.
 4. Run `lr templates <name>,<name>,…` once for all the templates you'll use. It returns their slots,

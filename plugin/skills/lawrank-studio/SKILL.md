@@ -74,7 +74,8 @@ after a direction is set (ask if it isn't).
 
 ## Ending the turn
 Reply in plain language and keep it short:
-1. What was made, with the gallery link (`gallery` in the output) or the files.
+1. What was made, with the gallery link (`gallery` in the output) or the files. The gallery has
+   Posts, Profile & covers and Design tabs; add `#design` to the link for the design guide.
 2. Anything that needs the firm's approval (`check_before_posting`, `need_approval`).
 3. What you need from the person, such as a better photo or the vector logo.
 4. Open items elsewhere in the campaign (`feedback` and `fix_list` in `lr client show`), as one line

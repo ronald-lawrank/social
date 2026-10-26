@@ -1,8 +1,12 @@
 # Delivery
 
 ## Review links (any time)
-Every build updates `campaigns/<campaign>/index.html`: a gallery of every option with its caption,
-filterable by month. Motion options play with sound. Share it as a Drive link (the file is in the
+Every build updates `campaigns/<campaign>/index.html`, a gallery in three tabs:
+- **Posts:** every option with its caption, filterable by month. Motion options play with sound.
+- **Profile & covers:** the profile pictures, Facebook cover, LinkedIn banner and highlight covers.
+- **Design:** the client's design guide (direction, logo rules, colours with contrast, typography,
+  treatments, photos, formats, voice and claims awaiting approval). Link straight to it with
+  `index.html#design`; it's a good thing to send a new designer or the client. Share it as a Drive link (the file is in the
 shared folder). Reviewers set Status (Draft, Approved, Changes requested or Rejected) and Notes in
 `review.xlsx`, which opens in Google Sheets.
 

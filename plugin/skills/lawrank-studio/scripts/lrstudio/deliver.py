@@ -17,7 +17,8 @@ from .util import LRError, Lock, log, read_json, say, write_bytes
 
 def parse_id(did: str) -> tuple[str, str]:
     """'PI-001-A-4x5' / 'DIR-A-A1-4x5' / 'PI-006-A-motion' -> (post id, option key)."""
-    post, key, _ = did.rsplit("-", 2)
+    from .templates import split_id
+    post, key, _ = split_id(did)
     return post, key
 
 
