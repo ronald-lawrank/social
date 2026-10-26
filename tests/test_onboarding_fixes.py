@@ -161,3 +161,19 @@ def test_banners_and_unmatched_people_are_flagged_as_possibly_stock():
     assert photos.stock_check("office", None, [], people, 0.0) is None
     assert photos.stock_check("person", None, ["alimony-lft-img"], people, 0.0, face_match=True) is None   # same face as a named photo
     assert photos.match_name(["DanaReyes"], people) == "Dana Reyes"
+
+
+def test_logo_is_not_collected_as_a_photo_and_embeddings_stay_in_memory(tmp_path, monkeypatch):
+    import numpy as np
+    from PIL import Image
+    from lrstudio import crawl
+    rng = np.random.default_rng(2)
+    scene = _png(Image.fromarray(rng.integers(0, 255, (900, 1400, 3), dtype="uint8")).resize((1400, 900)), "JPEG")
+    logo = _navy_jpg_logo()
+    files = {"https://example.com/office.jpg": scene, "https://example.com/logo.jpg": logo,
+             "https://cdn.example.com/logo-copy.jpg": logo}
+    monkeypatch.setattr(crawl, "download", lambda url, page=None: (files[url], "image/jpeg"))
+    cands = [{"url": u, "page": "https://example.com/", "alt": "", "w": 1400, "h": 900} for u in files]
+    out = photos.collect(cands, tmp_path, [], "example.com", logos=("https://example.com/logo.jpg", logo))
+    assert [m["image_url"] for m in out.values()] == ["https://example.com/office.jpg"]   # by URL and by picture
+    assert "feature" not in json.dumps(out)                                                # only match results are saved

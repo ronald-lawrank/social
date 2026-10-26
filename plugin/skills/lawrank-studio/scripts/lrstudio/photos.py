@@ -192,15 +192,21 @@ def _key_for(kind: str, name: str | None, taken: set) -> str:
     return key
 
 
-def collect(candidates: list[dict], photos_dir: Path, people: list[dict], firm_domain: str, limit: int = 24) -> dict:
-    """Download, analyse and choose photos. candidates: [{url, page, alt, near, w, h}] largest first."""
+def collect(candidates: list[dict], photos_dir: Path, people: list[dict], firm_domain: str, limit: int = 24,
+            logos: tuple = ()) -> dict:
+    """Download, analyse and choose photos. candidates: [{url, page, alt, near, w, h}] largest first.
+    logos: the site's logo image URLs and/or bytes, never collected as photos (the header logo is often an <img>).
+
+    Face embeddings for matching people across photos live only in memory here: photos.json gets the match (a name)."""
     from .crawl import download
     out, seen_hash, taken, checks = {}, [], set(), {}
+    logo_urls = {l for l in logos if isinstance(l, str)}
+    logo_hashes = [dhash(l) for l in logos if isinstance(l, bytes)]
     for c in candidates:
         if len(out) >= limit:
             break
         tag = f"{c['url']} {c.get('alt', '')}"
-        if STOCK.search(tag) or AI_MADE.search(tag):
+        if STOCK.search(tag) or AI_MADE.search(tag) or c["url"] in logo_urls:
             continue
         try:
             data, ctype = download(c["url"], c.get("page"))
@@ -213,6 +219,8 @@ def collect(candidates: list[dict], photos_dir: Path, people: list[dict], firm_d
         h = dhash(data)
         if any(bin(h ^ o).count("1") <= 6 for o in seen_hash):
             continue                                        # same picture at another size
+        if any(bin(h ^ o).count("1") <= 6 for o in logo_hashes):
+            continue                                        # the logo, served under another URL or size
         seen_hash.append(h)
         kind = kind_of(info)
         name = match_name([c.get("alt"), c.get("near"), Path(c["url"]).stem], people) if kind == "person" else None

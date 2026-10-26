@@ -145,5 +145,7 @@ def _alive(info) -> bool:
     try:
         os.kill(int(info.get("pid", 0)), 0)
         return True
+    except PermissionError:                  # the process exists but belongs to another user (macOS: pid 1)
+        return True
     except (OSError, ValueError):
         return False

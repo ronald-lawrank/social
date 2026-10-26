@@ -131,7 +131,8 @@ def new_client(website: str, name: str | None = None, package: str = "growth", m
     logo_info, lw = save_logos(best_logo, c, visual["colors"]["ink"])
     warnings += lw
     say("Collecting photos ...")
-    pics = photos.collect(site.images, c.brand_dir / "photos", ex.people, dom)
+    logo_refs = [l["url"] for l in site.logos if l.get("url")] + ([best_logo["data"]] if best_logo and best_logo.get("data") else [])
+    pics = photos.collect(site.images, c.brand_dir / "photos", ex.people, dom, logos=tuple(logo_refs))
     write_json(c.brand_dir / "photos" / "photos.json", pics)
     usable = [k for k, p in pics.items() if p["use"]]
     if not any(pics[k]["kind"] in ("person", "group") for k in usable):
