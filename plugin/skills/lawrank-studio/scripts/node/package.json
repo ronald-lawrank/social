@@ -1,0 +1,13 @@
+{
+  "name": "lawrank-studio-node",
+  "private": true,
+  "description": "Video rendering for LawRank Studio (installed by `lr setup` into ~/.lawrank-studio/node)",
+  "dependencies": {
+    "hyperframes": "0.8.200",
+    "gsap": "3.15.0"
+  },
+  "optionalDependencies": {
+    "ffmpeg-static": "^5.2.0",
+    "ffprobe-static": "^3.1.0"
+  }
+}
