@@ -73,12 +73,16 @@ after a direction is set (ask if it isn't).
 - Render MP4s only for options marked Approved in review.xlsx.
 
 ## Ending the turn
-Reply in plain language and keep it short:
-1. What was made, with the gallery link (`gallery` in the output) or the files.
+Finish the whole job first, then reply once, in plain language, short:
+1. What was made (no links in the body of the reply).
 2. Anything that needs the firm's approval (`check_before_posting`, `need_approval`).
-3. What you need from the person, such as a better photo or the vector logo.
-4. Open items elsewhere in the campaign (`feedback` and `fix_list` in `lr client show`), as one line
-   with an offer to handle them.
+3. Problems you hit and worked around, and anything still not right, as a short list, then ask
+   how the person wants to handle them. Never stop halfway to ask; finish, then ask.
+4. What you need from the person, such as a better photo or the vector logo.
+5. Open items elsewhere in the campaign (`feedback` and `fix_list` in `lr client show`), as one line.
+6. **Exactly one link, as the very last line:** the campaign gallery (`gallery` in the output, as a
+   `file://` link). It holds everything: Posts, Profile & covers, and Design (with the brand board).
+   Never list other HTML files (board.html, previews); for new clients, link the Test designs gallery.
 Don't paste JSON, file listings or check internals.
 
 ## When something doesn't go perfectly
