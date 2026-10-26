@@ -6,6 +6,8 @@ an editable Figma plugin and a client deck. The team only talks to Claude, and e
 the shared Google Drive folder **Claude**.
 
 - Team setup: [TEAM_SETUP.md](TEAM_SETUP.md)
+- Install (Claude Code / the desktop app's Code tab):
+  `/plugin marketplace add ronald-lawrank/social` then `/plugin install lawrank-studio@lawrank`
 - Design and decisions: [PLAN.md](PLAN.md)
 
 ## Layout
