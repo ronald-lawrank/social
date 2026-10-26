@@ -176,7 +176,7 @@ def match_name(texts: list[str], people: list[dict]) -> str | None:
         if not parts:
             continue
         score = sum(1 for x in parts if re.search(rf"\b{re.escape(x)}\b", blob))
-        if "".join(parts) in re.sub(r"\W+", "", blob):           # "BenCarrasco.jpg", alt="DanaReyes"
+        if "".join(parts) in re.sub(r"\W+", "", blob):           # "DanaReyes.jpg", alt="MiguelVale"
             score = max(score, len(parts))
         if score >= min(2, len(parts)) and (not best or score > best[0]):
             best = (score, p["name"])
