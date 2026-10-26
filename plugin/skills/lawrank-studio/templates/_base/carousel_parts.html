@@ -7,10 +7,10 @@
 {{ frame('dark', slide=1) }}
   {% if key %}
     {{ photo(key, 0, 0, S.w, ph, focus_y=0.08) }}
-    {{ shade(0, ph - 300, S.w, 300, 'to bottom') }}
+    {{ shade(0, ph - 300, S.w, 300, 'to bottom', color=themes['dark'].bg) }}
   {% endif %}
   <div class="safe" style="left:{{S.safe[3]}}px;right:{{S.safe[1]}}px;top:{{ (ph - 40) if key else S.safe[0] }}px;bottom:{{S.safe[2]}}px">
-    {% if not key %}{{ logo(240) }}<div class="grow"></div>{% endif %}
+    {% if not key %}{{ logo(240, treatment='dark') }}<div class="grow"></div>{% endif %}
     {% if cv.get('label') %}<div class="label" data-slot="cover_label" data-role="label">{{ cv.label }}</div>{% endif %}
     <div class="{{ 'h1' if key else 'display' }}" data-slot="cover_headline" data-role="headline" style="margin-top:20px">{{ cv.headline|accent(cv.get('accent')) }}</div>
     <div class="grow"></div>

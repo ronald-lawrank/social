@@ -61,7 +61,8 @@ def design_key(template: str, size: str, data: dict, brand: dict, extra: str = "
     """A fingerprint of everything that affects the drawing (for skipping unchanged designs)."""
     tdir = Path(templates.get(template)["dir"])
     h = hashlib.sha1()
-    for p in sorted(tdir.glob("*")) + [templates.paths.BUNDLED_TEMPLATES / "_base" / "base.css"]:
+    shared = [f for d in templates.paths.template_dirs() for f in sorted((d / "_base").glob("*"))]
+    for p in sorted(tdir.glob("*")) + shared:
         if p.is_file():
             h.update(p.read_bytes())
     h.update(json.dumps([template, size, data, brand, extra], sort_keys=True, default=str).encode())
