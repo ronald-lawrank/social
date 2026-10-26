@@ -2,7 +2,9 @@
 
 ## Review links (any time)
 Every build updates `campaigns/<campaign>/index.html`: a gallery of every option with its caption,
-filterable by month. Motion options play with sound. Share it as a Drive link (the file is in the
+filterable by month. Motion options play with sound. Its Design tab (`design.html`) is the brand
+guide for the campaign: logo, colours with contrast, type, treatments, photos, formats and the
+words rules, including which claims still wait for the firm's approval. Share it as a Drive link (the file is in the
 shared folder). Reviewers set Status (Draft, Approved, Changes requested or Rejected) and Notes in
 `review.xlsx`, which opens in Google Sheets.
 

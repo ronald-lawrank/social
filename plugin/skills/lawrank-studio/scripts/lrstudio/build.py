@@ -66,11 +66,15 @@ def build(c: store.Client, campaign: str | None = None, month: int | None = None
             if p.get("format") != "motion":
                 ds = designs_for_all(p) if every else designs_for(p, size_list)
                 designs += [x for x in ds if options is None or (x["post"], x["option"]) in options]
-        cache = {} if force else (read_json(d / ".build.json", {}) or {})
+        # .build.json is the record of every drawn design in the campaign (the gallery and review sheet read it). A
+        # partial build (--post, --month, packaging) merges into it; --force only redraws the designs selected here.
+        stored = read_json(d / ".build.json", {}) or {}
+        redraw = ({x["id"] for x in designs} | {f"{p['id']}-{o['key']}-motion" for p in motion_posts for o in p["options"]}) if force else set()
+        cache = {k: v for k, v in stored.items() if k not in redraw}
         say(f"Drawing {len(designs)} design(s) for {c.name} ...")
         results = render.render(c.dir, brand, designs, d, cache=cache) if designs else []
         existing = {f.stem for f in (d / "posts").glob("*.json")}
-        newcache = {k: v for k, v in cache.items() if k.rsplit("-", 2)[0] in existing}      # forget deleted posts
+        newcache = {k: v for k, v in stored.items() if post_of(k, existing)}      # forget deleted posts
         for r in results:
             newcache[r["id"]] = {k: v for k, v in r.items() if k != "cached"}
         from . import motion
@@ -125,6 +129,12 @@ def build(c: store.Client, campaign: str | None = None, month: int | None = None
     out["ok"] = bool(designs) or not problems
     out["needs_attention"] = bool(problems or flagged)
     return out
+
+
+def post_of(design_id: str, posts: set) -> str | None:
+    """The post a design id belongs to. Ids are <post>-<option>-<size>, and post ids and sizes can contain dashes
+    (KIT-FB-fb-cover, DIR-A-A1-4x5), so match against the campaign's post ids instead of splitting."""
+    return max((p for p in posts if design_id.startswith(p + "-")), key=len, default=None)
 
 
 def _to_confirm(posts: list[dict], notes: dict) -> dict:

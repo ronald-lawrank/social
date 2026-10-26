@@ -195,11 +195,15 @@ main{padding:20px 28px 60px;max-width:1500px;margin:0 auto}
 details{margin-top:8px;font-size:13px;color:#374151}summary{cursor:pointer;color:var(--muted)}
 .strip{display:flex;gap:6px;overflow-x:auto;padding:8px 12px 0}.strip img{height:90px;width:auto;border-radius:4px}
 a{color:inherit}
+.tabs{display:flex;gap:6px}.tabs a{border:1px solid var(--line);border-radius:999px;padding:6px 14px;text-decoration:none;background:#fff}
+.tabs a.on{background:var(--ink);color:#fff;border-color:var(--ink)}
 """
 
 
 def gallery(c: store.Client, d: Path, rows: list[dict]):
-    """index.html: every option, grouped by post, with status and checks. Open it from Drive for desktop."""
+    """index.html: every option, grouped by post, with status and checks, and design.html (the Design tab) beside it.
+    Open them from Drive for desktop."""
+    from . import design
     posts = {}
     for r in rows:
         posts.setdefault(r["post"], []).append(r)
@@ -207,7 +211,7 @@ def gallery(c: store.Client, d: Path, rows: list[dict]):
     parts = [f"<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width'>"
              f"<title>{html.escape(c.name)} · {html.escape(d.name)}</title><style>{CSS}</style></head><body>"
              f"<header><h1>{html.escape(c.name)}</h1><span class='sub'>{html.escape(d.name)} · {len(posts)} posts · "
-             f"{sum(r['status'] == 'Approved' for r in rows)} approved options</span><div class='filters'>"
+             f"{sum(r['status'] == 'Approved' for r in rows)} approved options</span>{design.tabs('posts')}<div class='filters'>"
              f"<button class='on' data-m='all'>All</button>" + "".join(f"<button data-m='{m}'>Month {m}</button>" for m in months if m)
              + "</div></header><main>"]
     for pid, rs in posts.items():
@@ -238,3 +242,8 @@ def gallery(c: store.Client, d: Path, rows: list[dict]):
 document.querySelectorAll('.filters button').forEach(x=>x.classList.toggle('on',x===b));
 document.querySelectorAll('.post').forEach(p=>p.style.display=(b.dataset.m==='all'||p.dataset.m===b.dataset.m)?'':'none');});</script></body></html>""")
     write_text(d / "index.html", "".join(parts))
+    try:
+        design.write(c, d, rows)
+    except Exception as e:                       # the guide is a companion page: never let it stop a build
+        from .util import log_error
+        log_error(e, "design.html")
