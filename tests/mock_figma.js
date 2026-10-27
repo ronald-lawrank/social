@@ -1,7 +1,8 @@
 // A stand-in for the Figma plugin API that throws where real Figma throws, for testing generated plugins.
 //   node tests/mock_figma.js <code.js>   -> prints a JSON summary of what was built (or the error)
 // Enforced: fonts must be loaded before text is edited; sizes >= 0.01; paints well-formed (colours 0-1);
-// gradient transforms 2x3; image fills need a known hash; SVG must be one <svg> element; positions finite.
+// gradient transforms 2x3; image fills need a known hash; SVG must be one <svg> element; positions finite;
+// with "documentAccess": "dynamic-page" (our manifest) figma.currentPage can't be set: setCurrentPageAsync only.
 const fs = require('fs'), vm = require('vm');
 const code = fs.readFileSync(process.argv[2], 'utf8');
 const AVAILABLE = [
@@ -49,7 +50,10 @@ class Text extends Node {
 const pages = [];
 const figma = {
   createPage() { const p = new Node('PAGE'); pages.push(p); return p; },
-  set currentPage(p) { this._cp = p; }, get currentPage() { return this._cp; },
+  set currentPage(p) { throw new Error('Cannot call with documentAccess: dynamic-page. Use figma.setCurrentPageAsync instead.'); },
+  get currentPage() { return this._cp; },
+  async setCurrentPageAsync(p) { this._cp = p; },
+  createSection() { const n = new Node('SECTION'); n.resizeWithoutConstraints = function (w, h) { this.resize(w, h); }; return n; },
   createFrame: () => new Node('FRAME'), createRectangle: () => new Node('RECTANGLE'), createText: () => new Text(),
   createNodeFromSvg(svg) { const s = svg.trim(); if (!/^<svg[\s>][\s\S]*<\/svg>$/.test(s)) throw new Error('createNodeFromSvg: not an SVG element'); if (/<script/i.test(s)) throw new Error('script in SVG'); const n = new Node('FRAME'); n.name = 'svg'; return n; },
   createImage(bytes) { if (!bytes || !bytes.length) throw new Error('empty image'); const h = 'img' + bytes.length + ':' + images.size; images.add(h); return { hash: h }; },
@@ -66,7 +70,9 @@ const wait = () => new Promise(r => setTimeout(r, 20));
   for (let i = 0; i < 600 && closed === null; i++) await wait();
   const all = []; const walk = n => n.children.forEach(c => { all.push(c); walk(c); }); pages.forEach(walk);
   const count = t => all.filter(n => n.type === t).length;
-  console.log(JSON.stringify({ closed, pages: pages.length, frames: pages.reduce((a, p) => a + p.children.length, 0),
+  const designFrames = all.filter(n => n.type === 'FRAME' && n.parent && ['PAGE', 'SECTION'].includes(n.parent.type));
+  console.log(JSON.stringify({ closed, pages: pages.length, frames: designFrames.length,
+    sections: all.filter(n => n.type === 'SECTION').map(s => ({ name: s.name, frames: s.children.map(c => c.name) })),
     text: count('TEXT'), rects: count('RECTANGLE'), svgs: all.filter(n => n.name === 'svg' || n.name === 'Logo' || n.name === 'Icon').length,
-    images: images.size, ok: closed !== null && closed.startsWith('Built') }));
+    images: images.size, ok: closed !== null && closed.startsWith('Built') && !/couldn't be drawn/.test(closed) }));
 })();

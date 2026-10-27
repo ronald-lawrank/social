@@ -98,6 +98,10 @@ so in plain words (`warnings`, `needs_attention`, `left_out`, `failed`). Work th
   "Something unexpected went wrong" means retry once; if it repeats, carry on with other work and
   mention it in your reply (the details are logged for the maintainer).
 - If a command says another person is building the same campaign, wait or ask; don't delete `.lr-lock`.
+- **Don't hand-patch the studio's files** (the Figma plugin, deck, gallery or templates) or write your own
+  scripts to rebuild them: a patched copy works once and the next run has the same problem. Rerun the
+  `lr` command; if the file is still wrong, say exactly what's wrong (with any error text) in your reply
+  so the studio itself gets fixed.
 
 ## Where things are (the shared Drive folder "Claude")
 - `Clients/<Firm>/`: client.json, `brand/` (brand.json, facts.xlsx, logos, photos,

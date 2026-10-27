@@ -43,6 +43,20 @@ THIRD_PARTY = re.compile(r"trustindex|google|gstatic|facebook|fbcdn|instagram|li
                          r"/(badges?|awards?|seals?|ratings?|reviews?|platform|widgets?)/", re.I)
 
 
+GOOGLE_COLOURS = ("#4285f4", "#34a853", "#fbbc05", "#ea4335")
+STAR_GOLD = re.compile(r"#(?:fbbc05|ffc107|ffd700|f4b400|fdb813|ffb400|f5b301|fcc419)\b", re.I)
+
+
+def third_party_svg(svg: str) -> str | None:
+    """Why an inline SVG is a review widget's badge rather than the firm's logo (Google "G" plus rating stars), or None."""
+    low = svg.lower()
+    if sum(c in low for c in GOOGLE_COLOURS) >= 3:
+        return "Google's colours (a Google reviews badge)"
+    if len(STAR_GOLD.findall(svg)) >= 4:
+        return "a row of gold rating stars (a reviews badge)"
+    return None
+
+
 def _logo_score(l: dict, kind: str, site_host: str, stem: str) -> float | None:
     """How likely a candidate is the firm's own logo; None when it clearly isn't (a widget or badge from another site)."""
     url = l.get("url") or ""
@@ -65,6 +79,10 @@ def pick_logo(site) -> dict | None:
         try:
             if l.get("svg"):
                 svg = logos.sanitize(l["svg"])
+                why = third_party_svg(svg)
+                if why:
+                    say(f"  skipped a third-party badge: {why}")
+                    continue
                 if logos.aspect(svg) < 0.5 and l["where"] == "header" and len(site.logos) > 1:
                     continue                                    # hamburger icons and the like
                 cands.append({"kind": "svg", "svg": svg, "where": l["where"], "bg": l.get("bg"),
@@ -76,6 +94,9 @@ def pick_logo(site) -> dict | None:
                     continue
                 data, ctype = download(l["url"], l.get("page"))
                 if ctype == "image/svg+xml":
+                    if third_party_svg(data.decode("utf-8", "replace")):
+                        say(f"  skipped a third-party badge: {l['url'][:80]}")
+                        continue
                     cands.append({"kind": "svg", "svg": logos.sanitize(data.decode("utf-8", "replace")), "where": l["where"],
                                   "url": l["url"], "score": score + 1})
                 else:

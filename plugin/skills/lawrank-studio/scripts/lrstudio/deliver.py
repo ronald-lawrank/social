@@ -85,6 +85,15 @@ def package(c: store.Client, campaign: str | None = None, month: int | None = No
         made, not_made = {"posts": exports / f"{stem} - Posts.zip"}, {}
         try:                                      # each file stands alone: one failing never costs the others
             designs, images = figma_export.collect(html)
+            topics = {p["id"]: p.get("topic") or "" for p, _ in chosen}
+            order = list(dict.fromkeys(p["id"] for p, _ in chosen))
+            for g in designs:                     # grouped in Figma: one section per post, a row per option
+                pid, key = parse_id(g["name"], post_ids)
+                g.update(post=pid, option=key, size=g["name"][len(pid) + len(key) + 2:],
+                         group=f"{pid} · {topics[pid]}" if topics.get(pid) else pid)
+            sizes = {"4x5": 0, "1x1": 1, "9x16": 2}
+            designs.sort(key=lambda g: (order.index(g["post"]) if g["post"] in order else len(order), g["option"],
+                                        sizes.get(g["size"], 3), g["size"]))
             made["plugin"] = (figma_export.plugin_zip(f"{c.name} · {d.name}", designs, images, exports / f"{stem} - Figma plugin.zip"))
         except Exception as e:
             from .util import log_error
