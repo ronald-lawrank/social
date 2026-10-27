@@ -162,7 +162,7 @@ def _uv() -> str | None:
     return str(exe) if exe.exists() else None
 
 
-CHATTERBOX = "chatterbox-tts==0.1.7"
+CHATTERBOX = "chatterbox-tts==0.1.7"           # with setuptools<81: its watermarker still imports pkg_resources
 
 
 def _installing() -> bool:
@@ -218,7 +218,7 @@ def install_chatterbox() -> dict:
 def _install(uv: str, venv: Path, py: Path) -> dict:
     try:
         subprocess.run([uv, "venv", "-q", "--allow-existing", "-p", "3.11", str(venv)], check=True, capture_output=True, text=True)
-        subprocess.run([uv, "pip", "install", "-q", "--python", str(py), CHATTERBOX, "soundfile"], check=True, capture_output=True, text=True)
+        subprocess.run([uv, "pip", "install", "-q", "--python", str(py), CHATTERBOX, "soundfile", "setuptools<81"], check=True, capture_output=True, text=True)
         say("Downloading the Chatterbox voice model ...")
         model = paths.settings().get("chatterbox_model", "standard")
         load = ("from chatterbox.tts_turbo import ChatterboxTurboTTS as M" if model == "turbo" else "from chatterbox.tts import ChatterboxTTS as M")
