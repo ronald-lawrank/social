@@ -5,7 +5,8 @@
   python3 dev/motion_catalog.py --all                          # every scene x every look, plus catalog.html
   python3 dev/motion_catalog.py --storyboard sb.json           # a whole composed storyboard (lines + screen + look)
 
-Timing is simulated (about 2.9 words a second, real sentence and line pauses) and the audio is silent, so a scene can be
+With --voice the narration is real (the voice `lr voice` picks, with music and effects); otherwise timing is
+simulated (about 2.9 words a second, real sentence and line pauses) and the audio is silent, so a scene can be
 checked in seconds. Uses the McMinn test client (imported into a scratch home). Output: <out>/<scene>/<look>.html,
 <look>.png (a 6x2 contact sheet across the scene), <look>.qa.json; with --all also <out>/catalog.html.
 """
@@ -66,9 +67,13 @@ def client():
         return store.find("mcminn")
 
 
-def build_page(c, sb: dict, out: Path, title: str) -> dict:
+def build_page(c, sb: dict, out: Path, title: str, voice: bool = False) -> dict:
     from lrstudio import motion
     work = out.parent / ".work" / out.stem; work.mkdir(parents=True, exist_ok=True)
+    if voice:                         # the real voice (whichever `lr voice` picks), music and effects: slower
+        prep = motion.prepare(c, work, out.stem, dict(sb, family="scenes", key=sb.get("key", "A")))
+        motion.preview_page(c, prep, title, out)
+        return {"plan": {"cues": prep["cue"]["cues"], "end": prep["cue"]["end"]}, "voice": prep["voice"], "voice_fallback": prep["voice_fallback"]}
     brand = motion.brand_for_motion(c)
     sb = dict(sb, family="scenes", brandWord=sb.get("brandWord") or motion.brand_word(brand, sb))
     T = fake_timing(sb["lines"])
@@ -130,8 +135,8 @@ def scene_storyboard(stype: str, meta: dict, look: str) -> dict:
                        "site": "mcminnlaw.com", "disclaimer": "Attorney advertising."}}
 
 
-def run_one(c, sb: dict, out: Path, title: str, qa: bool = True) -> dict:
-    res = build_page(c, sb, out, title)
+def run_one(c, sb: dict, out: Path, title: str, qa: bool = True, voice: bool = False) -> dict:
+    res = build_page(c, sb, out, title, voice)
     if "error" in res:
         return {"page": str(out), "error": res["error"]}
     cues = res["plan"]["cues"]
@@ -156,6 +161,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--scene"); ap.add_argument("--look"); ap.add_argument("--all", action="store_true")
     ap.add_argument("--storyboard"); ap.add_argument("--no-qa", action="store_true")
+    ap.add_argument("--voice", action="store_true", help="real narration and music instead of simulated timing and silence")
     ap.add_argument("--out", default=str(Path(tempfile.gettempdir()) / "lr-motion-catalog" / "out"))
     a = ap.parse_args()
     from lrstudio import motion
@@ -165,7 +171,7 @@ def main():
     if a.storyboard:
         sb = json.loads(Path(a.storyboard).read_text())
         name = Path(a.storyboard).stem
-        report[name] = run_one(c, sb, out / "storyboards" / f"{name}.html", name, not a.no_qa)
+        report[name] = run_one(c, sb, out / "storyboards" / f"{name}.html", name, not a.no_qa, a.voice)
     else:
         names = [a.scene] if a.scene else sorted(k for k in cat["scenes"] if k != "end")
         for s in names:
@@ -173,7 +179,7 @@ def main():
                 sys.exit(f"unknown scene {s}; have {', '.join(sorted(cat['scenes']))}")
             for lk in looks:
                 report[f"{s}/{lk}"] = run_one(c, scene_storyboard(s, cat["scenes"][s], lk), out / s / f"{lk}.html",
-                                              cat["scenes"][s]["label"], not a.no_qa)
+                                              cat["scenes"][s]["label"], not a.no_qa, a.voice)
         if a.all:
             catalog_page(cat, report, out)
     for k, v in report.items():

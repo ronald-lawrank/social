@@ -17,6 +17,11 @@
   lr build <client> [--campaign C] [--month N | --post ID[,ID]] [--sizes 4x5,1x1,9x16] [--force]
   lr video <client> [--campaign C] [--post ID]   MP4s for approved motion options
   lr package <client> [--campaign C] [--month N]
+  lr voice                               which voice reads narration on this laptop, and the others it could use
+  lr voice use elevenlabs|openai|chatterbox|kokoro
+  lr voice key elevenlabs|openai <key>   saved on this laptop only (empty key removes it)
+  lr voice install chatterbox            the free local voice (one time, about 3 GB)
+  lr voice music on|off                  the soft music bed under narration
   lr library search "<text>" [--client C]
   lr templates [name[,name]] [--client C] list templates; with names: full slots, worked examples, icon names
                                          (motion --client C: only the families that suit the firm's practice)
@@ -92,6 +97,21 @@ def cmd_package(a):
     return deliver.package(_client(a.client), campaign=a.campaign, month=a.month)
 
 
+def cmd_voice(a):
+    from . import voices
+    if a.action == "use":
+        return voices.use(a.arg or "")
+    if a.action == "key":
+        return voices.set_key(a.arg or "", a.value or "")
+    if a.action == "install":
+        if (a.arg or "chatterbox") != "chatterbox":
+            raise LRError(f"only Chatterbox installs locally, not {a.arg}")
+        return voices.install_chatterbox()
+    if a.action == "music":
+        return voices.set_music((a.arg or "on") != "off")
+    return voices.status()
+
+
 def cmd_library(a):
     from . import library
     return library.search(a.text, client=a.client, limit=a.limit)
@@ -146,6 +166,8 @@ def parser():
     p = sp.add_parser("video"); p.add_argument("client"); p.add_argument("--campaign"); p.add_argument("--post")
     p.set_defaults(fn=cmd_video)
     p = sp.add_parser("package"); p.add_argument("client"); p.add_argument("--campaign"); p.add_argument("--month", type=int); p.set_defaults(fn=cmd_package)
+    p = sp.add_parser("voice"); p.add_argument("action", nargs="?", choices=["status", "use", "key", "install", "music"], default="status")
+    p.add_argument("arg", nargs="?"); p.add_argument("value", nargs="?"); p.set_defaults(fn=cmd_voice)
     p = sp.add_parser("library"); p.add_argument("action", choices=["search"]); p.add_argument("text"); p.add_argument("--client")
     p.add_argument("--limit", type=int, default=8); p.set_defaults(fn=cmd_library)
     p = sp.add_parser("docs"); p.add_argument("name"); p.set_defaults(fn=cmd_docs)

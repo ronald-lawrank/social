@@ -32,6 +32,7 @@ one. Never write HTML or CSS, and never edit templates.
 | Build a month or some posts | write the specs, then `lr build "<client>" --month N` | reference/writing.md |
 | Change one post | edit `posts/<ID>.json`, then `lr build "<client>" --post <ID>` | reference/writing.md |
 | Motion or video posts | `lr templates motion`, write storyboards, `lr build`, then after approval `lr video "<client>"` | reference/motion.md |
+| A better voice, or an API key for one | `lr voice` (status), `lr voice key elevenlabs <key>`, `lr voice install chatterbox`, `lr voice use <name>` | reference/motion.md (Voices and music) |
 | Package or send to the client | `lr package "<client>" --month N` | reference/delivery.md |
 | Status, or "what's left" | `lr client show "<client>"` | n/a |
 | The client changed package | `lr client set "<client>" package=authority`, then `lr campaign update "<client>"` | n/a |
