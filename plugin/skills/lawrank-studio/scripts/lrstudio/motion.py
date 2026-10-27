@@ -337,7 +337,7 @@ html,body{{margin:0;background:#000}}#root{{position:relative;width:1080px;heigh
 const stage = document.getElementById('stage'); stage.innerHTML = F.html(CUE, SB);
 const $ = s => stage.querySelector(s);
 const tl = gsap.timeline({{ paused: true, defaults: {{ immediateRender: false, ease: 'lr.out', duration: M.IN }} }});
-FONTS_IN.then(() => {{ F.build(tl, CUE, $, SB); tl.to({{}}, {{ duration: .01 }}, CUE.end - .01); }});
+FONTS_IN.then(() => {{ F.build(tl, CUE, $, SB); tl.to({{}}, {{ duration: .01 }}, CUE.end - .01); tl.seek(0); }});   // frame 0 drawn at once
 window.__timelines = window.__timelines || {{}}; window.__timelines.root = tl;
 </script></body></html>'''
     write_text(folder / "index.html", page)

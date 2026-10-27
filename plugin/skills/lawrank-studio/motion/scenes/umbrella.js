@@ -97,7 +97,7 @@ SCENES.umbrella = {
     T.hit.forEach(t => tl.to(umb, { keyframes: [{ y: 10, duration: .08, ease: 'power2.out' }, { y: 0, duration: .4, ease: 'elastic.out(1,.4)' }] }, t));
     tl.fromTo(q(`#${id}win`), { opacity: .5 }, { opacity: 1, duration: .5, ease: 'power1.out', immediateRender: false }, T.u + .5);
     if (sc.shelter) { const s = q(`#${id}s`); tl.set(s, { autoAlpha: 0 }, 0).set(s, { autoAlpha: 1, y: 30 }, T.u + .2).to(s, { y: 0, duration: .45, ease: 'lr.out' }, T.u + .2); tl.to(s, { autoAlpha: 0, duration: .25, ease: 'lr.in' }, X.tOut); }
-    if (LK.thread) X.dot(cx, apex - 34, T.u + .35, { r: 16 });
+    if (LK.thread) X.dot(cx + 360, apex + 170, T.u + .35, { r: 16 });   // at the canopy tip, clear of the falling chips
     tl.to([scene, rain], { autoAlpha: 0, duration: .3, ease: 'lr.in' }, X.tOut + .05);
   },
 };

@@ -58,7 +58,7 @@ SCENES.stars = {
     tl.set(SC, { autoAlpha: 0 }, 0).set(SC, { autoAlpha: 1, y: 40 }, a - .1).to(SC, { y: 0, duration: .5, ease: 'lr.out' }, a - .1);
     if (SI) tl.fromTo(SI, { textContent: 0 }, { textContent: +SI.dataset.v, snap: { textContent: 1 }, duration: b - a + .1, ease: 'power1.in', immediateRender: false }, a);
     if (SD) tl.fromTo(SD, { textContent: 0 }, { textContent: +SD.dataset.v, snap: { textContent: 1 }, duration: .5, ease: 'power1.out', immediateRender: false }, b - .2);
-    const OU = X.$(`#${id}ou`); tl.set(OU, { autoAlpha: 0 }, 0).set(OU, { autoAlpha: 1, x: -20 }, a + .1).to(OU, { x: 0, duration: .45, ease: 'lr.out' }, a + .1);
+    const OU = X.$(`#${id}ou`); tl.set(OU, { autoAlpha: 0 }, 0).set(OU, { autoAlpha: 1, x: 24 }, a + .1).to(OU, { x: 0, duration: .45, ease: 'lr.out' }, a + .1);
     const L = X.$(`#${id}l`), tl2 = Math.min(b + .1, X.tOut - .8); tl.set(L, { autoAlpha: 0 }, 0).set(L, { autoAlpha: 1, y: 30 }, tl2).to(L, { y: 0, duration: .45, ease: 'lr.out' }, tl2);
     const SO = X.$(`#${id}so`); if (SO) tl.set(SO, { autoAlpha: 0 }, 0).set(SO, { autoAlpha: 1, y: 24 }, tl2 + .2).to(SO, { y: 0, duration: .45, ease: 'lr.out' }, tl2 + .2);
     tl.to(COL, { scale: 1.02, duration: Math.max(.4, X.tOut - b - .2), ease: 'sine.inOut' }, b + .2);

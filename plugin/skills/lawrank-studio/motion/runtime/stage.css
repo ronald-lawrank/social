@@ -42,7 +42,7 @@ ol.vo{list-style:none;padding:0;margin:0;font-size:14px}ol.vo li{display:grid;gr
 .m-rv{position:absolute;left:0;right:0;text-align:center;font:800 300px/1 var(--head)}
 .m-qt{position:absolute}.m-qQ{font:700 64px/1.18 var(--head)}.m-qN{font:400 38px var(--body);margin-top:18px}
 /* composed videos (runtime/compose.js, looks.js, motion/scenes) */
-.scn{position:absolute;inset:0;overflow:hidden}
+.scn{position:absolute;inset:0;overflow:hidden;visibility:hidden}   /* the timeline shows each scene; never all at once */
 .k-hl{position:absolute;font-family:var(--head);line-height:1.08;letter-spacing:-.005em}.k-hl .ka,.k-tx .ka{color:var(--acc,var(--accentText))}
 .k-tx{position:absolute;line-height:1.25}
 .k-card{position:absolute;overflow:hidden}

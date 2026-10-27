@@ -50,10 +50,14 @@ window.QA = (pi, fps = 30) => {
     });
     // ---- 2b. the thread look's travelling dot never sits on words
     const dot = st.querySelector('#thr');
-    if (dot && effO(dot) > .5) { const dr = dot.getBoundingClientRect();
+    const dr = dot ? dot.getBoundingClientRect() : null, moving = dr && P._dotAt && Math.hypot(dr.left - P._dotAt[0], dr.top - P._dotAt[1]) > 3 * k;
+    if (dr) P._dotAt = [dr.left, dr.top];
+    if (dot && effO(dot) > .5 && !moving) {          // in flight it may pass over words; at rest it never sits on them
       if (dr.width > 2) st.querySelectorAll('[data-qa=text]').forEach(e => { if (effO(e) < .5) return; const w = document.createTreeWalker(e, NodeFilter.SHOW_TEXT);
         while (w.nextNode()) { if (!w.currentNode.textContent.trim()) continue; const rg = document.createRange(); rg.selectNodeContents(w.currentNode);
-          if ([...rg.getClientRects()].some(q => { const I = inter(dr, q); return I && I.w * I.h > dr.width * dr.height * .2; })) { add(t, 'dot-on-text', `the accent dot sits on ${name(e)}`); break; } } }); }
+          const clip = q => { let v = { left: q.left, top: q.top, right: q.right, bottom: q.bottom, w: q.width, h: q.height };   // only what a mask shows
+            for (let x = w.currentNode.parentElement; x && x !== st.parentElement && v; x = x.parentElement) if (getComputedStyle(x).overflow !== 'visible') v = inter(v, x.getBoundingClientRect()); return v; };
+          if ([...rg.getClientRects()].some(q => { const c = clip(q), I = c && inter(dr, c); return I && I.w * I.h > dr.width * dr.height * .2; })) { add(t, 'dot-on-text', `the accent dot sits on ${name(e)}`); break; } } }); }
     // ---- 3. readable text never overlaps other text
     const texts = [...st.querySelectorAll('[data-qa=text]')].filter(e => effO(e) > .3).map(e => [e, e.getBoundingClientRect()]);
     for (let a = 0; a < texts.length; a++) for (let b = a + 1; b < texts.length; b++) {

@@ -180,8 +180,8 @@ def test_campaigns_use_a_practice_plan_when_there_is_one(firm, home):
 
 def test_motion_families_offered_for_the_firms_practice(firm):
     out = run("templates", "motion", "--client", firm.name)
-    assert out["ok"] and [f["family"] for f in out["families"]] == ["flip"] and "journey" in out["not_for_this_practice"]
-    assert len(run("templates", "motion")["families"]) == 4
+    assert out["ok"] and [f["family"] for f in out["families"]] == ["flip", "scenes"] and "journey" in out["not_for_this_practice"]
+    assert len(run("templates", "motion")["families"]) == 5                    # composed videos suit every practice
 
 
 # ---- new-run fixes from the Alders & Lewellyn onboarding
