@@ -111,7 +111,7 @@ h1{font:800 clamp(34px,5vw,56px)/1.02 var(--display);letter-spacing:-.02em;margi
 .stats{display:flex;flex-wrap:wrap;gap:8px 22px;font:500 13px var(--mono);color:var(--fg);margin-top:6px}.stats b{font:800 22px var(--display);margin-right:6px}
 .band{background:var(--band);color:var(--bandfg)}.band .wrap{padding-block:28px 34px;display:grid;gap:16px}
 .band h2{font:700 22px var(--display);margin:0}.band .note{color:#9AA3AD;margin:0;font-size:14px;max-width:70ch}
-.reels{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:18px}
+.reels{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:18px}@media (max-width:520px){.reels{grid-template-columns:1fr 1fr;gap:12px}}
 .reel{display:grid;gap:10px;min-width:0}.still{position:relative;display:block;border-radius:14px;overflow:hidden;aspect-ratio:9/16;background:#222;outline:1px solid rgba(255,255,255,.08)}
 .still img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .4s}.still:hover img{transform:scale(1.03)}
 .play{position:absolute;left:10px;bottom:10px;font:600 13px var(--body);background:#fff;color:#111;padding:7px 12px;border-radius:999px}
@@ -133,7 +133,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .stext{min-width:0}.stext h4{font:700 17px var(--display);margin:0 0 4px}.stext code{font:500 11.5px var(--mono);color:var(--muted);margin-left:4px}
 .stext p{margin:0 0 6px;font-size:14px}.good span{font:500 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-right:4px}
 .prac{font-size:12.5px!important;color:var(--muted)}
-.sframes{min-width:0;overflow-x:auto}.strip{display:block;width:100%;min-width:560px;border-radius:8px}
+.sframes{min-width:0;overflow-x:auto}.strip{display:block;width:100%;min-width:560px;border-radius:8px}.strip[hidden]{display:none}
 @media (prefers-reduced-motion:reduce){.still img{transition:none}}
 </style>
 <header><div class="wrap"><span class="eyebrow">LawRank Studio · composed video</span><h1>Motion Library</h1>
