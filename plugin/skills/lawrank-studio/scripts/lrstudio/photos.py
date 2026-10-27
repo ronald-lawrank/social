@@ -10,6 +10,7 @@ crop() is the one place crop maths lives: templates call it so faces, heads and 
 import hashlib
 import io
 import re
+import urllib.parse
 from pathlib import Path
 
 from . import tools
@@ -18,6 +19,9 @@ from .util import read_json, say, slugify, write_bytes, write_json
 STOCK = re.compile(r"shutterstock|istock|gettyimages|getty|adobestock|stock\.adobe|depositphotos|dreamstime|123rf|alamy|"
                    r"unsplash|pexels|pixabay|freepik|envato|bigstock|canstock", re.I)
 AI_MADE = re.compile(r"midjourney|dall-?e|openai|stable.?diffusion|firefly|imagen|leonardo\.ai|ideogram", re.I)
+GRAPHIC = re.compile(r"banner|bkg|backgr|review|testimonial|rating|badge|award|screenshot|logo|sprite|placeholder|"
+                     r"(?<![a-z])(?:graphic|infographic|icon|seal|map)s?(?![a-z])", re.I)
+MAX_RATIO = 2.3          # wider (or taller) than this is a site banner: a post crop keeps only a narrow sliver
 MIN_SIDE = 700           # smaller photos look soft once a post enlarges them
 MIN_SHARPNESS = 40       # variance of the Laplacian; under this a photo reads as blurred
 MAX_UPSCALE = 2.0        # never enlarge a photo past 2x its own pixels
@@ -233,6 +237,11 @@ def collect(candidates: list[dict], photos_dir: Path, people: list[dict], firm_d
             reasons.append("face too small to crop into a portrait")
         if kind == "office" and info["w"] < 1000:
             reasons.append("small scene photo")
+        if max(info["w"], info["h"]) > MAX_RATIO * min(info["w"], info["h"]):
+            reasons.append(f"a wide site banner ({info['w']}x{info['h']}): a post crop keeps only a narrow slice")
+        hit = GRAPHIC.search(f"{Path(urllib.parse.urlparse(c['url']).path).stem} {c.get('alt') or ''}")
+        if hit:
+            reasons.append(f"a site graphic, not a photo (named '{hit.group(0).lower()}')")
         key = _key_for(kind, name, taken)
         ext = ".png" if ctype == "image/png" else ".jpg"
         img = _normalized(data, ext)

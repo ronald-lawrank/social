@@ -187,25 +187,61 @@ async function layer(L, parent) {
   if (!n) return;
   n.name = L.name || n.name; n.x = x; n.y = y; parent.appendChild(n);
 }
+const problems = [];
+function frameName(d, i) {
+  const bits = d.post ? [d.post, d.option && d.option !== d.post ? 'Option ' + d.option : null, d.size ? d.size.replace(/^(\d+)x(\d+)$/, '$1:$2') : null]
+                      : [d.name];
+  return bits.filter(Boolean).join(' · ') + (d.frames.length > 1 ? ` · slide ${i + 1}` : '');
+}
 async function build() {
-  const page = figma.createPage(); page.name = DATA.title; figma.currentPage = page;
-  let y = 0, count = 0;
+  const page = figma.createPage(); page.name = DATA.title;
+  await figma.setCurrentPageAsync(page);         // the plugin uses dynamic page access: the old setter throws
+  // one section per post (its topic as the title), one row per option, sizes and slides side by side
+  const groups = [];
   for (const d of DATA.designs) {
-    let x = 0, rowH = 0;
-    for (const [i, F] of d.frames.entries()) {
-      const fr = figma.createFrame(); fr.name = d.frames.length > 1 ? `${d.name} · ${i + 1}` : d.name;
-      fr.resize(F.w, F.h); fr.clipsContent = true; fr.fills = F.bg ? [solid(F.bg)] : [];
-      fr.x = x; fr.y = y; page.appendChild(fr);
-      for (const L of F.layers) await layer(L, fr);
-      x += F.w + 80; rowH = Math.max(rowH, F.h); count++;
-    }
-    y += rowH + 160;
+    const k = d.group || d.name; let g = groups.find(x => x.name === k);
+    if (!g) groups.push(g = { name: k, rows: [] });
+    const rk = d.option || d.name; let r = g.rows.find(x => x.k === rk);
+    if (!r) g.rows.push(r = { k: rk, designs: [] });
+    r.designs.push(d);
   }
-  figma.viewport.scrollAndZoomIntoView(page.children);
+  const PAD = 120, GAP = 80, ROWGAP = 140;
+  let y = 0, count = 0;
+  for (const g of groups) {
+    const placed = []; let gy = PAD, gw = PAD * 2;
+    for (const r of g.rows) {
+      let x = PAD, rowH = 0;
+      for (const d of r.designs) for (const [i, F] of d.frames.entries()) {
+        try {
+          const fr = figma.createFrame(); fr.name = frameName(d, i);
+          fr.resize(Math.max(1, F.w), Math.max(1, F.h)); fr.clipsContent = true; fr.fills = F.bg ? [solid(F.bg)] : [];
+          fr.x = x; fr.y = gy; page.appendChild(fr);
+          for (const L of F.layers) {
+            try { await layer(L, fr); }
+            catch (e) { problems.push(`${fr.name} / ${L.name || L.type}: ${e.message}`); }
+          }
+          placed.push(fr); x += F.w + GAP; rowH = Math.max(rowH, F.h); count++;
+        } catch (e) { problems.push(`${d.name}: ${e.message}`); }
+      }
+      gw = Math.max(gw, x - GAP + PAD); gy += rowH + ROWGAP;
+    }
+    const gh = gy - ROWGAP + PAD;
+    let sec = null;
+    try { sec = figma.createSection(); sec.name = g.name; page.appendChild(sec); sec.x = 0; sec.y = y; sec.resizeWithoutConstraints(gw, gh); }
+    catch (e) { sec = null; }
+    for (const fr of placed) { if (sec) sec.appendChild(fr); else fr.y += y; }   // frames keep their place inside the section
+    y += gh + 240;
+  }
+  if (page.children.length) figma.viewport.scrollAndZoomIntoView(page.children);
   return count;
 }
-build().then(n => figma.closePlugin(`Built ${n} frames` + (missing.size ? `. Fonts not in Figma (Inter used): ${[...missing].join(', ')}` : '.')))
-       .catch(e => figma.closePlugin('Stopped: ' + e.message));
+build().then(n => {
+  const fonts = missing.size ? ` Fonts not in Figma (Inter used): ${[...missing].join(', ')}.` : '';
+  if (problems.length) {
+    console.error('LawRank Studio: parts that could not be drawn\n' + problems.join('\n'));
+    figma.closePlugin(`Built ${n} frames; ${problems.length} part(s) couldn't be drawn (first: ${problems[0].slice(0, 120)}).${fonts}`);
+  } else figma.closePlugin(`Built ${n} frames.${fonts}`);
+}).catch(e => figma.closePlugin('Stopped: ' + e.message));
 """
 
 

@@ -99,6 +99,9 @@ def test_deleted_posts_leave_the_build_record(firm, drawn):
 
 def test_gallery_has_a_design_tab_built_from_the_brand_and_facts(firm, drawn):
     d = firm.campaigns_dir / "2026-10 Six-Month"
+    from PIL import Image
+    if not (firm.brand_dir / "photos" / "ben-2.jpg").exists():
+        Image.new("RGB", (768, 512), "#777").save(firm.brand_dir / "photos" / "ben-2.jpg")
     build.build(firm, month=1)
     index = (d / "index.html").read_text()
     assert not (d / "design.html").exists()                                     # one file: the guide is a tab
@@ -120,6 +123,9 @@ def test_gallery_has_a_design_tab_built_from_the_brand_and_facts(firm, drawn):
     assert not re.search(r"injur|accident|justice|family-owned", design, re.I)  # no sample copy from another practice
     assert "Austin family law" in design
     assert "ben-2.jpg" in design and "Small original (768 px)" in design
+    assert "../../brand/" not in index                                    # works on its own: shared, zipped or previewed
+    assert (d / "previews" / "assets" / "brand" / "photos" / "ben-2.jpg").exists()
+    assert "align-items:center" in index.split(".pair{")[1].split("}")[0]  # contrast pills sit in the row
 
 
 def test_brand_board_copy_fits_the_practice_and_the_fees_approval(firm):
@@ -223,3 +229,45 @@ def test_test_designs_never_use_unapproved_or_invented_lines(home):
     for bad in ("Memphis Personal Injury Attorneys", "Our promise", "Straight answers", "Here when you need answers"):
         assert bad not in text
     assert "Do I need a lawyer after an accident?" in text
+
+
+GOOGLE_BADGE = ("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 266 70'>" + "<path d='M1 1h5v5z' fill='#FBBC05'/>" * 5
+                + "<path d='M2 2h1v1z' fill='#4285F4'/><path d='M3 3h1v1z' fill='#34A853'/><path d='M4 4h1v1z' fill='#EA4335'/></svg>")
+
+
+def test_review_badges_are_never_the_logo():
+    from types import SimpleNamespace
+    from lrstudio import onboard
+    assert onboard.third_party_svg(GOOGLE_BADGE)
+    firm = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 80'><path d='M0 0h300v80H0z' fill='#0096E3'/></svg>"
+    assert not onboard.third_party_svg(firm)
+    site = SimpleNamespace(url="https://jhartley.example/", final_url="https://jhartley.example/", logos=[
+        {"svg": GOOGLE_BADGE, "where": "page"}, {"svg": firm, "where": "header"}])
+    assert "#0096E3" in onboard.pick_logo(site)["svg"]
+
+
+def test_banners_and_site_graphics_arent_used_as_photos(tmp_path, monkeypatch):
+    import io
+    import random
+    from PIL import Image
+    from lrstudio import crawl, photos
+
+    def img(w, h):
+        rnd = random.Random(w * h)
+        im = Image.frombytes("RGB", (w, h), bytes(rnd.randrange(256) for _ in range(w * h * 3)))
+        buf = io.BytesIO(); im.save(buf, "JPEG"); return buf.getvalue()
+    files = {"https://f.example/DESKTOP-1.jpg": img(2400, 825), "https://f.example/Client-Review.png": img(1472, 900),
+             "https://f.example/team-room.jpg": img(1600, 1100)}
+    monkeypatch.setattr(crawl, "download", lambda url, referer=None: (files[url], "image/jpeg"))
+    out = photos.collect([{"url": u, "page": "https://f.example/"} for u in files], tmp_path, [], "f.example")
+    why = {m["image_url"].rsplit("/", 1)[1]: (m["use"], m["why"]) for m in out.values()}
+    assert why["DESKTOP-1.jpg"][0] is False and "banner" in why["DESKTOP-1.jpg"][1]
+    assert why["Client-Review.png"][0] is False and "site graphic" in why["Client-Review.png"][1]
+    assert why["team-room.jpg"][0] is True, why
+
+
+def test_seo_titles_arent_used_as_taglines():
+    from lrstudio import campaign
+    assert campaign.DESCRIPTOR.match("California Personal Injury Lawyer")
+    assert not campaign.DESCRIPTOR.match("Helping the Injured Get Justice.")
+    assert campaign._sentence("California Personal Injury Lawyer") == "California Personal Injury Lawyer."

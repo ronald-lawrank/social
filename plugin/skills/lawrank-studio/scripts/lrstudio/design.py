@@ -6,10 +6,11 @@ Sample copy here is educational copy for the practice area or the firm's own fac
 import html
 import os
 import re
+import shutil
 from collections import Counter
 from pathlib import Path
 
-from . import compliance, fonts, store, templates, theme
+from . import campaign, compliance, fonts, store, templates, theme
 from .extract import contrast
 from .util import read_json
 
@@ -42,8 +43,8 @@ h2:before{content:'';width:24px;height:2px;background:var(--accent)}h3{font-size
 .sw{display:flex;gap:12px;align-items:flex-start}.chip{width:56px;height:56px;border-radius:6px;flex:none;border:1px solid rgba(0,0,0,.08)}
 .sw b{display:block}.sw code{font-size:12px;color:#6B7280}.sw p{margin:2px 0 0;font-size:13px;color:#4B5563}
 .pairs{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:10px;margin-top:16px}
-.pair{border-radius:8px;padding:14px 16px;display:flex;justify-content:space-between;gap:10px;font-weight:600;border:1px solid rgba(0,0,0,.06)}
-.r{font:600 12px/1.6 -apple-system,Arial,sans-serif;padding:0 8px;border-radius:999px;background:rgba(255,255,255,.9);color:#111827;white-space:nowrap}
+.pair{border-radius:8px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;gap:10px;font-weight:600;line-height:1.3;border:1px solid rgba(0,0,0,.06)}
+.r{flex:none;font:600 12px/1.6 -apple-system,Arial,sans-serif;padding:2px 9px;border-radius:999px;background:rgba(255,255,255,.9);color:#111827;white-space:nowrap}
 .r.no{background:#FEE2E2;color:#991B1B}.r.mid{background:#FEF3C7;color:#92400E}
 .type{display:grid;grid-template-columns:1.2fr 1fr;gap:28px}@media(max-width:800px){.type{grid-template-columns:1fr}}
 .spec{font-size:12px;color:#6B7280;margin-bottom:4px}
@@ -98,6 +99,27 @@ def _hex(v, default="#000000") -> str:
 
 
 def _rel(target: Path, start: Path) -> str:
+    """A link from the gallery to a file. Files outside the campaign folder (logos, photos, board, fonts) are copied
+    into previews/assets/brand/ so the gallery works on its own: shared, zipped or opened in an agent's viewer."""
+    target, start = Path(target), Path(start)
+    try:
+        target.resolve().relative_to(start.resolve())
+    except ValueError:
+        local = start / "previews" / "assets" / "brand" / target.parent.name / target.name
+        try:
+            if not local.exists() or local.stat().st_mtime < target.stat().st_mtime:
+                local.parent.mkdir(parents=True, exist_ok=True)
+                try:                                          # a screen-size copy of photos keeps Drive light
+                    if target.suffix.lower() not in (".jpg", ".jpeg", ".png", ".webp") or target.parent.name not in ("photos", "board"):
+                        raise ValueError
+                    from PIL import Image
+                    im = Image.open(target); im.thumbnail((1400, 1400))
+                    im.save(local, quality=85) if local.suffix.lower() in (".jpg", ".jpeg") else im.save(local)
+                except Exception:
+                    shutil.copy2(target, local)
+            target = local
+        except OSError:
+            pass                                           # fall back to linking the original
     return Path(os.path.relpath(target, start)).as_posix()
 
 
@@ -301,7 +323,7 @@ def panel(c: store.Client, d: Path, rows: list[dict]) -> tuple[str, str]:
         voice.append(f"Mention {city} where it fits.")
     voice += [str(n) for n in v.get("notes") or [] if n]
     voice.append(f"Calls to action: \"{cta}\", \"Call today\", \"Schedule a consultation\".")
-    if v.get("tagline"):
+    if v.get("tagline") and not campaign.DESCRIPTOR.match(v["tagline"].strip()):
         voice.append(f"Use the tagline exactly as written: \"{v['tagline']}\".")
     rules = ["No \"guarantee\", \"best\", \"#1\", \"leading\", \"top-rated\", \"expert\" or \"specialist\" unless an approved fact says so.",
              "No promised outcomes: promise service, not results.",

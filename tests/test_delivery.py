@@ -44,6 +44,9 @@ def test_package_makes_deck_plugin_and_posts(built, tmp_path):
     res = json.loads(r.stdout.strip().splitlines()[-1])
     assert res["ok"], res
     assert res["frames"] >= 12 and res["text"] > 50 and res["images"] > 0
+    secs = res["sections"]                                      # organized: one section per post, every frame inside one
+    assert len(secs) >= 4 and sum(len(s["frames"]) for s in secs) == res["frames"]
+    assert all(s["name"].startswith("DIR-") for s in secs) and any("Option" in f and "4:5" in f for s in secs for f in s["frames"])
 
 
 def test_figma_layers_replay_like_the_render(built, tmp_path):

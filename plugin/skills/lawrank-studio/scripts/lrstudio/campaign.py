@@ -282,6 +282,8 @@ def _default_copy(c: store.Client, b: dict, facts: dict) -> dict:
     # the firm's tagline only when it's an approved fact; otherwise a vetted question for the practice area (never
     # the page title, never an invented line)
     tl = ((b.get("voice") or {}).get("tagline") or "").strip()
+    if DESCRIPTOR.match(tl):
+        tl = ""                                           # "California Personal Injury Lawyer" is a page title, not a line
     approved = next((k for k, f in facts.items() if f["usable"] and ((tl and tl.lower().rstrip(".") in f["text"].lower()) or k == "tagline")), None)
     tagline = (tl if tl and approved != "tagline" else facts[approved]["text"].strip()) if approved else ""
     sample = sample_copy(c.data.get("practice_area"))
@@ -290,6 +292,15 @@ def _default_copy(c: store.Client, b: dict, facts: dict) -> dict:
     years = next((f for f in usable.values() if f["category"] == "history" and re.search(r"\b(19|20)\d\d\b", f["text"])), None)
     return {"tagline": tagline, "tagline_fact": approved if tagline else None, "neutral": sample["faq"]["question"],
             "area": area, "support": support, "city": city, "people": people, "years_fact": years, "sample": sample}
+
+
+# a tagline that only names the place and practice ("El Segundo Car Accident Attorneys") reads as an SEO title on a post
+DESCRIPTOR = re.compile(r"^(?:[A-Z][\w.'&-]*\s+){0,6}(?:lawyers?|attorneys?|law\s+(?:firm|group|offices?)|legal\s+services)\.?$", re.I)
+
+
+def _sentence(s: str) -> str:
+    s = s.strip()
+    return s if not s or s[-1] in ".?!" else s + "."
 
 
 def _headline(dc: dict, limit: int) -> str:
@@ -324,7 +335,7 @@ def directions(c: store.Client, only: str | None = None) -> dict:
             if tpl == "poster" and not has_people:           # the poster needs the firm's people; type leads instead
                 tpl = "big-type"
             o = {"key": f"{k}{i + 1}", "template": tpl, "treatment": tr, "facts": base_facts,
-                 "caption": f"{_headline(dc, 200)} Talk to our team{loc} today.", "alt": f"{b['name']} social post: {_headline(dc, 200)}"}
+                 "caption": f"{_sentence(_headline(dc, 200))} Talk to our team{loc} today.", "alt": f"{b['name']} social post: {_headline(dc, 200)}"}
             if tpl in ("photo-split", "poster", "statement"):
                 o["copy"] = {"label": "Meet the firm", "headline": _headline(dc, 56), "support": f"{dc['support']}{loc}.",
                              "cta": consult_cta(facts)}
