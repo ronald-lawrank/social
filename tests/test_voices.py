@@ -220,3 +220,15 @@ def test_a_plugin_update_starts_the_chatterbox_install_and_failures_wait(tmp_pat
     paths.save_settings(voice_provider="kokoro")
     (tmp_path / "chatterbox-failed").unlink()
     assert voices.ensure() == "not wanted" and len(started) == 1           # someone who picked Kokoro isn't sent 3 GB
+
+
+def test_intel_macs_are_told_chatterbox_wont_run(tmp_path, monkeypatch):
+    import platform
+    monkeypatch.setattr(paths, "STATE", tmp_path)
+    monkeypatch.setenv("LR_STATE_DIR", str(tmp_path))
+    monkeypatch.setattr(voices.sys, "platform", "darwin")
+    monkeypatch.setattr(platform, "machine", lambda: "x86_64")
+    assert voices.ensure() == "not supported" and voices.install_chatterbox_background() == "not supported"
+    assert "Intel Macs" in voices.status()["options"]["chatterbox"]
+    with pytest.raises(voices.LRError):
+        voices.install_chatterbox()

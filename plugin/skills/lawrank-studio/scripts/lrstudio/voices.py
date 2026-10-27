@@ -105,11 +105,19 @@ def env(provider: str | None = None) -> dict:
     return out
 
 
+def supported() -> bool:
+    """Chatterbox's torch has no builds for Intel Macs any more: they stay on Kokoro (or a key voice)."""
+    import platform
+    return not (sys.platform == "darwin" and platform.machine() == "x86_64")
+
+
 def ensure() -> str:
     """Start the Chatterbox install if this laptop should have it and doesn't: after a plugin update (setup isn't run
     again) or an install that was cut off. Cheap when it's ready or already installing."""
     if paths.settings().get("voice_provider") not in (None, "chatterbox"):
         return "not wanted"
+    if not supported():
+        return "not supported"
     failed = paths.STATE / "chatterbox-failed"
     if not chatterbox_python() and not _installing() and failed.exists() and time.time() - failed.stat().st_mtime < 6 * 3600:
         return "failed"                     # retried on its own every few hours, or now with `lr voice install chatterbox`
@@ -122,7 +130,9 @@ def status() -> dict:
     return {"ok": True, "voice": now, "about": ABOUT[now], "ready": av, "picked": paths.settings().get("voice_provider"),
             "options": {p: ABOUT[p] + ("" if av[p] else {"elevenlabs": " — add a key: lr voice key elevenlabs <key>",
                                                          "openai": " — add a key: lr voice key openai <key>",
-                                                         "chatterbox": " — installing in the background (a few minutes)"
+                                                         "chatterbox": " — not available on Intel Macs (Kokoro reads; "
+                                                         "an ElevenLabs or OpenAI key gives a better voice)" if not supported()
+                                                         else " — installing in the background (a few minutes)"
                                                          if _installing() else " — the last install failed (log: ~/.lawrank-studio/"
                                                          "chatterbox-install.log); try again: lr voice install chatterbox"
                                                          if (paths.STATE / "chatterbox-failed").exists()
@@ -180,6 +190,8 @@ def install_chatterbox_background() -> str:
     reads until it's done. The log is ~/.lawrank-studio/chatterbox-install.log."""
     if chatterbox_python():
         return "ready"
+    if not supported():
+        return "not supported"
     if _installing():
         return "installing"
     if os.environ.get("LR_NO_AUTO_INSTALL"):
@@ -199,6 +211,9 @@ def install_chatterbox() -> dict:
     py = venv / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
     if chatterbox_python():
         return status()
+    if not supported():
+        raise LRError("Chatterbox doesn't run on Intel Macs (its AI library, torch, no longer supports them)",
+                      fix="Kokoro keeps reading; for a better voice add an ElevenLabs or OpenAI key: lr voice key elevenlabs <key>")
     try:
         uv = _uv()
         if not uv:

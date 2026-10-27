@@ -24,8 +24,18 @@ In the same place, type:
 
 > Set up LawRank Studio
 
-Claude installs the render browser, video renderer and the voice and face models into
-`~/.lawrank-studio` (about 1 GB, 1–3 minutes). It finds the Drive folder automatically. If it can't
+Claude installs the render browser, video renderer and the face and voice models into
+`~/.lawrank-studio` (1–3 minutes). It finds the Drive folder automatically.
+
+Setup then keeps downloading **Chatterbox**, the narration voice, in the background (about 9 GB on disk, 5–15
+minutes). You can start working right away: until it's ready, videos are read by Kokoro, the small built-in
+voice, and the build says so. Ask "What voice is LawRank Studio using?" to check; rebuild any videos made
+before it finished. Leave about 12 GB free on the laptop.
+
+- **Older Intel Macs** can't run Chatterbox (its AI library no longer supports them), so they stay on
+  Kokoro. Apple Silicon Macs (M1 or newer) and Windows laptops are fine.
+- **Want a different voice?** "Use ElevenLabs for LawRank Studio, here's my key: ..." works too (paid per
+  character, slightly more natural). Keys stay on that laptop. If it can't
 find the folder, tell Claude where it is (for example, "it's at
 ~/Library/CloudStorage/GoogleDrive-you@lawrank.com/Shared drives/Claude").
 
@@ -47,7 +57,10 @@ changes to *Revised* so it comes back to you.
 
 ## Updates
 When the skill is improved, everyone runs `/plugin marketplace update lawrank` once (or Claude
-picks it up automatically when it starts, depending on your settings).
+picks it up automatically when it starts, depending on your settings). If Claude's settings still
+show the old version afterwards, run this in Terminal and restart Claude:
+`git -C ~/.claude/plugins/marketplaces/lawrank pull origin main`. Anything new an update needs
+(like the Chatterbox voice) installs itself the next time Claude starts the studio.
 
 ## Using ChatGPT instead of Claude
 The studio works the same in **Codex** (OpenAI's coding agent, part of ChatGPT; sign in with your
@@ -74,6 +87,11 @@ Do steps 1.1–1.3 above, then:
 - Two people can work on different clients at the same time. If two people build the same campaign
   at once, the second person is told who's working on it.
 - Every action is logged in `Clients/<Firm>/history.log`.
+- Videos get a soft music bed that the studio composes itself, so there's nothing to license. To use a
+  licensed track, put it in `LawRank Studio/Music` named after its mood (`warm.mp3`, `hopeful.mp3`,
+  `steady.mp3`, `serious.mp3`). To narrate with a real person's voice, put a clean 10–20 second
+  recording (with their permission) in `LawRank Studio/Voices`, named after the voice it replaces
+  (`am_michael.wav`).
 - Drive keeps version history for every file, so mistakes can be undone from Drive.
 - The skill's code is public on GitHub (github.com/ronald-lawrank/social). Client work never goes
   there: it stays in Drive.

@@ -75,7 +75,7 @@ posts need to look alike.
   "key": "A", "template": "motion", "family": "scenes", "look": "cards", "voice": "af_heart", "speed": 1.04,
   "lines": [
     {"id": "hook", "say": "Hurt in a crash? McMinn Law Firm has a few things to tell you first."},
-    {"id": "b1", "say": "The adjuster may text you within days. Can we get a recorded statement? We can offer two thousand today."},
+    {"id": "b1", "say": "The adjuster may text you within days. Can we get a recorded statement? We can make you a quick offer today."},
     {"id": "b2", "say": "Before you answer, do four things: see a doctor, take photos, keep every bill, and call before you sign."},
     {"id": "cta", "say": "You don't have to handle the insurance company alone. Talk to our team today."}
   ],
@@ -83,7 +83,7 @@ posts need to look alike.
     "scenes": [
       {"type": "kinetic", "line": "hook", "head": "Hurt in a **car crash?**", "kicker": "Before you answer"},
       {"type": "chat", "line": "b1", "head": "They move **fast.**", "name": "Insurance adjuster",
-       "messages": [{"from": "them", "text": "Can we get a recorded statement?"}, {"from": "them", "text": "We can offer $2,000 today."}]},
+       "messages": [{"from": "them", "text": "Can we get a recorded statement?"}, {"from": "them", "text": "We can make you a quick offer today."}]},
       {"type": "checklist", "line": "b2", "head": "Do this first", "items": ["See a doctor", "Take photos", "Keep every bill", "Call before you sign"]},
       {"type": "end", "line": "cta"}
     ],
@@ -147,6 +147,8 @@ never changes when the voice does.
   build shows a `voice` warning. Rebuild those posts later for Chatterbox: `lr build "<client>" --post <ids>`.
   `lr voice` shows where the install is. `lr doctor` starts it if it never ran (after a plugin update) and
   retries a failed one every few hours; `lr voice install chatterbox` retries now (in the background).
+- Intel Macs can't run Chatterbox (`lr voice` says so): Kokoro reads there unless the person adds an
+  ElevenLabs or OpenAI key. Don't try to install it by hand.
 - Chatterbox copies a short sample voice to match each persona. To use a firm's own narrator, put a clean
   10-20 second recording in the Drive's "LawRank Studio/Voices" folder named after the persona
   (`am_michael.wav`), with the speaker's permission.
