@@ -42,7 +42,7 @@ SCENES['phone-call'] = {
         ${ring(0)}${ring(1)}${ring(2)}
         <div id="${id}av" class="k-abs" style="left:${cx - av / 2}px;top:${avY}px;width:${av}px;height:${av}px;border-radius:50%;background:${light ? mix(BT.ink, '#FFFFFF', .88) : n === 'silhouette' ? '#F2EFE8' : 'rgba(255,255,255,.16)'};
           display:flex;align-items:center;justify-content:center">${icon('shield', Math.round(av * .5), light ? BT.ink : n === 'silhouette' ? LK.ink : '#FFFFFF', light ? BT.accent : n === 'silhouette' ? LK.ink : '#FFFFFF')}</div>
-        <div class="k-abs" style="left:28px;right:28px;top:${avY + av + 36}px;display:flex;flex-direction:column;align-items:center;gap:20px">
+        <div class="k-abs" style="left:28px;right:28px;top:${avY + av + 36}px;display:flex;flex-direction:column;align-items:center;gap:30px">
         <div id="${id}nm" data-qa="text" style="width:fit-content;max-width:100%;text-align:center;font:700 ${String(sc.caller).length > 26 ? 38 : String(sc.caller).length > 18 ? 44 : 52}px/1.12 var(--head);color:${tx};${up ? 'text-transform:uppercase;' : ''}">${esc(sc.caller || 'Insurance company')}</div>
         <div style="position:relative;width:100%;height:44px;flex:none">
           <div id="${id}st" data-qa="text" style="position:absolute;left:0;right:0;margin:0 auto;width:fit-content;text-align:center;font:500 36px/44px var(--body);color:${tx2}">calling<span class="pcd">.</span><span class="pcd">.</span><span class="pcd">.</span></div>
@@ -64,7 +64,7 @@ SCENES['phone-call'] = {
     const LK = X.LK, id = X.id, q = s => X.$('#' + id + s), P = SCENES['phone-call'].plan(sc, X), g = SCENES['phone-call'].geo(sc), fwd = sc.action === 'forward';
     const ph = q('p'), tA = P.tA, tC = P.tC;
     if (sc.head) X.head(`#${id}h`, X.tIn);
-    tl.set(ph, { autoAlpha: 0 }, 0).set(ph, { autoAlpha: 1, y: 220, rotation: -4 }, X.tIn - .15).to(ph, { y: 0, rotation: 0, duration: .6, ease: 'lr.out' }, X.tIn - .15);
+    tl.set(ph, { autoAlpha: 0 }, 0).set(ph, { autoAlpha: 1, y: 220, rotation: -2 }, X.tIn - .15).to(ph, { y: 0, rotation: 0, duration: .6, ease: 'lr.out' }, X.tIn - .15);
     // ringing: the phone buzzes in bursts, rings pulse out of the caller, the dots tick
     const rings = [...ph.querySelectorAll('.pcr')], dots = [...ph.querySelectorAll('.pcd')], av = q('av');
     tl.set(rings, { autoAlpha: 0 }, 0);
