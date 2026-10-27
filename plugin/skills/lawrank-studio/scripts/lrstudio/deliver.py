@@ -3,7 +3,9 @@
   <Firm> - <campaign> - Deck.pptx          the client deck (PowerPoint / Google Slides)
   <Firm> - <campaign> - Figma plugin.zip   every design as editable layers (import once in the Figma desktop app)
   <Firm> - <campaign> - Posts.zip          every size as PNG + captions.csv (+ approved MP4s)
-Approved options only; when nothing is approved yet, every option goes in and the package is marked as a review set.
+Per post: its Approved option(s) if review.xlsx marks any, else every option (Rejected ones never). review.xlsx is
+optional; when nothing is approved anywhere, the package is labelled a review set. Motion posts get their MP4s
+rendered here if they're missing or out of date.
 """
 import csv
 import io
@@ -35,7 +37,8 @@ def package(c: store.Client, campaign: str | None = None, month: int | None = No
         raise LRError("Nothing written to package", fix="Build the campaign first (`lr build`).")
     post_ids = {f.stem for f in (d / "posts").glob("*.json")}
     review_set = not any((p["id"], o["key"]) in approved for p in posts for o in p["options"])
-    chosen = [(p, o) for p in posts for o in p["options"] if review_set or (p["id"], o["key"]) in approved]
+    from . import motion
+    chosen = [(p, o) for p in posts for o in motion.pick_options(statuses, p)]
     say(f"Packaging {len(chosen)} option(s){' (review set: nothing approved yet)' if review_set else ''} ...")
     ids = ",".join(sorted({p["id"] for p, _ in chosen}))
     res = builder.build(c, campaign=d.name, posts=ids, sizes="all",           # every size of what's delivered, checked
@@ -53,13 +56,23 @@ def package(c: store.Client, campaign: str | None = None, month: int | None = No
     if not chosen:
         raise LRError("Nothing is ready to package yet: every chosen design still needs a fix",
                       fix="Fix what's listed (as after `lr build`), then package again.", left_out=left_out)
+    # MP4s for the motion options going out: rendered now if missing or out of date (no separate step needed)
+    videos, not_made = [], {}
+    for p, o in chosen:
+        if p.get("format") == "motion" and o.get("lines") and not motion.mp4_current(c, d, p, o):
+            try:
+                videos.append(motion.render_mp4(c, d, p, o))
+            except Exception as e:
+                from .util import log_error
+                log_error(e, f"video {p['id']} {o['key']}")
+                not_made[f"MP4 {p['id']} {o['key']}"] = (e.fix if isinstance(e, LRError) and e.fix else f"{type(e).__name__}: {str(e)[:120]}")
     cache = read_json(d / ".build.json", {}) or {}
     exports = d / "exports"; exports.mkdir(exist_ok=True)
     safe = lambda s: re.sub(r'[<>:"/\\|?*]+', "", s).strip()
     stem = safe(f"{c.name} - {d.name}" + (f" - Month {month}" if month else "") + (" - review set" if review_set else ""))
     keep = {(p["id"], o["key"]) for p, o in chosen}
     with Lock(d, "package"):
-        # posts zip: PNGs by post, captions.csv, approved MP4s
+        # posts zip: PNGs by post, captions.csv, MP4s
         buf = io.BytesIO(); rows = []
         with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
             for did, r in sorted(cache.items()):
@@ -82,7 +95,7 @@ def package(c: store.Client, campaign: str | None = None, month: int | None = No
             if parse_id(did, post_ids) in keep and r.get("html") and r.get("template") != "motion":
                 html.append((did, d / r["html"]))
         say(f"Exporting {len(html)} design(s) to Figma layers ...")
-        made, not_made = {"posts": exports / f"{stem} - Posts.zip"}, {}
+        made = {"posts": exports / f"{stem} - Posts.zip"}
         try:                                      # each file stands alone: one failing never costs the others
             designs, images = figma_export.collect(html)
             topics = {p["id"]: p.get("topic") or "" for p, _ in chosen}
@@ -121,6 +134,7 @@ def package(c: store.Client, campaign: str | None = None, month: int | None = No
             log_error(e, "client deck"); not_made["Client deck"] = f"{type(e).__name__}: {str(e)[:120]}"
     log(c.dir, f"package {d.name}" + (f" month {month}" if month else ""))
     return {"client": c.name, "campaign": d.name, "options": len(chosen), "review_set": review_set,
+            "videos_rendered": [f"{v['post']} {v['option']}" for v in videos],
             "files": [str(made[k]) for k in ("deck", "plugin", "posts") if k in made],
             **({"not_made": not_made, "needs_attention": True,
                 "not_made_note": "These files couldn't be made this time; the others are complete. Package again to retry them."}
@@ -129,7 +143,10 @@ def package(c: store.Client, campaign: str | None = None, month: int | None = No
             **({"left_out": left_out, "needs_attention": True,
                 "note": "These weren't packaged because they still fail a check: fix them, rebuild, and package again to add them."}
                if left_out else {}),
-            "no_approved_option": [] if review_set else sorted({p["id"] for p in posts} - {p["id"] for p, _ in chosen}),
+            # posts going out with every option because review.xlsx approves none of theirs (only worth saying
+            # when other posts do have approvals)
+            "all_options_for": [] if review_set else sorted(p["id"] for p in posts
+                                                             if not any((p["id"], o["key"]) in approved for o in p["options"])),
             "to_confirm": len(confirm),
             "figma_steps": "Unzip the plugin somewhere permanent, then in the Figma desktop app: Plugins > Development > "
                            "Import plugin from manifest, pick manifest.json, and run it in any file."}

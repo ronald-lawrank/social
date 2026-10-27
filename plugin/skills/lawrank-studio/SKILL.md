@@ -1,6 +1,6 @@
 ---
 name: lawrank-studio
-description: Builds LawRank law-firm social creative from a firm's website, including brand profiles, test designs, six-month campaigns, posts, carousels, covers and profile pictures, motion videos (MP4), Figma plugins and client decks. Use for any LawRank client or law-firm social work, such as a new client URL, test designs, building a month or a post (PI-017), revising a post, rendering approved videos, packaging for a client, or checking what's been done for a client.
+description: Builds LawRank law-firm social creative from a firm's website, including brand profiles, test designs, six-month campaigns, posts, carousels, covers and profile pictures, motion videos (MP4), Figma plugins and client decks. Use for any LawRank client or law-firm social work, such as a new client URL, test designs, building a month or a post (PI-017), revising a post, rendering videos, packaging for a client, or checking what's been done for a client.
 ---
 
 # LawRank Studio
@@ -31,7 +31,7 @@ one. Never write HTML or CSS, and never edit templates.
 | Start the six-month plan | `lr campaign new "<client>"` | reference/writing.md |
 | Build a month or some posts | write the specs, then `lr build "<client>" --month N` | reference/writing.md |
 | Change one post | edit `posts/<ID>.json`, then `lr build "<client>" --post <ID>` | reference/writing.md |
-| Motion or video posts | `lr templates motion`, write storyboards, `lr build`, then after approval `lr video "<client>"` | reference/motion.md |
+| Motion or video posts | `lr templates motion`, write storyboards, `lr build`, then `lr video "<client>" --month N` for the MP4s (no approval needed) | reference/motion.md |
 | Which voice reads, or a key for another one | `lr voice` (status), `lr voice install chatterbox`, `lr voice key elevenlabs <key>`, `lr voice use <name>` | reference/motion.md (Voices and music) |
 | Package or send to the client | `lr package "<client>" --month N` | reference/delivery.md |
 | Status, or "what's left" | `lr client show "<client>"` | n/a |
@@ -71,7 +71,9 @@ after a direction is set (ask if it isn't).
 - Results, reviews, testimonials, fees, awards and "free consultation" or "no fee" claims need
   approval in facts.xlsx. Any result carries "Past results do not guarantee future outcomes."
 - Never use "guarantee", "best", "#1", "expert" or "specialist" unless the firm has approved it.
-- Render MP4s only for options marked Approved in review.xlsx.
+- review.xlsx is optional. Never make the person approve there before rendering MP4s or packaging; where it
+  marks an option Approved, that's the one delivered. Compliance blocks still apply: a design or video with
+  a blocked claim isn't built, rendered or packaged.
 
 ## Ending the turn
 Finish the whole job first, then reply once, in plain language, short:

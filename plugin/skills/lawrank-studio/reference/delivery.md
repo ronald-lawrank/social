@@ -6,15 +6,18 @@ filterable by month. Motion options play with sound. It has three tabs (kept in 
 `index.html#posts`, `#kit`, `#design`): Posts; Profile & covers (the profile pictures, Facebook cover,
 LinkedIn banner and highlight covers); and Design, the brand guide for the campaign: logo, colours with contrast, type, treatments, photos, formats and the
 words rules, including which claims still wait for the firm's approval. Share it as a Drive link (the file is in the
-shared folder). Reviewers set Status (Draft, Approved, Changes requested or Rejected) and Notes in
-`review.xlsx`, which opens in Google Sheets.
+shared folder). Reviewers *can* set Status (Draft, Approved, Changes requested or Rejected) and Notes in
+`review.xlsx`, which opens in Google Sheets. It's optional: nothing waits for it.
 
 ## Packaging
 `lr package "<client>" [--month N] [--campaign "<name>"]` takes about 10 seconds when the designs
 are cached, and longer when it renders the other sizes for the first time.
 
-- It packages only Approved options. If nothing is approved yet, it packages every option and marks
-  the package as a **review set**. Say which kind it is when you report.
+- Per post it packages the option(s) marked Approved in review.xlsx, or every option when none is marked
+  (Rejected ones never go). If nothing is approved anywhere, the package is labelled a **review set**. Don't
+  tell the person to approve anything first: package when they ask.
+- Motion posts get their MP4s (9:16 and 4:5) rendered as part of packaging if they're missing or out of
+  date, about a minute or two each, so say it will take a few minutes when there are videos.
 - It renders every size the template offers (4:5, 1:1 and 9:16 where available; covers at their
   platform sizes).
 - It writes to `campaigns/<campaign>/exports/`:
@@ -23,9 +26,10 @@ are cached, and longer when it renders the other sizes for the first time.
     It opens in PowerPoint, Keynote and Google Slides.
   - **`… - Figma plugin.zip`**: the designs as real, editable Figma layers (text, shapes, photos and
     logos), one page per run.
-  - **`… - Posts.zip`**: every PNG at every size, the approved MP4s and `captions.csv` (post, month,
+  - **`… - Posts.zip`**: every PNG at every size, the MP4s and `captions.csv` (post, month,
     topic, option, template, caption and alt text) for scheduling.
-- The output lists what's `included` and which posts have `no_approved_option` yet. Report both.
+- The output lists what's `included`, the `videos_rendered`, and (when some posts have approvals) the
+  posts that went out with `all_options_for` because none of theirs was marked. Report them.
 - Designs that still fail a check are left out (`left_out`, with the reason) and everything else is
   packaged. Fix those (the same way you would after `lr build`) and package again to add them.
 - If one of the three files can't be made, the others are still delivered (`not_made`); packaging

@@ -1,5 +1,5 @@
 """Motion: storyboard -> narration (Kokoro, local) -> cues from the measured speech -> soundtrack -> a playable preview
-page (self-contained, shareable) -> after approval, a frame-exact MP4 rendered by HyperFrames (9:16 + a 4:5 feed cut).
+page (self-contained, shareable) -> on request or when packaging, a frame-exact MP4 rendered by HyperFrames (9:16 + a 4:5 feed cut).
 
 A motion option in a post spec:
   {"key": "A", "template": "motion", "family": "journey|shield|weight|flip", "voice": "am_michael", "speed": 1.04,
@@ -457,37 +457,64 @@ def render_mp4(c: store.Client, d: Path, post: dict, o: dict) -> dict:
     subprocess.run([tools.ffmpeg(), "-v", "error", "-y", "-i", str(out916), "-vf",
                     f"scale=-2:1350,pad=1080:1350:(ow-iw)/2:0:color=0x{ink}", "-c:v", "libx264", "-pix_fmt", "yuv420p",
                     "-crf", "18", "-c:a", "copy", "-movflags", "+faststart", str(out45)], check=True, env=tools.node_env())
+    write_json(vdir / f"{base}.json", {"key": video_key(c, o)})
     return {"post": post["id"], "option": o["key"], "seconds": prep["seconds"],
             "files": [str(out916.relative_to(d)), str(out45.relative_to(d))]}
 
 
-def video(c: store.Client, campaign: str | None = None, posts: str | None = None) -> dict:
-    """`lr video`: MP4s for options marked Approved in review.xlsx. Naming posts with --post also renders their drafts."""
+def pick_options(statuses: dict, post: dict) -> list[dict]:
+    """The options to deliver for a post: the Approved ones if review.xlsx marks any, else all of them (drafts).
+    Rejected options are never delivered. review.xlsx is optional."""
+    st = lambda o: statuses.get((post["id"], o["key"]), {}).get("status", "Draft")
+    approved = [o for o in post.get("options", []) if st(o) == "Approved"]
+    return approved or [o for o in post.get("options", []) if st(o) != "Rejected"]
+
+
+def video_key(c: store.Client, o: dict) -> str:
+    """What an MP4 depends on: the storyboard, the brand, the scene code and the voice."""
+    fam_src = family_sources(o["family"]) if o.get("family") in FAMILIES else b""
+    return _sig(o, c.brand(), fam_src, voices.chosen(), paths.settings().get("music", True))
+
+
+def mp4_current(c: store.Client, d: Path, post: dict, o: dict) -> bool:
+    base = d / "video" / f"{post['id']}-{o['key']}"
+    return (read_json(base.with_suffix(".json"), {}) or {}).get("key") == video_key(c, o) and \
+        all(base.with_name(f"{base.name}-{s}.mp4").exists() for s in ("9x16", "4x5"))
+
+
+def video(c: store.Client, campaign: str | None = None, posts: str | None = None, month: int | None = None,
+          force: bool = False) -> dict:
+    """`lr video`: MP4s for every motion post (the Approved option where review.xlsx marks one, else every option).
+    MP4s that are already up to date are kept; --force renders again."""
     from . import campaign as camp, review
     from .util import Lock, log
     d = camp.campaign_dir(c, campaign)
     want = {p.strip().upper() for p in posts.split(",")} if posts else None
     statuses = review.read_sheet(d)
-    todo, skipped = [], []
+    todo, current = [], []
+    facts = store.read_facts(c)
     for f in sorted((d / "posts").glob("*.json")):
         p = read_json(f) or {}
-        if p.get("format") != "motion" or (want and p["id"].upper() not in want):
+        if p.get("format") != "motion" or (want and p["id"].upper() not in want) or (month and p.get("month") != month):
             continue
-        for o in p.get("options", []):
-            st = statuses.get((p["id"], o["key"]), {}).get("status", "Draft")
-            if st == "Approved" or want:
-                todo.append((p, o))
+        for o in pick_options(statuses, p):
+            if not o.get("lines"):
+                continue
+            if not force and mp4_current(c, d, p, o):
+                current.append(f"{p['id']} {o['key']}")
             else:
-                skipped.append(f"{p['id']} {o['key']} ({st})")
+                todo.append((p, o))
     if not todo:
-        return {"client": c.name, "campaign": d.name, "videos": [], "waiting": skipped[:12],      # a normal state, not an error
-                "note": "Nothing to render yet: no motion option is marked Approved in review.xlsx. "
-                        "Name one with --post to render a draft anyway."}
+        return {"client": c.name, "campaign": d.name, "videos": [], "up_to_date": current, "folder": str(d / "video"),
+                "note": "Every video is already rendered and up to date." if current else
+                        "No motion storyboards to render: write them and `lr build` first."}
+    say(f"Rendering {len(todo)} video(s), about a minute or two each ...")
     done, failed = [], {}
     with Lock(d, "video"):
         for p, o in todo:                          # each video on its own: one failing never stops the rest
             name = f"{p['id']} {o['key']}"
-            errs = check_storyboard(p["id"], o, c.data.get("practice_area"))
+            errs = check_storyboard(p["id"], o, c.data.get("practice_area")) + \
+                [i["msg"] for i in lint(o, facts) if i["level"] == "block"]       # never an MP4 of a blocked claim
             if errs:
                 failed[name] = "; ".join(errs)[:300]; continue
             try:
@@ -497,7 +524,7 @@ def video(c: store.Client, campaign: str | None = None, posts: str | None = None
                 log_error(e, f"video {name}")
                 failed[name] = (e.fix if isinstance(e, LRError) and e.fix else f"{type(e).__name__}: {str(e)[:160]}")
     log(c.dir, f"video {d.name} {', '.join(x['post'] + ' ' + x['option'] for x in done)}" + (f"; failed {', '.join(failed)}" if failed else ""))
-    out = {"client": c.name, "campaign": d.name, "videos": done, "not_approved_yet": skipped[:12], "folder": str(d / "video")}
+    out = {"client": c.name, "campaign": d.name, "videos": done, "up_to_date": current, "folder": str(d / "video")}
     if failed:
         out.update(failed=failed, needs_attention=True, ok=bool(done),
                    note="Videos listed under `failed` weren't rendered; the rest are done. Fix or retry those with --post.")

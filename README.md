@@ -1,7 +1,7 @@
 # LawRank Studio
 
 A Claude plugin that turns a law firm's website into on-brand social creative: test designs, the
-six-month plan (posts, carousels, profile and cover kit), voiced motion pieces, MP4s after approval,
+six-month plan (posts, carousels, profile and cover kit), voiced motion pieces and their MP4s,
 an editable Figma plugin and a client deck. The team only talks to Claude, and everything is saved in
 the shared Google Drive folder **Claude**.
 
