@@ -41,3 +41,14 @@ ol.vo{list-style:none;padding:0;margin:0;font-size:14px}ol.vo li{display:grid;gr
 .m-rcard{position:absolute}.m-rN{font:800 200px/1.05 var(--head)}.m-rT{font:700 62px/1.15 var(--head);margin-top:16px}
 .m-rv{position:absolute;left:0;right:0;text-align:center;font:800 300px/1 var(--head)}
 .m-qt{position:absolute}.m-qQ{font:700 64px/1.18 var(--head)}.m-qN{font:400 38px var(--body);margin-top:18px}
+/* composed videos (runtime/compose.js, looks.js, motion/scenes) */
+.scn{position:absolute;inset:0;overflow:hidden}
+.k-hl{position:absolute;font-family:var(--head);line-height:1.08;letter-spacing:-.005em}.k-hl .ka,.k-tx .ka{color:var(--acc,var(--accentText))}
+.k-tx{position:absolute;line-height:1.25}
+.k-card{position:absolute;overflow:hidden}
+.k-wipe{position:absolute;inset:0;visibility:hidden}
+.k-abs{position:absolute}
+.lk-dots{position:absolute;inset:0;background-image:radial-gradient(currentColor 3px,transparent 3.5px);background-size:54px 54px;opacity:.55}
+.lk-glow{position:absolute;width:1500px;height:1500px;left:-210px;top:-420px;background:radial-gradient(closest-side,rgba(255,255,255,.6),rgba(255,255,255,0))}
+.lk-blinds{position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(0,0,0,.035) 0 2px,transparent 2px 28px)}
+.lk-tone{position:absolute;right:-260px;bottom:-260px;width:1000px;height:1000px;background-image:radial-gradient(currentColor 4px,transparent 4.6px);background-size:22px 22px;-webkit-mask:radial-gradient(closest-side,#000,transparent);mask:radial-gradient(closest-side,#000,transparent)}

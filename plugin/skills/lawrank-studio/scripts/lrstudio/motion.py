@@ -22,6 +22,34 @@ from .util import LRError, read_json, say, write_json, write_text
 MOTION = paths.BUNDLED_MOTION
 VENDOR = ["gsap", "CustomEase", "MorphSVGPlugin", "DrawSVGPlugin", "SplitText", "MotionPathPlugin", "Physics2DPlugin"]
 FAMILIES = sorted(p.stem for p in (MOTION / "families").glob("*.js"))
+COMPOSER = ["runtime/looks.js", "runtime/compose.js"]          # composed videos (family "scenes") also load these and scenes/*.js
+
+
+def scene_files() -> list[Path]:
+    return sorted((MOTION / "scenes").glob("*.js")) if (MOTION / "scenes").exists() else []
+
+
+_CATALOG = None
+
+
+def catalog() -> dict:
+    """The scene library as data: {scenes: {type: {label, about, good, practice, fields, example}}, looks, transitions}."""
+    global _CATALOG
+    sig = [(f.name, f.stat().st_mtime) for f in scene_files()]
+    if _CATALOG is None or _CATALOG[0] != sig:
+        r = subprocess.run(["node", str(MOTION / "catalog.js")], capture_output=True, text=True, env=tools.node_env())
+        if r.returncode:
+            raise LRError(f"The scene library didn't load: {r.stderr.strip()[-300:]}", fix="Run `lr doctor`.")
+        _CATALOG = (sig, json.loads(r.stdout))
+    return _CATALOG[1]
+
+
+def family_sources(family: str) -> bytes:
+    """Every file that shapes a family's picture (for the build cache)."""
+    files = [MOTION / "families" / f"{family}.js"]
+    if family == "scenes":
+        files += [MOTION / f for f in COMPOSER] + scene_files()
+    return b"".join(f.read_bytes() for f in files if f.exists())
 VOICES = {"af_heart": "Heart (warm female voice)", "af_bella": "Bella (bright female voice)", "af_nicole": "Nicole (soft female voice)",
           "am_michael": "Michael (warm male voice)", "am_fenrir": "Fenrir (deeper male voice)", "am_puck": "Puck (upbeat male voice)",
           "bf_emma": "Emma (British female voice)"}
@@ -38,6 +66,12 @@ def fits_practice(family: str, practice_area: str | None) -> bool:
     return not need or not practice_area or area_group(practice_area) == need
 
 
+def scene_fits(practice: str | list, practice_area: str | None) -> bool:
+    """Whether a scene suits the firm's practice ("any", or a list of practice groups)."""
+    from .campaign import area_group
+    return practice in (None, "any") or not practice_area or area_group(practice_area) in practice
+
+
 def families_detail(only: list[str] | None = None, practice_area: str | None = None) -> dict:
     """What a writer needs per family: its story, the line ids and how many sentences each takes, the screen shape,
     and a worked storyboard (from the family's header comment and motion/examples/<family>.json). With a practice area,
@@ -52,8 +86,14 @@ def families_detail(only: list[str] | None = None, practice_area: str | None = N
         m = re.search(r"/\*(.*?)\*/", src, re.S)
         notes = re.sub(r"\s+", " ", m.group(1)).strip() if m else ""
         ex = MOTION / "examples" / f"{f}.json"
-        out.append({"family": f, "practice": f"{FAMILY_PRACTICE[f]} only" if f in FAMILY_PRACTICE else "any",
-                    "how_it_works": notes, "example": json.loads(ex.read_text()) if ex.exists() else None})
+        item = {"family": f, "practice": f"{FAMILY_PRACTICE[f]} only" if f in FAMILY_PRACTICE else "any",
+                "how_it_works": notes, "example": json.loads(ex.read_text()) if ex.exists() else None}
+        if f == "scenes":
+            cat = catalog()
+            item.update(looks=cat["looks"], transitions=cat["transitions"],
+                        scenes={k: v for k, v in cat["scenes"].items() if scene_fits(v["practice"], practice_area)},
+                        scenes_not_for_this_practice=sorted(k for k, v in cat["scenes"].items() if not scene_fits(v["practice"], practice_area)))
+        out.append(item)
     extra = {"not_for_this_practice": skipped, "practice_note": f"{', '.join(skipped)} open on a car crash, so they're only "
              f"used for personal-injury firms; for {practice_area}, use {', '.join(x['family'] for x in out) or 'a static post'}."} if skipped else {}
     return {"families": out, "voices": VOICES, **extra,
@@ -72,6 +112,8 @@ def check_storyboard(pid: str, o: dict, practice_area: str | None = None) -> lis
                     f"for {practice_area} use {', '.join(ok)}")
     if o.get("voice", "af_heart") not in VOICES:
         errs.append(f"{pid}: voice must be one of {', '.join(VOICES)}")
+    if o.get("family") == "scenes":
+        errs += _check_scenes(pid, o, practice_area)
     ids = [l.get("id") for l in o.get("lines", [])]
     if not ids:
         errs.append(f"{pid}: the storyboard has no lines")
@@ -88,6 +130,31 @@ def check_storyboard(pid: str, o: dict, practice_area: str | None = None) -> lis
             errs.append(f"{pid}: screen.{k} is required")
     if not 0.9 <= float(o.get("speed", 1.04)) <= 1.15:
         errs.append(f"{pid}: speed runs from 0.9 to 1.15")
+    return errs
+
+
+def _check_scenes(pid: str, o: dict, practice_area: str | None) -> list[str]:
+    cat, errs = catalog(), []
+    sc = (o.get("screen") or {}).get("scenes") or []
+    if o.get("look", "thread") not in cat["looks"]:
+        errs.append(f"{pid}: look must be one of {', '.join(cat['looks'])}")
+    if o.get("transition") and o["transition"] not in cat["transitions"]:
+        errs.append(f"{pid}: transition must be one of {', '.join(cat['transitions'])}")
+    if len(sc) < 3:
+        errs.append(f"{pid}: a composed video needs at least two scenes plus the end card")
+    if sc and sc[-1].get("type") != "end":
+        errs.append(f'{pid}: the last scene must be {{"type": "end", "line": "cta"}}')
+    ids = {l.get("id") for l in o.get("lines", [])}
+    for i, s in enumerate(sc, 1):
+        meta = cat["scenes"].get(s.get("type"))
+        if not meta:
+            errs.append(f"{pid}: scene {i} type '{s.get('type')}' isn't in the library (`lr templates motion` lists them)"); continue
+        if s.get("line") not in ids:
+            errs.append(f"{pid}: scene {i} ({s['type']}) uses line '{s.get('line')}', which isn't in lines")
+        if not scene_fits(meta["practice"], practice_area):
+            errs.append(f"{pid}: scene {i} ({s['type']}) is for {', '.join(meta['practice'])} firms, not {practice_area}")
+    if sc and sc[0].get("line") != "hook":
+        errs.append(f"{pid}: the first scene goes with the hook line (the firm is named there)")
     return errs
 
 
@@ -196,6 +263,9 @@ def _root_css(m: dict) -> str:
 
 def _scripts(m: dict, sb: dict, cue: dict) -> str:
     fam = (MOTION / "families" / f"{sb['family']}.js").read_text()
+    if sb["family"] == "scenes":         # each scene file in its own <script>: one broken file never stops the page
+        fam = ("\n".join((MOTION / f).read_text() for f in COMPOSER) + "</script>"
+               + "".join(f"<script>{f.read_text()}</script>" for f in scene_files()) + "<script>" + fam)
     return (f"<script>const BRAND = {json.dumps(m, ensure_ascii=False)};\n{(MOTION / 'runtime' / 'icons.js').read_text()}\n"
             f"{(MOTION / 'runtime' / 'player.js').read_text()}\n{(MOTION / 'runtime' / 'kit.js').read_text()}\n{fam}\n"
             f"const SB = {json.dumps(sb, ensure_ascii=False)}, CUE = {json.dumps(cue)}, F = FAMILIES[SB.family];\n"
@@ -294,7 +364,7 @@ def _qa_msg(i) -> str:
 def preview(c: store.Client, d: Path, post: dict, o: dict, cache: dict) -> dict:
     """Build (or reuse) the preview for one motion option. Returns a build-cache record."""
     did = f"{post['id']}-{o['key']}-motion"
-    fam_src = (MOTION / "families" / f"{o.get('family')}.js").read_bytes() if o.get("family") in FAMILIES else b""
+    fam_src = family_sources(o["family"]) if o.get("family") in FAMILIES else b""
     from .render import assets_sig
     key = _sig(o, c.brand(), fam_src, assets_sig(c.dir))                 # the logo files too, not just their names
     prev = cache.get(did)

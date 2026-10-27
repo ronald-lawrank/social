@@ -60,7 +60,11 @@ window.QA = (pi, fps = 30) => {
   }
   // ---- 6. every subtitle stays fully on screen while its words are spoken
   subs.forEach((s, i) => { [s.t0 + .2, (s.t0 + s.speechEnd) / 2, s.speechEnd - .05].forEach(t => { P.show(t); const e = st.querySelector('#sub' + i); if (e && effO(e) < .9) add(t, 'subtitle-early-exit', `“${s.text}” not fully visible while spoken`); }); });
-  // ---- 7. a stable end card
+  // ---- 7. the same picture whether the piece played up to a moment or jumped straight to it (the MP4 renderer seeks)
+  const sig = () => [...st.querySelectorAll('*')].map(e => { const cs = getComputedStyle(e); return cs.visibility === 'hidden' || cs.display === 'none' || +cs.opacity < .05 ? 0 : 1; }).join('');
+  for (const f of [.15, .35, .55, .75, .92]) { const t = D * f; P.show(0); P.show(t); const a = sig(); P.show(D); P.show(t); const b = sig();
+    if (a !== b) add(t, 'seek', 'the picture differs when the video jumps to this moment (an animation only works when played in order)'); }
+  // ---- 8. a stable end card
   const ctaEls = [...st.querySelectorAll('.btn, .m-btn')]; let hold = 0;
   for (let t = D; t > 0; t -= .1) { P.show(t); if (ctaEls.every(e => effO(e) > .99)) hold = D - t; else break; }
   if (hold < 2.5) add(D, 'cta-hold', `end card stable for ${hold.toFixed(1)}s`);
