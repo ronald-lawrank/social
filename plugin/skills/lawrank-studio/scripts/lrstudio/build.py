@@ -125,6 +125,10 @@ def build(c: store.Client, campaign: str | None = None, month: int | None = None
     if motion_posts:
         out["motion_previews"] = [str(d / "previews" / f"{p['id']}-{o['key']}-motion.html") for p in motion_posts if p["id"] not in problems for o in p["options"]]
         out["motion_note"] = "Previews play in a browser with sound. MP4s are rendered after approval with `lr video`."
+        every_post = [read_json(f) or {} for f in sorted((d / "posts").glob("*.json"))]
+        repeats = motion.variety(every_post)
+        if repeats:
+            out["motion_variety"] = repeats[:8]
     # ok = the build did its job (something was drawn); what still needs a look is listed, not treated as a failure
     out["ok"] = bool(designs) or not problems
     out["needs_attention"] = bool(problems or flagged)

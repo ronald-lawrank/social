@@ -76,7 +76,7 @@ def test_car_crash_families_are_for_injury_firms_only():
     assert not motion.fits_practice("journey", "Family law") and motion.fits_practice("flip", "Family law")
     assert motion.fits_practice("weight", None)                                   # unknown practice: no filter
     fam = motion.families_detail(None, "Family law")
-    assert [f["family"] for f in fam["families"]] == ["flip"]
+    assert [f["family"] for f in fam["families"]] == ["flip", "scenes"]
     assert set(fam["not_for_this_practice"]) == {"journey", "shield", "weight"} and "flip" in fam["practice_note"]
     every = motion.families_detail()
     assert {f["family"]: f["practice"] for f in every["families"]}["shield"] == "personal injury only"

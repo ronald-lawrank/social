@@ -16,15 +16,45 @@ import subprocess
 import sys
 from pathlib import Path
 
-from . import compliance, fonts, paths, store, tools
+from . import compliance, fonts, paths, store, tools, voices
 from .util import LRError, read_json, say, write_json, write_text
 
 MOTION = paths.BUNDLED_MOTION
 VENDOR = ["gsap", "CustomEase", "MorphSVGPlugin", "DrawSVGPlugin", "SplitText", "MotionPathPlugin", "Physics2DPlugin"]
 FAMILIES = sorted(p.stem for p in (MOTION / "families").glob("*.js"))
+COMPOSER = ["runtime/looks.js", "runtime/compose.js"]          # composed videos (family "scenes") also load these and scenes/*.js
+
+
+def scene_files() -> list[Path]:
+    return sorted((MOTION / "scenes").glob("*.js")) if (MOTION / "scenes").exists() else []
+
+
+_CATALOG = None
+
+
+def catalog() -> dict:
+    """The scene library as data: {scenes: {type: {label, about, good, practice, fields, example}}, looks, transitions}."""
+    global _CATALOG
+    sig = [(f.name, f.stat().st_mtime) for f in scene_files()]
+    if _CATALOG is None or _CATALOG[0] != sig:
+        r = subprocess.run(["node", str(MOTION / "catalog.js")], capture_output=True, text=True, env=tools.node_env())
+        if r.returncode:
+            raise LRError(f"The scene library didn't load: {r.stderr.strip()[-300:]}", fix="Run `lr doctor`.")
+        _CATALOG = (sig, json.loads(r.stdout))
+    return _CATALOG[1]
+
+
+def family_sources(family: str) -> bytes:
+    """Every file that shapes a family's picture (for the build cache)."""
+    files = [MOTION / "families" / f"{family}.js"]
+    if family == "scenes":
+        files += [MOTION / f for f in COMPOSER] + scene_files()
+    return b"".join(f.read_bytes() for f in files if f.exists())
 VOICES = {"af_heart": "Heart (warm female voice)", "af_bella": "Bella (bright female voice)", "af_nicole": "Nicole (soft female voice)",
           "am_michael": "Michael (warm male voice)", "am_fenrir": "Fenrir (deeper male voice)", "am_puck": "Puck (upbeat male voice)",
           "bf_emma": "Emma (British female voice)"}
+MUSIC = {"warm": "soft piano over a pad (the thread look's default)", "hopeful": "brighter, light pulse (flat)",
+         "steady": "muted plucks and a soft beat (cards)", "serious": "minor, slow strings (silhouette)", "none": "no music"}
 
 # Families whose opening scene is a car crash (journey: two cars bump; shield: a car in a storm; weight: a car is hit)
 # only suit personal-injury firms. Families not listed suit any practice.
@@ -36,6 +66,12 @@ def fits_practice(family: str, practice_area: str | None) -> bool:
     from .campaign import area_group
     need = FAMILY_PRACTICE.get(family)
     return not need or not practice_area or area_group(practice_area) == need
+
+
+def scene_fits(practice: str | list, practice_area: str | None) -> bool:
+    """Whether a scene suits the firm's practice ("any", or a list of practice groups)."""
+    from .campaign import area_group
+    return practice in (None, "any") or not practice_area or area_group(practice_area) in practice
 
 
 def families_detail(only: list[str] | None = None, practice_area: str | None = None) -> dict:
@@ -52,11 +88,17 @@ def families_detail(only: list[str] | None = None, practice_area: str | None = N
         m = re.search(r"/\*(.*?)\*/", src, re.S)
         notes = re.sub(r"\s+", " ", m.group(1)).strip() if m else ""
         ex = MOTION / "examples" / f"{f}.json"
-        out.append({"family": f, "practice": f"{FAMILY_PRACTICE[f]} only" if f in FAMILY_PRACTICE else "any",
-                    "how_it_works": notes, "example": json.loads(ex.read_text()) if ex.exists() else None})
+        item = {"family": f, "practice": f"{FAMILY_PRACTICE[f]} only" if f in FAMILY_PRACTICE else "any",
+                "how_it_works": notes, "example": json.loads(ex.read_text()) if ex.exists() else None}
+        if f == "scenes":
+            cat = catalog()
+            item.update(looks=cat["looks"], transitions=cat["transitions"],
+                        scenes={k: v for k, v in cat["scenes"].items() if scene_fits(v["practice"], practice_area)},
+                        scenes_not_for_this_practice=sorted(k for k, v in cat["scenes"].items() if not scene_fits(v["practice"], practice_area)))
+        out.append(item)
     extra = {"not_for_this_practice": skipped, "practice_note": f"{', '.join(skipped)} open on a car crash, so they're only "
              f"used for personal-injury firms; for {practice_area}, use {', '.join(x['family'] for x in out) or 'a static post'}."} if skipped else {}
-    return {"families": out, "voices": VOICES, **extra,
+    return {"families": out, "voices": VOICES, "music": MUSIC, **extra,
             "rules": ["Lines are spoken in order; each screen item appears when its line (or its named word) is spoken, so give "
                       "each item its own sentence in the order shown.", "Numbers in `say` are written as words.",
                       "Name the firm in the hook.", "The examples' claims belong to a test firm: write from this client's facts."]}
@@ -72,6 +114,10 @@ def check_storyboard(pid: str, o: dict, practice_area: str | None = None) -> lis
                     f"for {practice_area} use {', '.join(ok)}")
     if o.get("voice", "af_heart") not in VOICES:
         errs.append(f"{pid}: voice must be one of {', '.join(VOICES)}")
+    if o.get("music") not in (None, *MUSIC):
+        errs.append(f"{pid}: music must be one of {', '.join(MUSIC)}")
+    if o.get("family") == "scenes":
+        errs += _check_scenes(pid, o, practice_area)
     ids = [l.get("id") for l in o.get("lines", [])]
     if not ids:
         errs.append(f"{pid}: the storyboard has no lines")
@@ -89,6 +135,59 @@ def check_storyboard(pid: str, o: dict, practice_area: str | None = None) -> lis
     if not 0.9 <= float(o.get("speed", 1.04)) <= 1.15:
         errs.append(f"{pid}: speed runs from 0.9 to 1.15")
     return errs
+
+
+def _check_scenes(pid: str, o: dict, practice_area: str | None) -> list[str]:
+    cat, errs = catalog(), []
+    sc = (o.get("screen") or {}).get("scenes") or []
+    if o.get("look", "thread") not in cat["looks"]:
+        errs.append(f"{pid}: look must be one of {', '.join(cat['looks'])}")
+    if o.get("transition") and o["transition"] not in cat["transitions"]:
+        errs.append(f"{pid}: transition must be one of {', '.join(cat['transitions'])}")
+    if len(sc) < 3:
+        errs.append(f"{pid}: a composed video needs at least two scenes plus the end card")
+    if sc and sc[-1].get("type") != "end":
+        errs.append(f'{pid}: the last scene must be {{"type": "end", "line": "cta"}}')
+    ids = {l.get("id") for l in o.get("lines", [])}
+    for i, s in enumerate(sc, 1):
+        meta = cat["scenes"].get(s.get("type"))
+        if not meta:
+            errs.append(f"{pid}: scene {i} type '{s.get('type')}' isn't in the library (`lr templates motion` lists them)"); continue
+        if s.get("line") not in ids:
+            errs.append(f"{pid}: scene {i} ({s['type']}) uses line '{s.get('line')}', which isn't in lines")
+        if not scene_fits(meta["practice"], practice_area):
+            errs.append(f"{pid}: scene {i} ({s['type']}) is for {', '.join(meta['practice'])} firms, not {practice_area}")
+    if sc and sc[0].get("line") != "hook":
+        errs.append(f"{pid}: the first scene goes with the hook line (the firm is named there)")
+    return errs
+
+
+def variety(posts: list[dict]) -> list[str]:
+    """Repeats a viewer would notice across a campaign's motion posts, so the writer can mix them up: options of one
+    post in the same look or family, the same look and opening scene twice in a month, and identical scene runs."""
+    out, seen, month_open = [], {}, {}
+    for p in sorted(posts, key=lambda p: p.get("id", "")):
+        if p.get("format") != "motion":
+            continue
+        looks = []
+        for o in p.get("options", []):
+            if o.get("family") != "scenes":
+                looks.append(o.get("family")); continue
+            sc = [s.get("type") for s in (o.get("screen") or {}).get("scenes", []) if s.get("type") != "end"]
+            look = o.get("look", "thread"); looks.append(look)
+            sig = (look, tuple(sc))
+            if sig in seen:
+                out.append(f"{p['id']} {o.get('key')} repeats {seen[sig]} exactly ({look}: {', '.join(sc)}); change the look or the scenes")
+            seen.setdefault(sig, f"{p['id']} {o.get('key')}")
+            if sc:
+                k = (p.get("month"), look, sc[0])
+                if k in month_open and month_open[k] != p["id"]:
+                    out.append(f"{p['id']} {o.get('key')} opens like {month_open[k]} in the same month ({look}, {sc[0]}); open on a different scene")
+                month_open.setdefault(k, p["id"])
+        dup = {x for x in looks if looks.count(x) > 1}
+        if dup:
+            out.append(f"{p['id']}: its options share {', '.join(sorted(map(str, dup)))}; give each option its own look so the client sees real choices")
+    return out
 
 
 def lint(o: dict, facts: dict) -> list[dict]:
@@ -116,6 +215,7 @@ def brand_for_motion(c: store.Client) -> dict:
 def _env():
     env = tools.node_env()
     env["LR_KOKORO_DIR"] = str(paths.MODELS / "kokoro")
+    env.update(voices.env())
     return env
 
 
@@ -148,9 +248,11 @@ def prepare(c: store.Client, d: Path, pid: str, o: dict) -> dict:
     work = d / ".motion" / f"{pid}-{o['key']}"
     work.mkdir(parents=True, exist_ok=True)
     script = {"voice": o.get("voice", "af_heart"), "speed": o.get("speed", 1.04), "sentence_pause": .24, "clause_pause": .1,
-              "exact_sentences": True, "lines": [{"id": l["id"], "say": l["say"], "gap": l.get("gap", .45 if i else .35)}
+              "exact_sentences": True, "provider": voices.chosen(), "lines": [{"id": l["id"], "say": l["say"], "gap": l.get("gap", .45 if i else .35)}
                                                  for i, l in enumerate(sb["lines"])]}
     vkey = _sig(script)
+    if script["provider"] == "kokoro" and paths.settings().get("voice_provider") in (None, "chatterbox"):
+        voices.install_chatterbox_background()          # not in yet (or setup's install was cut off): start it again
     env = _env()
     if read_json(work / "voice.json", {}).get("key") != vkey or not (work / "timing.json").exists():
         say(f"  voicing {pid} {o['key']} ...")
@@ -170,11 +272,15 @@ def prepare(c: store.Client, d: Path, pid: str, o: dict) -> dict:
     plan = json.loads(r.stdout)
     sys.path.insert(0, str(MOTION))
     os.environ["PATH"] = env["PATH"]
+    os.environ["LR_MUSIC"] = "on" if paths.settings().get("music", True) else "off"
+    h = paths.home(required=False)
+    os.environ["LR_MUSIC_DIR"] = str(h / paths.STUDIO_DIR / "Music") if h else ""
     from mix import mix
     audio = mix(work, plan, work / "audio.mp3")
     cue = dict({k: v for k, v in T.items()}, cues=plan["cues"], end=plan["end"], family=sb["family"])
     return {"brand": brand, "sb": sb, "cue": cue, "audio_uri": audio, "audio": work / "audio.mp3", "work": work,
-            "clipped": T.get("clipped", []), "seconds": round(plan["end"], 1)}
+            "clipped": T.get("clipped", []), "seconds": round(plan["end"], 1), "voice": T.get("provider", "kokoro"),
+            "voice_fallback": T.get("fallback", [])}
 
 
 def _vendor() -> str:
@@ -196,10 +302,15 @@ def _root_css(m: dict) -> str:
 
 def _scripts(m: dict, sb: dict, cue: dict) -> str:
     fam = (MOTION / "families" / f"{sb['family']}.js").read_text()
+    if sb["family"] == "scenes":         # each scene file in its own <script>: one broken file never stops the page
+        fam = ("\n".join((MOTION / f).read_text() for f in COMPOSER) + "</script>"
+               + "".join(f"<script>{f.read_text()}</script>" for f in scene_files()) + "<script>" + fam)
     return (f"<script>const BRAND = {json.dumps(m, ensure_ascii=False)};\n{(MOTION / 'runtime' / 'icons.js').read_text()}\n"
             f"{(MOTION / 'runtime' / 'player.js').read_text()}\n{(MOTION / 'runtime' / 'kit.js').read_text()}\n{fam}\n"
             f"const SB = {json.dumps(sb, ensure_ascii=False)}, CUE = {json.dumps(cue)}, F = FAMILIES[SB.family];\n"
-            f"document.documentElement.style.setProperty('--accentText', BT.accentText);</script>")
+            f"document.documentElement.style.setProperty('--accentText', BT.accentText);\n"
+            # every weight of the brand fonts, loaded before anything measures text (the browser loads a weight lazily)
+            f"const FONTS_IN = Promise.all([...document.fonts].map(f => f.load().catch(() => null))).then(() => document.fonts.ready);</script>")
 
 
 def preview_page(c: store.Client, prep: dict, title: str, out: Path):
@@ -208,6 +319,8 @@ def preview_page(c: store.Client, prep: dict, title: str, out: Path):
     m, sb = prep["brand"], prep["sb"]
     cue = dict(prep["cue"], audio=prep["audio_uri"])
     confirm = sb.get("confirm", []) + ["Your standard attorney-advertising disclaimer"]
+    who = re.sub(r"^.*\((.*)\)$", r"\1", VOICES.get(sb.get("voice", "af_heart"), ""))
+    who = who[:1].upper() + who[1:] + {"elevenlabs": " · ElevenLabs", "openai": " · OpenAI", "chatterbox": " · Chatterbox"}.get(prep.get("voice"), "")
     page = f'''<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{H.escape(m['short'])} · {H.escape(title)}</title><style>{_font_css(c.brand())}{_root_css(m)}{(MOTION / 'runtime' / 'stage.css').read_text()}</style></head><body>
 <header><div class="eb">{H.escape(m['name'])} · Video concept</div><h1>{H.escape(title)}</h1><p>Press Play with sound on.</p><div class="by">Prepared by LawRank</div></header>
@@ -215,9 +328,9 @@ def preview_page(c: store.Client, prep: dict, title: str, out: Path):
 const mmss = t => `0:${{String(Math.floor(t)).padStart(2, '0')}}`;
 const DEF = {{ id: 'card-' + SB.family, poster: T => F.poster(T), html: T => F.html(T, SB), build: (tl, T, $) => F.build(tl, T, $, SB),
   context: T => `<div class="eyebrow">Video · 9:16 for Reels, Stories and TikTok · ${{T.end.toFixed(0)}} seconds</div><h2>${{esc(SB.name || {json.dumps(title)})}}</h2>${{F.client(T, SB)}}
-  <h3>Voiceover · {H.escape(VOICES.get(sb.get('voice', 'af_heart'), ''))}</h3><ol class="vo">${{T.lines.map(l => `<li><span>${{mmss(l.t)}}</span>${{esc(l.text)}}</li>`).join('')}}</ol>
+  <h3>Voiceover · {H.escape(who)}</h3><ol class="vo">${{T.lines.map(l => `<li><span>${{mmss(l.t)}}</span>${{esc(l.text)}}</li>`).join('')}}</ol>
   <h3>Please confirm before this runs</h3><ul class="confirm">${{{json.dumps(confirm, ensure_ascii=False)}.map(i => `<li>${{esc(i)}}</li>`).join('')}}</ul>` }};
-document.fonts.ready.then(() => mount(DEF, CUE));
+FONTS_IN.then(() => mount(DEF, CUE));
 </script></body></html>'''
     write_text(out, page)
 
@@ -237,7 +350,7 @@ html,body{{margin:0;background:#000}}#root{{position:relative;width:1080px;heigh
 const stage = document.getElementById('stage'); stage.innerHTML = F.html(CUE, SB);
 const $ = s => stage.querySelector(s);
 const tl = gsap.timeline({{ paused: true, defaults: {{ immediateRender: false, ease: 'lr.out', duration: M.IN }} }});
-F.build(tl, CUE, $, SB); tl.to({{}}, {{ duration: .01 }}, CUE.end - .01);
+FONTS_IN.then(() => {{ F.build(tl, CUE, $, SB); tl.to({{}}, {{ duration: .01 }}, CUE.end - .01); tl.seek(0); }});   // frame 0 drawn at once
 window.__timelines = window.__timelines || {{}}; window.__timelines.root = tl;
 </script></body></html>'''
     write_text(folder / "index.html", page)
@@ -294,9 +407,9 @@ def _qa_msg(i) -> str:
 def preview(c: store.Client, d: Path, post: dict, o: dict, cache: dict) -> dict:
     """Build (or reuse) the preview for one motion option. Returns a build-cache record."""
     did = f"{post['id']}-{o['key']}-motion"
-    fam_src = (MOTION / "families" / f"{o.get('family')}.js").read_bytes() if o.get("family") in FAMILIES else b""
+    fam_src = family_sources(o["family"]) if o.get("family") in FAMILIES else b""
     from .render import assets_sig
-    key = _sig(o, c.brand(), fam_src, assets_sig(c.dir))                 # the logo files too, not just their names
+    key = _sig(o, c.brand(), fam_src, assets_sig(c.dir), voices.chosen(), paths.settings().get("music", True))  # logo files too
     prev = cache.get(did)
     if prev and prev.get("key") == key and all((d / x).exists() for x in prev.get("images", [])):
         return dict(prev, cached=True)
@@ -308,6 +421,8 @@ def preview(c: store.Client, d: Path, post: dict, o: dict, cache: dict) -> dict:
     issues = []
     if prep["clipped"]:
         issues.append({"rule": "voice", "level": "block", "msg": f"the voiceover clips words in lines {', '.join(prep['clipped'])}: shorten them"})
+    if prep["voice_fallback"]:
+        issues.append({"rule": "voice", "level": "warn", "msg": f"read by Kokoro instead: {'; '.join(prep['voice_fallback'])[:200]}"})
     try:
         sys.path.insert(0, str(MOTION))
         from qa_motion import run_qa

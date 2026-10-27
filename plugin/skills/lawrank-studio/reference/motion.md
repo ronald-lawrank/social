@@ -1,19 +1,20 @@
 # Motion posts
 
 Authority clients get motion in the plan's 12 "Video / Motion" slots. Those posts arrive with
-`"format": "motion"`; for other packages, the same slots are carousels. You write a **storyboard**
-and one of four tested animation families does the craft. The narration is a free local voice, and
-the animation is timed to the measured speech.
+`"format": "motion"`; for other packages, the same slots are carousels. You write a **storyboard**;
+a composed video (scene library, below) or one of the four original families does the craft. The narration is
+read by the voice this laptop is set up for (see Voices and music), and the animation is timed to the measured speech.
 
 ## Flow and timing
-1. Run `lr templates motion --client "<client>"` (journey, shield and weight open on a car crash, so
-   they're offered to personal-injury firms only; other practices get flip). It gives each family's story, its line ids (and how many sentences
+1. Run `lr templates motion --client "<client>"`. It lists the scene library for composed videos (scenes
+   that suit the firm's practice only) and the original families (journey, shield and weight open on a car
+   crash, so they're offered to personal-injury firms only). It gives each family's story, its line ids (and how many sentences
    each line takes), its screen shape and a worked storyboard. Then write a storyboard option (or
    two, in different families) into the post.
    - "The month's motion post" means every motion slot in that month (Authority months have two).
      Do them all and say so.
-2. Run `lr build "<client>" --post PI-006`. The first build takes about 30 seconds per option (voice
-   plus preview) and is cached after that. You get a self-contained preview page that plays with
+2. Run `lr build "<client>" --post PI-006`. The first build takes 1-3 minutes per option with Chatterbox
+   (about 30 seconds with Kokoro) and is cached after that, so build a month's motion posts in one go. You get a self-contained preview page that plays with
    sound, and a poster image, both shared via the gallery.
 3. A reviewer marks the option Approved in review.xlsx.
 4. Run `lr video "<client>"`. It renders MP4s for approved options only: a 1080×1920 (9:16) file and a
@@ -48,7 +49,61 @@ the animation is timed to the measured speech.
 }
 ```
 
-## The families
+## Composed videos (`"family": "scenes"`): the default
+Most motion posts should be **composed**: choose a **look**, then a run of **scenes** from the scene library, one
+per narration line, ending on the end card. The parts are tested, and the combinations are endless, so no two
+posts need to look alike.
+
+- **Looks:**
+  - `thread`: a clean light world where one accent dot travels through the whole piece.
+  - `flat`: bold flat illustration on the brand colour.
+  - `cards`: a warm gradient with floating UI cards.
+  - `silhouette`: a paper collage with black silhouettes and editorial type.
+- **Scenes:** `lr templates motion --client "<client>"` lists every scene with what it shows, what it's good for,
+  its fields and a worked example. There are scenes for:
+  - headlines and word swaps;
+  - texts, calls, letters and forms;
+  - checklists, timelines and steps;
+  - counters, myths and Q&A;
+  - maps, roads, scales, umbrellas and weights;
+  - people moments, the attorney, the office door.
+- **Transitions** come with the look; set `"transition"` to override (`thread`, `wipe`, `stack`, `slide`, `zoom`,
+  `circle`, `flip`, `cut`, `fade`).
+
+```json
+{
+  "key": "A", "template": "motion", "family": "scenes", "look": "cards", "voice": "af_heart", "speed": 1.04,
+  "lines": [
+    {"id": "hook", "say": "Hurt in a crash? McMinn Law Firm has a few things to tell you first."},
+    {"id": "b1", "say": "The adjuster may text you within days. Can we get a recorded statement? We can offer two thousand today."},
+    {"id": "b2", "say": "Before you answer, do four things: see a doctor, take photos, keep every bill, and call before you sign."},
+    {"id": "cta", "say": "You don't have to handle the insurance company alone. Talk to our team today."}
+  ],
+  "screen": {
+    "scenes": [
+      {"type": "kinetic", "line": "hook", "head": "Hurt in a **car crash?**", "kicker": "Before you answer"},
+      {"type": "chat", "line": "b1", "head": "They move **fast.**", "name": "Insurance adjuster",
+       "messages": [{"from": "them", "text": "Can we get a recorded statement?"}, {"from": "them", "text": "We can offer $2,000 today."}]},
+      {"type": "checklist", "line": "b2", "head": "Do this first", "items": ["See a doctor", "Take photos", "Keep every bill", "Call before you sign"]},
+      {"type": "end", "line": "cta"}
+    ],
+    "end": "Talk to our team today.", "cta": "Talk to us", "site": "mcminnlaw.com", "disclaimer": "Attorney advertising."
+  }
+}
+```
+Rules for composed videos:
+- **Scene timing.** The first scene goes with `hook` (the firm is named there), and the last is
+  `{"type": "end", "line": "cta"}`. Each scene starts when its line starts and lasts until the next scene's line,
+  so give every scene a line of at least one full sentence.
+- **On-screen items.** Items appear on the words that say them, so write each item in the line, in order, in the
+  same words.
+- **Mix it up.** Across a campaign, vary the look, the opening scene and the run of scenes. The options of one post
+  should be in different looks, so the client sees real choices. The build lists repeats under
+  `motion_variety`; fix them before sending.
+- **Practice fit.** Scenes with crash imagery are for personal-injury firms only, and `lr templates motion --client`
+  leaves them out for other practices.
+
+## The original families
 
 | family | the story | best for | lines | screen |
 |---|---|---|---|---|
@@ -75,6 +130,34 @@ the animation is timed to the measured speech.
 5. Claims follow the same rules as stills (reference/writing.md). Results, ratings and testimonials
    need approved facts, a `confirm` line and the disclaimer.
 6. If a slot's facts can't support a motion story, use the plan's fallback; don't invent one.
+
+## Voices and music
+`lr voice` shows which voice reads on this laptop. The storyboard's `voice` (af_heart, am_michael ...) names a
+persona: warm female, deeper male and so on. Every voice below has its own match for each persona, so a storyboard
+never changes when the voice does.
+
+| Voice | What it's like | Set up |
+|---|---|---|
+| Chatterbox | the studio's voice: natural, free and private; runs on the laptop | `lr setup` installs it in the background (one time, about 3 GB) |
+| ElevenLabs | most natural; exact word sync | `lr voice key elevenlabs <key>` (the person's key, paid per character) |
+| OpenAI | natural and cheap; sync from a transcription | `lr voice key openai <key>` |
+| Kokoro | built in, quick, a little flat | nothing: it reads whenever the others can't |
+
+- Chatterbox reads once it's installed. Until then (the first few minutes after setup) Kokoro reads, and the
+  build shows a `voice` warning. Rebuild those posts later for Chatterbox: `lr build "<client>" --post <ids>`.
+  `lr voice` shows where the install is; if it stopped, `lr voice install chatterbox` runs it again.
+- Chatterbox copies a short sample voice to match each persona. To use a firm's own narrator, put a clean
+  10-20 second recording in the Drive's "LawRank Studio/Voices" folder named after the persona
+  (`am_michael.wav`), with the speaker's permission.
+- `lr voice use <name>` picks another voice. Keys stay on the laptop (`~/.lawrank-studio/keys.json`), never
+  in a client folder or the Drive. If the person pastes a key, save it with `lr voice key` and don't repeat it back.
+- If a voice fails (not installed yet, no key, no credit, no internet), the piece is read by Kokoro and the
+  build shows a `voice` warning saying why. Finish the build, then tell the person in your reply.
+- Music: each piece gets a soft bed that dips under the voice. It's generated by the studio, so there's
+  nothing to license. Choose it with the storyboard's `music`: warm, hopeful, steady, serious or none. Left
+  out, it follows the look (thread: warm, flat: hopeful, cards: steady, silhouette: serious). A firm's own
+  licensed track replaces it: put `<mood>.mp3` in the Drive's "LawRank Studio/Music" folder.
+  `lr voice music off` turns beds off on this laptop.
 
 ## When the build flags a motion option
 The QA checks look for text overlaps, text off frame, contrast on every frame, and an end card held

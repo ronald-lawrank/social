@@ -68,7 +68,8 @@ def test_preview_then_mp4_after_approval(home):
 def test_families_are_documented_through_lr():
     out = run("templates", "motion")
     fams = {f["family"]: f for f in out["families"]}
-    assert set(fams) == {"journey", "shield", "weight", "flip"}
+    assert set(fams) == {"journey", "shield", "weight", "flip", "scenes"}
+    assert {"kinetic", "chat", "checklist", "end"} <= set(fams["scenes"]["scenes"]) and set(fams["scenes"]["looks"]) == {"thread", "flat", "cards", "silhouette"}
     for f in fams.values():
         assert "screen" in f["how_it_works"] and f["example"]["lines"] and not motion.check_storyboard("X", f["example"])
         assert "free" not in json.dumps(f["example"]).lower()

@@ -157,6 +157,8 @@ def setup(home: str | None = None, skip_models: bool = False) -> dict:
         done.append("models")
         if warnings:
             warnings.append("Faces fall back to OpenCV's built-in detector; voiceover needs the voice model (retry `lr setup`).")
+        from . import voices                    # the studio's voice: a big download, so it goes on in the background
+        step("chatterbox voice (" + voices.install_chatterbox_background() + ")", lambda: None)
     if node_bin():                                         # only MP4 rendering needs Node; everything else works without it
         paths.NODE_DIR.mkdir(parents=True, exist_ok=True)
         shutil.copy(paths.SCRIPTS / "node" / "package.json", paths.NODE_DIR / "package.json")
@@ -223,6 +225,8 @@ def doctor() -> dict:
         video.append("ffmpeg")
     out["video"] = "ok" if not video else "not ready: " + ", ".join(video) + "; then run `lr setup`"
     out["models"] = {n.split("/")[-1]: (paths.MODELS / n).exists() for n in MODEL_FILES}
+    from . import voices
+    out["voice"] = voices.chosen() + ("" if voices.chosen() != "kokoro" else " (better voices: `lr voice`)")
     h = paths.home(required=False)
     out["home"] = str(h) if h else None
     if not h:

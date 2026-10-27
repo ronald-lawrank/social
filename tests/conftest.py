@@ -9,6 +9,7 @@ ROOT = Path(__file__).resolve().parent.parent
 SCRIPTS = ROOT / "plugin" / "skills" / "lawrank-studio" / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 os.environ["LR_NO_VENV"] = "1"
+os.environ["LR_NO_AUTO_INSTALL"] = "1"         # builds in tests never start the Chatterbox download
 # Reuse downloaded models/fonts between runs (they are large); everything else is per test.
 SHARED_STATE = Path(os.environ.get("LR_TEST_STATE", ROOT / ".cache" / "state"))
 os.environ.setdefault("LR_STATE_DIR", str(SHARED_STATE))
