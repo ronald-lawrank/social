@@ -20,7 +20,7 @@
   lr voice                               which voice reads narration on this laptop, and the others it could use
   lr voice use elevenlabs|openai|chatterbox|kokoro
   lr voice key elevenlabs|openai <key>   saved on this laptop only (empty key removes it)
-  lr voice install chatterbox            the free local voice (one time, about 3 GB)
+  lr voice install chatterbox [--wait]   the studio's voice (one time, about 3 GB; in the background unless --wait)
   lr voice music on|off                  the soft music bed under narration
   lr library search "<text>" [--client C]
   lr templates [name[,name]] [--client C] list templates; with names: full slots, worked examples, icon names
@@ -106,7 +106,11 @@ def cmd_voice(a):
     if a.action == "install":
         if (a.arg or "chatterbox") != "chatterbox":
             raise LRError(f"only Chatterbox installs locally, not {a.arg}")
-        return voices.install_chatterbox()
+        if a.wait:
+            return voices.install_chatterbox()
+        state = voices.install_chatterbox_background()
+        return dict(voices.status(), install=state, note="Chatterbox downloads in the background (about 3 GB, a few "
+                    "minutes; log: ~/.lawrank-studio/chatterbox-install.log). Ask `lr voice` again to see when it's ready.")
     if a.action == "music":
         return voices.set_music((a.arg or "on") != "off")
     return voices.status()
@@ -167,7 +171,9 @@ def parser():
     p.set_defaults(fn=cmd_video)
     p = sp.add_parser("package"); p.add_argument("client"); p.add_argument("--campaign"); p.add_argument("--month", type=int); p.set_defaults(fn=cmd_package)
     p = sp.add_parser("voice"); p.add_argument("action", nargs="?", choices=["status", "use", "key", "install", "music"], default="status")
-    p.add_argument("arg", nargs="?"); p.add_argument("value", nargs="?"); p.set_defaults(fn=cmd_voice)
+    p.add_argument("arg", nargs="?"); p.add_argument("value", nargs="?")
+    p.add_argument("--wait", action="store_true", help="install: wait for the download instead of running it in the background")
+    p.set_defaults(fn=cmd_voice)
     p = sp.add_parser("library"); p.add_argument("action", choices=["search"]); p.add_argument("text"); p.add_argument("--client")
     p.add_argument("--limit", type=int, default=8); p.set_defaults(fn=cmd_library)
     p = sp.add_parser("docs"); p.add_argument("name"); p.set_defaults(fn=cmd_docs)

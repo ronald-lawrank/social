@@ -14,6 +14,7 @@ import os
 import shutil
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 from . import paths
@@ -104,13 +105,28 @@ def env(provider: str | None = None) -> dict:
     return out
 
 
+def ensure() -> str:
+    """Start the Chatterbox install if this laptop should have it and doesn't: after a plugin update (setup isn't run
+    again) or an install that was cut off. Cheap when it's ready or already installing."""
+    if paths.settings().get("voice_provider") not in (None, "chatterbox"):
+        return "not wanted"
+    failed = paths.STATE / "chatterbox-failed"
+    if not chatterbox_python() and not _installing() and failed.exists() and time.time() - failed.stat().st_mtime < 6 * 3600:
+        return "failed"                     # retried on its own every few hours, or now with `lr voice install chatterbox`
+    return install_chatterbox_background()
+
+
 def status() -> dict:
+    ensure()
     av, now = available(), chosen()
     return {"ok": True, "voice": now, "about": ABOUT[now], "ready": av, "picked": paths.settings().get("voice_provider"),
             "options": {p: ABOUT[p] + ("" if av[p] else {"elevenlabs": " — add a key: lr voice key elevenlabs <key>",
                                                          "openai": " — add a key: lr voice key openai <key>",
                                                          "chatterbox": " — installing in the background (a few minutes)"
-                                                         if _installing() else " — install: lr voice install chatterbox"}.get(p, ""))
+                                                         if _installing() else " — the last install failed (log: ~/.lawrank-studio/"
+                                                         "chatterbox-install.log); try again: lr voice install chatterbox"
+                                                         if (paths.STATE / "chatterbox-failed").exists()
+                                                         else " — install: lr voice install chatterbox"}.get(p, ""))
                         for p in PROVIDERS},
             "music": "on" if paths.settings().get("music", True) else "off"}
 
@@ -172,7 +188,7 @@ def install_chatterbox_background() -> str:
     venv_py = paths.STATE / "venv" / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
     log = open(paths.STATE / "chatterbox-install.log", "w")
     kw = {"creationflags": 0x00000008 | 0x00000200} if os.name == "nt" else {"start_new_session": True}
-    p = subprocess.Popen([str(venv_py if venv_py.exists() else sys.executable), str(paths.SCRIPTS / "lr.py"), "voice", "install", "chatterbox"],
+    p = subprocess.Popen([str(venv_py if venv_py.exists() else sys.executable), str(paths.SCRIPTS / "lr.py"), "voice", "install", "chatterbox", "--wait"],
                          stdout=log, stderr=log, stdin=subprocess.DEVNULL, cwd=str(paths.SCRIPTS), **kw)
     (paths.STATE / "chatterbox-installing").write_text(str(p.pid))
     return "installing"
@@ -183,13 +199,18 @@ def install_chatterbox() -> dict:
     py = venv / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
     if chatterbox_python():
         return status()
-    uv = _uv()
-    if not uv:
-        raise LRError("Chatterbox couldn't be set up (the installer, uv, didn't download)",
-                      fix="Check the internet connection and run `lr voice install chatterbox` again; Kokoro reads meanwhile.")
-    say("Installing Chatterbox, the studio's voice (one time, about 3 GB, a few minutes) ...")
     try:
-        return _install(uv, venv, py)
+        uv = _uv()
+        if not uv:
+            raise LRError("Chatterbox couldn't be set up (the installer, uv, didn't download)",
+                          fix="Check the internet connection and run `lr voice install chatterbox` again; Kokoro reads meanwhile.")
+        say("Installing Chatterbox, the studio's voice (one time, about 3 GB, a few minutes) ...")
+        res = _install(uv, venv, py)
+        (paths.STATE / "chatterbox-failed").unlink(missing_ok=True)
+        return res
+    except LRError:
+        (paths.STATE / "chatterbox-failed").write_text(time.ctime())
+        raise
     finally:
         (paths.STATE / "chatterbox-installing").unlink(missing_ok=True)
 

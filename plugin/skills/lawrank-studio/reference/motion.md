@@ -145,7 +145,8 @@ never changes when the voice does.
 
 - Chatterbox reads once it's installed. Until then (the first few minutes after setup) Kokoro reads, and the
   build shows a `voice` warning. Rebuild those posts later for Chatterbox: `lr build "<client>" --post <ids>`.
-  `lr voice` shows where the install is; if it stopped, `lr voice install chatterbox` runs it again.
+  `lr voice` shows where the install is. `lr doctor` starts it if it never ran (after a plugin update) and
+  retries a failed one every few hours; `lr voice install chatterbox` retries now (in the background).
 - Chatterbox copies a short sample voice to match each persona. To use a firm's own narrator, put a clean
   10-20 second recording in the Drive's "LawRank Studio/Voices" folder named after the persona
   (`am_michael.wav`), with the speaker's permission.
