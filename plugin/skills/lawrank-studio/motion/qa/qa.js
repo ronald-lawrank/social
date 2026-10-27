@@ -13,8 +13,18 @@ window.QA = (pi, fps = 30) => {
     return [...el.childNodes].some(n => n.nodeType === 3 && n.textContent.trim()); };
   const k = st.getBoundingClientRect().width / 1080, D = P.end, N = Math.round(D * fps);
   const subs = (P.cue.subs || []);
+  // text that is in the piece but never actually seen (left hidden, or still masked when its scene ends)
+  const allText = [...st.querySelectorAll('[data-qa=text]')].filter(e => (e.textContent || '').trim()), shown = new Set();
+  const seen = e => { if (effO(e) < .5) return false;            // the glyphs themselves, clipped by every masking ancestor
+    let tot = 0, vis = 0; const w = document.createTreeWalker(e, NodeFilter.SHOW_TEXT);
+    while (w.nextNode()) { if (!w.currentNode.textContent.trim()) continue; const rg = document.createRange(); rg.selectNodeContents(w.currentNode);
+      for (const q of rg.getClientRects()) { tot += q.width * q.height; let v = { left: q.left, top: q.top, right: q.right, bottom: q.bottom, w: q.width, h: q.height };
+        for (let x = w.currentNode.parentElement; x && x !== st.parentElement && v; x = x.parentElement) if (getComputedStyle(x).overflow !== 'visible') v = inter(v, x.getBoundingClientRect());
+        if (v) vis += v.w * v.h; } }
+    return tot > 0 && vis > tot * .5; };
   for (let f = 0; f <= N; f++) {
     const t = Math.min(D, f / fps); P.show(t);
+    if (f % 3 === 0) allText.forEach(e => { if (!shown.has(e) && seen(e)) shown.add(e); });
     // ---- 1. faces and upper bodies stay clear; 2. faces are never cropped by a frame
     st.querySelectorAll('img[data-photo]').forEach(img => {
       const o = effO(img); if (o < .05) return;
@@ -58,6 +68,7 @@ window.QA = (pi, fps = 30) => {
       const vis = [...st.querySelectorAll(sel)].filter(e => effO(e) > .3); if (vis.length > 1) add(t, 'competing-' + label, vis.map(name).join(' + '));
     });
   }
+  allText.filter(e => !shown.has(e)).forEach(e => add(D, 'never-shown', `${name(e)} is in the video but never appears`));
   // ---- 6. every subtitle stays fully on screen while its words are spoken
   subs.forEach((s, i) => { [s.t0 + .2, (s.t0 + s.speechEnd) / 2, s.speechEnd - .05].forEach(t => { P.show(t); const e = st.querySelector('#sub' + i); if (e && effO(e) < .9) add(t, 'subtitle-early-exit', `“${s.text}” not fully visible while spoken`); }); });
   // ---- 7. the same picture whether the piece played up to a moment or jumped straight to it (the MP4 renderer seeks)

@@ -28,35 +28,35 @@ SCENES.letter = {
   html(sc, X) {
     const LK = X.LK, n = LK.name, p = SCENES.letter.pal(LK), id = X.id, top = sc.head ? 600 : 470, up = LK.headCase === 'upper';
     const ink = LK.surfaceInk, sub = readable(mix(ink, LK.surface, .45), LK.surface, 4.6);
-    const stampC = n === 'silhouette' ? LK.surface : readable(BT.accent, LK.surface, 3.2), stampBg = n === 'silhouette' ? LK.ink : 'transparent';
+    const stampC = n === 'silhouette' ? (contrast('#FFFFFF', LK.accent) >= 3 ? '#FFFFFF' : LK.ink) : readable(BT.accent, LK.surface, 3.2), stampBg = n === 'silhouette' ? LK.accent : 'transparent';
     const seam = p.sw ? `stroke="${p.seam}" stroke-width="${p.sw}" stroke-linejoin="round"` : '';
-    const lines = sc.lines.map((l, i) => `<div class="ltl" data-qa="text" style="position:relative;z-index:1;margin-top:${i ? 18 : 0}px;font:${i === sc.highlight ? 600 : 500} 40px/1.32 var(--body);color:${ink}"><span class="ltt">${esc(l)}</span></div>`).join('');
+    const lines = sc.lines.map((l, i) => `<div class="ltl" data-qa="text" style="position:relative;z-index:1;width:fit-content;margin-top:${i ? 22 : 0}px;font:${i === sc.highlight ? 600 : 500} 46px/1.3 var(--body);color:${ink}"><span class="ltt">${esc(l)}</span></div>`).join('');
     const stampLen = String(sc.stamp || '').length;
-    const stamp = sc.stamp ? `<div id="${id}st" class="k-abs" data-qa="text" style="right:40px;bottom:46px;padding:10px 26px 6px;font:800 ${stampLen > 11 ? 50 : 60}px/1.05 var(--head);letter-spacing:.06em;
+    const stamp = sc.stamp ? `<div id="${id}st" class="k-abs" data-qa="text" style="right:46px;bottom:52px;padding:12px 30px 8px;font:800 ${stampLen > 11 ? 54 : 66}px/1.05 var(--head);letter-spacing:.06em;
         text-transform:uppercase;white-space:nowrap;color:${stampC};background:${stampBg};${n === 'silhouette' ? 'box-shadow:8px 9px 0 rgba(0,0,0,.18);' : `border:6px solid ${stampC};border-radius:${LK.radius ? 12 : 0}px;box-shadow:inset 0 0 0 5px ${LK.surface},inset 0 0 0 9px ${stampC};`}z-index:2">${esc(sc.stamp)}</div>
-      <svg id="${id}sb" class="k-abs" width="420" height="300" viewBox="-210 -150 420 300" style="right:${40 - 60}px;bottom:${46 - 90}px;overflow:visible;z-index:2">
+      <svg id="${id}sb" class="k-abs" width="420" height="300" viewBox="-210 -150 420 300" style="right:${46 - 60}px;bottom:${52 - 90}px;overflow:visible;z-index:2">
         ${[0, 1, 2, 3, 4, 5].map(k => { const a = (k / 6) * Math.PI * 2 + .3, r0 = 150, r1 = 205; return `<line x1="${(Math.cos(a) * r0).toFixed(1)}" y1="${(Math.sin(a) * r0 * .7).toFixed(1)}" x2="${(Math.cos(a) * r1).toFixed(1)}" y2="${(Math.sin(a) * r1 * .7).toFixed(1)}" stroke="${n === 'silhouette' ? LK.ink : stampC}" stroke-width="8" stroke-linecap="round"/>`; }).join('')}</svg>` : '';
-    const letter = `<div id="${id}L" class="k-abs" style="left:150px;top:${top}px;width:780px;padding:52px 56px ${sc.stamp ? 210 : 140}px;background:${LK.surface};color:${ink};
+    const letter = `<div id="${id}L" class="k-abs" style="left:100px;top:${top}px;width:880px;padding:56px 64px ${sc.stamp ? 230 : 150}px;background:${LK.surface};color:${ink};
         border-radius:${LK.radius ? 12 : 0}px;box-shadow:${LK.shadow};border:${LK.edge}">
         <div style="display:flex;align-items:center;gap:24px">
           <div style="width:78px;height:78px;flex:none;border-radius:${LK.radius ? '50%' : '0'};background:${n === 'silhouette' ? LK.ink : mix(ink, LK.surface, .9)};display:flex;align-items:center;justify-content:center">${UI.icon(LK, 'shield', 48, n === 'silhouette' ? LK.surface : mix(ink, LK.surface, .3), n === 'silhouette' ? LK.surface : mix(ink, LK.surface, .3))}</div>
-          <div id="${id}fr" data-qa="text" style="flex:1;font:700 38px/1.15 var(--head);color:${ink};${up ? 'text-transform:uppercase;letter-spacing:.04em;' : ''}">${esc(sc.from || 'Insurance company')}</div>
+          <div id="${id}fr" data-qa="text" style="flex:1;font:700 ${String(sc.from || '').length > 24 ? 34 : 40}px/1.15 var(--head);color:${ink};${up ? 'text-transform:uppercase;letter-spacing:.04em;' : ''}">${esc(sc.from || 'Insurance company')}</div>
           <div style="width:120px;flex:none"><div style="height:12px;border-radius:6px;background:${mix(ink, LK.surface, .86)}"></div><div style="height:12px;width:70%;margin:12px 0 0 auto;border-radius:6px;background:${mix(ink, LK.surface, .86)}"></div></div>
         </div>
         <div style="height:4px;margin:34px 0 36px;background:${n === 'silhouette' ? LK.ink : mix(ink, LK.surface, .88)}"></div>
         <div id="${id}ls" style="position:relative">${lines}</div>
-        <svg id="${id}sg" class="k-abs" width="260" height="90" viewBox="0 0 260 90" style="left:56px;bottom:${sc.stamp ? 70 : 34}px;overflow:visible">
+        <svg id="${id}sg" class="k-abs" width="260" height="90" viewBox="0 0 260 90" style="left:56px;bottom:${sc.stamp ? 84 : 40}px;transform:scale(.8);transform-origin:0 100%;overflow:visible">
           <path d="M6,58 C26,8 44,4 46,40 S62,80 82,38 S112,2 122,44 S150,70 172,30 S206,18 216,52 C224,66 240,58 252,46" fill="none" stroke="${ink}" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
           <line x1="0" y1="84" x2="250" y2="84" stroke="${mix(ink, LK.surface, .75)}" stroke-width="3"/></svg>
         ${stamp}</div>`;
-    const W = 860, H = 520;
+    const W = 940, H = 540;
     return `${sc.head ? UI.head(LK, { id: id + 'h', text: sc.head, x: 80, y: 330, w: 920, size: 88, align: 'center' }) : ''}
-      <div id="${id}eb" class="k-abs" style="left:110px;top:1000px;width:${W}px;height:${H}px;filter:${p.shadow}">
+      <div id="${id}eb" class="k-abs" style="left:70px;top:1000px;width:${W}px;height:${H}px;filter:${p.shadow}">
         <svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="position:absolute;left:0;top:0;overflow:visible">
           <rect x="0" y="0" width="${W}" height="${H}" fill="${p.back}" ${seam}/>
           <path id="${id}fo" d="M0,0 L${W},0 L${W / 2},-250 Z" fill="${p.flap}" ${seam}/></svg></div>
       <div id="${id}cl" class="k-abs" style="left:0;top:0;width:1080px;height:1920px;overflow:hidden">${letter}</div>
-      <div id="${id}ef" class="k-abs" style="left:110px;top:1000px;width:${W}px;height:${H}px;filter:${p.shadow}">
+      <div id="${id}ef" class="k-abs" style="left:70px;top:1000px;width:${W}px;height:${H}px;filter:${p.shadow}">
         <svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="position:absolute;left:0;top:0;overflow:visible">
           <path d="M0,0 L${W / 2},300 L0,${H} Z" fill="${p.side}" ${seam}/><path d="M${W},0 L${W / 2},300 L${W},${H} Z" fill="${p.side}" ${seam}/>
           <path d="M0,${H} L${W / 2},236 L${W},${H} Z" fill="${p.pocket}" ${seam}/>
@@ -67,26 +67,27 @@ SCENES.letter = {
   build(tl, sc, X) {
     const LK = X.LK, id = X.id, q = s => X.$('#' + id + s), L = q('L'), st = L.closest('.stage'), k = st.getBoundingClientRect().width / 1080;
     const rel = el => { const a = el.getBoundingClientRect(), s = st.getBoundingClientRect(); return { x: (a.left - s.left) / k, y: (a.top - s.top) / k, w: a.width / k, h: a.height / k }; };
-    const top = sc.head ? 600 : 470, H = rel(L).h;
+    const H = rel(L).h, r0 = sc.head ? 590 : 420, top = Math.round(r0 + Math.max(0, (1540 - r0 - H) / 2 - 30));
+    L.style.top = top + 'px';
     // the envelope rests low; the letter starts inside it (hidden by the pocket and the clip) and rises to its place
-    const envTop = Math.min(1340, Math.max(top + H - 430, top + 400)), start = envTop + 26 - top;
+    const envTop = Math.min(1320, Math.max(top + H - 450, top + 420)), start = envTop + 26 - top;
     [q('eb'), q('ef')].forEach(e => { e.style.top = envTop + 'px'; });
-    const clip = q('cl'); clip.style.height = envTop + 500 + 'px';
+    const clip = q('cl'); clip.style.height = envTop + 520 + 'px';
     const env = [q('eb'), q('ef')], a = X.tIn - .15;
     if (sc.head) X.head(`#${id}h`, X.tIn);
     tl.set(env, { autoAlpha: 0 }, 0).set(env, { autoAlpha: 1, x: -1000, rotation: -9, transformOrigin: '50% 50%' }, a)
       .to(env, { x: 0, rotation: 0, duration: .6, ease: 'lr.out' }, a);
     const fc = q('fc'), fo = q('fo');
-    tl.set(fo, { scaleY: 0, svgOrigin: '430 0' }, 0).set(fc, { scaleY: 1, svgOrigin: '430 0' }, 0);
+    tl.set(fo, { scaleY: 0, svgOrigin: '470 0' }, 0).set(fc, { scaleY: 1, svgOrigin: '470 0' }, 0);
     tl.to(fc, { scaleY: 0, duration: .2, ease: 'power2.in' }, a + .55).to(fo, { scaleY: 1, duration: .26, ease: 'power2.out' }, a + .75);
     // the letter rises out, then the envelope drops away (the clip follows it so the paper is revealed with it)
     const tr = a + .9, td = tr + .55, frm = q('fr'), lines = [...L.querySelectorAll('.ltl')];
     tl.set(L, { autoAlpha: 0 }, 0).set(L, { autoAlpha: 1, y: start }, tr - .01).to(L, { y: 0, duration: .65, ease: 'lr.out' }, tr);
     tl.set(frm, { autoAlpha: 0 }, 0).set(frm, { autoAlpha: 1 }, tr + .3);
     tl.to(env, { y: 1100, rotation: 4, duration: .7, ease: 'lr.in' }, td).set(env, { autoAlpha: 0 }, td + .71);
-    tl.to(clip, { height: envTop + 500 + 1100, duration: .7, ease: 'lr.in' }, td).set(clip, { overflow: 'visible' }, td + .71);
+    tl.to(clip, { height: envTop + 520 + 1100, duration: .7, ease: 'lr.in' }, td).set(clip, { overflow: 'visible' }, td + .71);
     // a slow drift keeps the letter alive while it is read
-    tl.fromTo(L, { rotation: 0 }, { rotation: -1.4, duration: Math.max(.5, X.tOut - td), ease: 'sine.inOut', immediateRender: false }, td);
+    tl.fromTo(L, { rotation: 0 }, { rotation: -1, duration: Math.max(.5, X.tOut - td), ease: 'sine.inOut', immediateRender: false }, td);
     // lines write in on the words that say them
     const all = [...sc.lines, ...(sc.stamp ? [sc.stamp] : [])], ts = X.times(all), ready = td + .15;
     const lt = sc.lines.map((_, i) => Math.max(ts[i] - .15, ready + i * .3));
@@ -94,26 +95,23 @@ SCENES.letter = {
       tl.set(el, { autoAlpha: 0 }, 0).set(el, { autoAlpha: 1, clipPath: 'inset(-10% 100% -10% 0%)', x: -8 }, lt[i])
         .to(el, { clipPath: 'inset(-10% 0% -10% 0%)', x: 0, duration: .55, ease: 'power2.out' }, lt[i]);
     });
-    // the marker sweeps across the key line, one stroke per row of text
-    const hi = Math.max(0, Math.min(sc.lines.length - 1, sc.highlight ?? 0)), hl = lines[hi], box = rel(q('ls'));
+    // the marker sweeps across the key line (a background on the inline text, so it follows every wrapped row)
+    const hi = Math.max(0, Math.min(sc.lines.length - 1, sc.highlight ?? 0)), hs = lines[hi].querySelector('.ltt'), box = rel(q('ls'));
     const mk = (() => { let m = mix(BT.accent, LK.surface, .58); for (let i = 0; i < 12 && contrast(LK.surfaceInk, m) < 5; i++) m = mix(m, LK.surface, .15); return m; })();
-    const rows = [...hl.querySelector('.ltt').getClientRects()].map(r => ({ x: (r.left - st.getBoundingClientRect().left) / k - box.x, y: (r.top - st.getBoundingClientRect().top) / k - box.y, w: r.width / k, h: r.height / k }));
-    const th = Math.max(lt[hi] + .45, ts[hi] + .35), per = .5 / Math.max(1, rows.length);
-    rows.forEach((r, j) => {
-      const m = document.createElement('div'); m.className = 'k-abs';
-      Object.assign(m.style, { left: r.x - 10 + 'px', top: r.y + r.h * .14 + 'px', width: r.w + 20 + 'px', height: r.h * .8 + 'px', background: mk, borderRadius: '6px 14px 8px 12px', zIndex: 0 });
-      q('ls').appendChild(m);
-      tl.set(m, { autoAlpha: 0 }, 0).set(m, { autoAlpha: 1, scaleX: 0, transformOrigin: '0% 50%' }, th + j * per).to(m, { scaleX: 1, duration: per + .08, ease: 'power1.inOut' }, th + j * per);
-    });
-    if (LK.thread) { const r = rows[rows.length - 1], lr = rel(L); X.dot(lr.x + 56 + box.x - lr.x + r.x + r.w + 34, box.y + r.y + r.h * .55, th + .5, { r: 14 }); }
+    Object.assign(hs.style, { backgroundImage: `linear-gradient(${mk},${mk})`, backgroundRepeat: 'no-repeat', backgroundPosition: '0 88%', backgroundSize: '0% 76%',
+      boxDecorationBreak: 'clone', webkitBoxDecorationBreak: 'clone', padding: '0 8px', margin: '0 -8px', borderRadius: '6px' });
+    const th = Math.max(lt[hi] + .45, ts[hi] + .35);
+    tl.fromTo(hs, { backgroundSize: '0% 76%' }, { backgroundSize: '100% 76%', duration: .6, ease: 'power1.inOut', immediateRender: false }, th);
+    // thread: the dot lands in the margin beside the key line, like a bullet
+    if (LK.thread) { const lr = rel(lines[hi]); X.dot(box.x - 32, lr.y + 31, th + .1, { r: 12 }); }
     // the signature draws under the last line
     const sg = q('sg').querySelector('path'), tsg = lt[lt.length - 1] + .5;
     tl.set(sg, { drawSVG: '0%' }, 0).to(sg, { drawSVG: '100%', duration: .6, ease: 'power1.inOut' }, tsg);
     // the stamp slams on, the paper takes the hit
     if (sc.stamp) {
       const S = q('st'), B = q('sb'), t = Math.max(ts[ts.length - 1], th + .6, tsg + .3);
-      tl.set(S, { autoAlpha: 0 }, 0).set(S, { autoAlpha: 1, scale: 2.4, rotation: -22, transformOrigin: '50% 50%' }, t)
-        .to(S, { scale: 1, rotation: -8, duration: .2, ease: 'power3.in' }, t);
+      tl.set(S, { autoAlpha: 0 }, 0).set(S, { autoAlpha: .28, scale: 1.8, rotation: -20, transformOrigin: '50% 50%' }, t)
+        .to(S, { scale: 1, rotation: -6, duration: .2, ease: 'power3.in' }, t).set(S, { autoAlpha: 1 }, t + .2);
       tl.to(L, { y: 12, scale: .985, duration: .07, ease: 'power1.out' }, t + .2).to(L, { y: 0, scale: 1, duration: .45, ease: 'back.out(3)' }, t + .27);
       const ls = [...B.querySelectorAll('line')];
       tl.set(B, { autoAlpha: 0 }, 0).set(B, { autoAlpha: 1 }, t + .19).set(ls, { drawSVG: '0% 0%' }, t + .19)

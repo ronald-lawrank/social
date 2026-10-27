@@ -46,12 +46,12 @@ const COMPOSE = {
   X(S, h, s, P) {          // what a scene sees: its window and its words (pure part)
     const L = h.L[s.line], i = s.i;
     return { i, id: 'scn' + i, t0: s.t0, t1: s.t1, end: P.end, free: P.free, line: L, last: i === P.sc.length - 1,
-      tIn: s.t0 + (i ? .32 : .2), tOut: s.t1 - .42,
+      tIn: s.t0 + (i ? .32 : .45), tOut: s.t1 - .42,                // first scene: room for entrances that start before tIn
       at: (w, lid = s.line) => h.W(lid, w), sent: (k, lid = s.line) => { const ss = h.L[lid].sentences; return ss[Math.min(k, ss.length - 1)]; },
       words: (lid = s.line) => h.L[lid].words,
       // when each on-screen item is said: the first word of each text, matched in order in the line; items the voice
       // doesn't say word for word are spread between their neighbours. Times stay inside [tIn, tOut - .5].
-      times: (texts, lid = s.line) => COMPOSE.times(texts, h.L[lid].words, s.t0 + (i ? .32 : .2), s.t1 - .92) };
+      times: (texts, lid = s.line) => COMPOSE.times(texts, h.L[lid].words, s.t0 + (i ? .32 : .45), s.t1 - .92) };
   },
   norm: w => String(w).toLowerCase().replace(/\*\*/g, '').replace(/[^a-z0-9']/g, ''),
   times(texts, spoken, a, b) {

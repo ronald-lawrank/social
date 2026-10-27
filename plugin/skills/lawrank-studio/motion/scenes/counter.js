@@ -17,7 +17,7 @@ SCENES.counter = {
   cnFmt(v) { const s = String(v), m = s.match(/^(-?)(\d+)(\.\d+)?$/); return m ? m[1] + m[2].replace(/\B(?=(\d{3})+(?!\d))/g, ',') + (m[3] || '') : s; },
   html(sc, X) {
     const LK = X.LK, nm = LK.name, up = LK.headCase === 'upper', val = SCENES.counter.cnFmt(sc.value);
-    const all = (sc.prefix || '') + val + (sc.suffix || ''), fs = Math.round(Math.min(nm === 'cards' ? 300 : 340, 800 / (all.length * .66)));
+    const all = (sc.prefix || '') + val + (sc.suffix || ''), fs = Math.round(Math.min(nm === 'cards' ? 320 : 400, 820 / (all.length * .66)));
     const numInk = nm === 'silhouette' ? LK.surface : nm === 'flat' ? (contrast('#FFFFFF', LK.fillB) >= 3 ? '#FFFFFF' : BT.ink) : nm === 'cards' ? LK.surfaceInk : LK.ink;
     const accInk = nm === 'silhouette' ? readable(BT.accent, LK.ink, 3) : nm === 'flat' ? numInk
       : nm === 'cards' ? readable(BT.accent, '#FFFFFF', 3) : LK.accentText;
@@ -70,7 +70,8 @@ SCENES.counter = {
     if (sc.head) X.head(`#${id}h`, X.tIn);
     // the roll: every digit strip spins down to its final row; the rightmost digit lands last, like an odometer
     const ds = [...N.querySelectorAll('.cnd')];
-    tl.set(N, { autoAlpha: 0 }, 0).set(N, { autoAlpha: 1, y: 60 }, a - .15).to(N, { y: 0, duration: .55, ease: 'lr.out' }, a - .15);
+    const nIn = nm === 'silhouette' ? a + .15 : a - .15;   // silhouette: paper digits only once the black slab is under them
+    tl.set(N, { autoAlpha: 0 }, 0).set(N, { autoAlpha: 1, y: 60 }, nIn).to(N, { y: 0, duration: .55, ease: 'lr.out' }, nIn);
     ds.forEach((d, i) => { const s = d.querySelector('.cns'), n = +d.dataset.n, late = (ds.length - 1 - i) * .12;
       tl.set(s, { y: 0 }, 0).to(s, { y: -n * row, duration: Math.max(.6, dur - late), ease: 'power3.inOut' }, a); });
     if (sc.prefix) tl.set(`#${id}pf`, { x: -40 }, 0).to(`#${id}pf`, { x: 0, duration: .5, ease: 'lr.out' }, a - .15);
@@ -116,7 +117,7 @@ SCENES.counter = {
         tl.to(cs, { autoAlpha: 0, scale: 0, duration: .25, ease: 'lr.in' }, X.tOut);
         tl.to([S, S2], { autoAlpha: 0, scale: .9, duration: .3, ease: 'lr.in' }, X.tOut);
       } else {
-        tl.set(S, { autoAlpha: 0 }, 0).set(S, { autoAlpha: 1, scaleX: 0, transformOrigin: '0% 50%' }, a - .3).to(S, { scaleX: 1, duration: .5, ease: 'power3.out' }, a - .3);
+        tl.set(S, { autoAlpha: 0 }, 0).set(S, { autoAlpha: 1, scaleX: 0, transformOrigin: '0% 50%' }, a - .35).to(S, { scaleX: 1, duration: .45, ease: 'power3.out' }, a - .35);
         tl.set(`#${id}u`, { scaleX: 0, transformOrigin: '0% 50%' }, 0).to(`#${id}u`, { scaleX: 1, duration: .4, ease: 'power3.out' }, b);
         tl.to(S, { scaleX: 0, transformOrigin: '100% 50%', duration: .3, ease: 'lr.in' }, X.tOut);
       }

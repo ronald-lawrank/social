@@ -105,7 +105,7 @@ def contact_sheet(html: Path, png: Path, times: list[float]) -> list[str]:
                                  "width:1080px!important;height:1920px!important;border-radius:0!important;box-shadow:none!important}.stage{transform:none!important}")
         for t in times:
             pg.evaluate(f"PLAYERS[0].show({t})"); pg.wait_for_timeout(30)
-            f = png.parent / f".f{len(frames)}.png"; pg.screenshot(path=str(f), clip={"x": 0, "y": 0, "width": 1080, "height": 1920})
+            f = png.parent / f".{png.stem}-f{len(frames)}-{os.getpid()}.png"; pg.screenshot(path=str(f), clip={"x": 0, "y": 0, "width": 1080, "height": 1920})
             frames.append((t, f))
         b.close()
     W, H, cols = 270, 480, 6

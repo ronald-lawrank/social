@@ -297,7 +297,9 @@ def _scripts(m: dict, sb: dict, cue: dict) -> str:
     return (f"<script>const BRAND = {json.dumps(m, ensure_ascii=False)};\n{(MOTION / 'runtime' / 'icons.js').read_text()}\n"
             f"{(MOTION / 'runtime' / 'player.js').read_text()}\n{(MOTION / 'runtime' / 'kit.js').read_text()}\n{fam}\n"
             f"const SB = {json.dumps(sb, ensure_ascii=False)}, CUE = {json.dumps(cue)}, F = FAMILIES[SB.family];\n"
-            f"document.documentElement.style.setProperty('--accentText', BT.accentText);</script>")
+            f"document.documentElement.style.setProperty('--accentText', BT.accentText);\n"
+            # every weight of the brand fonts, loaded before anything measures text (the browser loads a weight lazily)
+            f"const FONTS_IN = Promise.all([...document.fonts].map(f => f.load().catch(() => null))).then(() => document.fonts.ready);</script>")
 
 
 def preview_page(c: store.Client, prep: dict, title: str, out: Path):
@@ -315,7 +317,7 @@ const DEF = {{ id: 'card-' + SB.family, poster: T => F.poster(T), html: T => F.h
   context: T => `<div class="eyebrow">Video · 9:16 for Reels, Stories and TikTok · ${{T.end.toFixed(0)}} seconds</div><h2>${{esc(SB.name || {json.dumps(title)})}}</h2>${{F.client(T, SB)}}
   <h3>Voiceover · {H.escape(VOICES.get(sb.get('voice', 'af_heart'), ''))}</h3><ol class="vo">${{T.lines.map(l => `<li><span>${{mmss(l.t)}}</span>${{esc(l.text)}}</li>`).join('')}}</ol>
   <h3>Please confirm before this runs</h3><ul class="confirm">${{{json.dumps(confirm, ensure_ascii=False)}.map(i => `<li>${{esc(i)}}</li>`).join('')}}</ul>` }};
-document.fonts.ready.then(() => mount(DEF, CUE));
+FONTS_IN.then(() => mount(DEF, CUE));
 </script></body></html>'''
     write_text(out, page)
 
@@ -335,7 +337,7 @@ html,body{{margin:0;background:#000}}#root{{position:relative;width:1080px;heigh
 const stage = document.getElementById('stage'); stage.innerHTML = F.html(CUE, SB);
 const $ = s => stage.querySelector(s);
 const tl = gsap.timeline({{ paused: true, defaults: {{ immediateRender: false, ease: 'lr.out', duration: M.IN }} }});
-F.build(tl, CUE, $, SB); tl.to({{}}, {{ duration: .01 }}, CUE.end - .01);
+FONTS_IN.then(() => {{ F.build(tl, CUE, $, SB); tl.to({{}}, {{ duration: .01 }}, CUE.end - .01); }});
 window.__timelines = window.__timelines || {{}}; window.__timelines.root = tl;
 </script></body></html>'''
     write_text(folder / "index.html", page)
