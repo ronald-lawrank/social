@@ -5,9 +5,9 @@ SCENES.chat = {
   good: 'insurance adjuster tactics, "they will ask you…", first contact, how we respond', practice: 'any',
   fields: { head: 'optional headline above the phone', name: 'who the thread is with (e.g. "Insurance adjuster")',
     messages: '[{from: "them"|"us", text}] 2-4 short messages, each said in the line, in order' },
-  example: { say: 'The adjuster texts within days. Can we get a recorded statement? We can offer two thousand today. We tell you to talk to us first.',
+  example: { say: 'The adjuster texts within days. Can we get a recorded statement? We can make you a quick offer today. We tell you to talk to us first.',
     head: 'They move **fast.**', name: 'Insurance adjuster',
-    messages: [{ from: 'them', text: 'Can we get a recorded statement?' }, { from: 'them', text: 'We can offer $2,000 today.' }, { from: 'us', text: 'Talk to us first.' }] },
+    messages: [{ from: 'them', text: 'Can we get a recorded statement?' }, { from: 'them', text: 'We can make you a quick offer today.' }, { from: 'us', text: 'Talk to us first.' }] },
   sfx: (sc, X) => X.times(sc.messages.map(m => m.text)).map(t => ({ kind: 'pop', at: t })),
   html(sc, X) {
     const LK = X.LK, top = sc.head ? 560 : 420, ph = { x: 190, y: top, w: 700, h: 1000 };

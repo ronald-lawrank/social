@@ -227,8 +227,10 @@ def doctor() -> dict:
     out["models"] = {n.split("/")[-1]: (paths.MODELS / n).exists() for n in MODEL_FILES}
     from . import voices
     state = voices.ensure()                                # after a plugin update, setup isn't run again
-    out["voice"] = voices.chosen() + (" (Chatterbox is installing in the background; Kokoro reads until it's done)"
-                                      if state == "installing" else "" if voices.chosen() != "kokoro" else " (better voices: `lr voice`)")
+    out["voice"] = voices.chosen() + {"installing": " (Chatterbox is installing in the background; Kokoro reads until it's done)",
+                                      "failed": " (Chatterbox didn't install; `lr voice` says why and how to retry)",
+                                      "not supported": " (Chatterbox doesn't run on Intel Macs; `lr voice` for other voices)"}.get(
+                                          state, "" if voices.chosen() != "kokoro" else " (better voices: `lr voice`)")
     h = paths.home(required=False)
     out["home"] = str(h) if h else None
     if not h:

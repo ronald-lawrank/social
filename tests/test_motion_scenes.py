@@ -56,3 +56,23 @@ def test_every_scene_draws_in_a_look_without_errors(tmp_path):
         if rep.get("error") or rep.get("page_errors"):
             bad[f"{k}/{look}"] = rep.get("error") or rep.get("page_errors")
     assert not bad, bad
+
+
+def test_examples_a_writer_copies_pass_the_compliance_check():
+    """Writers start from these examples: they must build for a firm with no facts yet, except the scenes that
+    exist to show an approved fact (a number, a rating), whose examples say so."""
+    sys.path.insert(0, str(ROOT / "dev"))
+    import motion_catalog as mc
+    cat = motion.catalog()
+    needs_facts = {"counter", "stars"}
+    for k, s in cat["scenes"].items():
+        if k == "end":
+            continue
+        blocks = [i["msg"] for i in motion.lint(dict(mc.scene_storyboard(k, s, "cards"), family="scenes", key="A"), {})
+                  if i["level"] == "block"]
+        if k in needs_facts:
+            assert "approved" in json.dumps(s["fields"]).lower() + s.get("good", "").lower(), k
+        else:
+            assert not blocks, (k, blocks)
+    ex = json.loads((motion.MOTION / "examples" / "scenes.json").read_text())
+    assert [i for i in motion.lint(ex, {}) if i["level"] == "block"] == []

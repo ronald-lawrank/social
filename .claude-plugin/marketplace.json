@@ -8,7 +8,7 @@
       "name": "lawrank-studio",
       "source": "./plugin",
       "description": "Law-firm social creative from a firm's website: posts, carousels, motion, Figma plugin and client deck.",
-      "version": "1.4.2"
+      "version": "1.4.3"
     }
   ]
 }

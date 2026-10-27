@@ -3,7 +3,7 @@
 # terminal. Claude users install the plugin instead (see TEAM_SETUP.md).
 #   curl -fsSL https://raw.githubusercontent.com/ronald-lawrank/social/main/install.sh | sh
 # It downloads the studio into ~/.lawrank-studio/app and runs `lr setup`, which installs the rest into
-# ~/.lawrank-studio (about 1 GB) and creates the `lr` command at ~/.lawrank-studio/bin/lr.
+# ~/.lawrank-studio (about 1 GB, plus the Chatterbox voice, about 9 GB, in the background) and creates the `lr` command at ~/.lawrank-studio/bin/lr.
 set -eu
 STATE="${LR_STATE_DIR:-$HOME/.lawrank-studio}"
 ARCHIVE="${LR_ARCHIVE:-https://codeload.github.com/ronald-lawrank/social/tar.gz/refs/heads/main}"

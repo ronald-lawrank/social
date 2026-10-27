@@ -6,10 +6,10 @@ SCENES['form-fill'] = {
   fields: { head: 'optional headline above the form (**word** = accent)', title: 'the form title (2-4 words, e.g. "Tell us what happened")',
     fields: '[{label, value}] 3-4 fields; each label (1-3 words) is said in the line, in order; values are short sample answers (under 24 characters)',
     button: 'optional button label (default "Submit")' },
-  example: { say: 'Getting started is simple. Your name, the date it happened, what happened, and the best number to reach you. Then hit send.',
+  example: { say: 'Getting started is simple. Your name, the date it happened, what happened, and a phone number to reach you. Then hit send.',
     head: 'It starts **here.**', title: 'Tell us what happened', button: 'Send',
     fields: [{ label: 'Your name', value: 'Jordan Rivera' }, { label: 'Date it happened', value: 'Last Tuesday' },
-      { label: 'What happened', value: 'Slipped on a wet floor' }, { label: 'Best number', value: '(555) 014-2290' }] },
+      { label: 'What happened', value: 'Slipped on a wet floor' }, { label: 'Phone number', value: 'Mobile, after 5pm' }] },
   sfx(sc, X) {
     const p = SCENES['form-fill'].plan(sc, X);
     return [{ kind: 'whoosh', at: X.tIn - .1 }, ...p.f.map(f => ({ kind: 'clink', at: f.t1 })), { kind: 'pop', at: p.tb }, { kind: 'chime', at: p.tb + .45 }];
