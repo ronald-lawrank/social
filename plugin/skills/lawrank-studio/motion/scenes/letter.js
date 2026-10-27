@@ -30,7 +30,7 @@ SCENES.letter = {
     const ink = LK.surfaceInk, sub = readable(mix(ink, LK.surface, .45), LK.surface, 4.6);
     const stampC = n === 'silhouette' ? (contrast('#FFFFFF', LK.accent) >= 3 ? '#FFFFFF' : LK.ink) : readable(BT.accent, LK.surface, 3.2), stampBg = n === 'silhouette' ? LK.accent : 'transparent';
     const seam = p.sw ? `stroke="${p.seam}" stroke-width="${p.sw}" stroke-linejoin="round"` : '';
-    const lines = sc.lines.map((l, i) => `<div class="ltl" data-qa="text" style="position:relative;z-index:1;width:fit-content;margin-top:${i ? 22 : 0}px;font:${i === sc.highlight ? 600 : 500} 46px/1.3 var(--body);color:${ink}"><span class="ltt">${esc(l)}</span></div>`).join('');
+    const lines = sc.lines.map((l, i) => `<div class="ltl" data-qa="text" style="position:relative;z-index:1;width:fit-content;margin-top:${i ? 22 : 0}px;font:400 46px/1.3 var(--body);color:${ink}"><span class="ltt">${esc(l)}</span></div>`).join('');
     const stampLen = String(sc.stamp || '').length;
     const stamp = sc.stamp ? `<div id="${id}st" class="k-abs" data-qa="text" style="right:46px;bottom:52px;padding:12px 30px 8px;font:800 ${stampLen > 11 ? 54 : 66}px/1.05 var(--head);letter-spacing:.06em;
         text-transform:uppercase;white-space:nowrap;color:${stampC};background:${stampBg};${n === 'silhouette' ? 'box-shadow:8px 9px 0 rgba(0,0,0,.18);' : `border:6px solid ${stampC};border-radius:${LK.radius ? 12 : 0}px;box-shadow:inset 0 0 0 5px ${LK.surface},inset 0 0 0 9px ${stampC};`}z-index:2">${esc(sc.stamp)}</div>
