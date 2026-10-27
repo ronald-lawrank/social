@@ -204,3 +204,19 @@ def test_chatterbox_is_the_studio_voice_once_installed(tmp_path, monkeypatch):
     assert voices.chosen() == "chatterbox" and voices.install_chatterbox_background() == "ready"
     (tmp_path / "chatterbox" / ".ready").unlink()
     assert voices.install_chatterbox_background() == "not installed"        # tests never start the real download
+
+
+def test_a_plugin_update_starts_the_chatterbox_install_and_failures_wait(tmp_path, monkeypatch):
+    """Setup ran on an older studio, then the plugin updated: the next health check starts the install itself.
+    A failed install isn't retried on every command, only every few hours or when asked."""
+    monkeypatch.setattr(paths, "STATE", tmp_path)
+    monkeypatch.setenv("LR_STATE_DIR", str(tmp_path))
+    started = []
+    monkeypatch.setattr(voices, "install_chatterbox_background", lambda: started.append(1) or "installing")
+    assert voices.ensure() == "installing" and started
+    (tmp_path / "chatterbox-failed").write_text("x")
+    assert voices.ensure() == "failed" and len(started) == 1
+    assert "last install failed" in voices.status()["options"]["chatterbox"]
+    paths.save_settings(voice_provider="kokoro")
+    (tmp_path / "chatterbox-failed").unlink()
+    assert voices.ensure() == "not wanted" and len(started) == 1           # someone who picked Kokoro isn't sent 3 GB

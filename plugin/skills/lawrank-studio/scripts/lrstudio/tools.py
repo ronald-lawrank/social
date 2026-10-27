@@ -226,7 +226,9 @@ def doctor() -> dict:
     out["video"] = "ok" if not video else "not ready: " + ", ".join(video) + "; then run `lr setup`"
     out["models"] = {n.split("/")[-1]: (paths.MODELS / n).exists() for n in MODEL_FILES}
     from . import voices
-    out["voice"] = voices.chosen() + ("" if voices.chosen() != "kokoro" else " (better voices: `lr voice`)")
+    state = voices.ensure()                                # after a plugin update, setup isn't run again
+    out["voice"] = voices.chosen() + (" (Chatterbox is installing in the background; Kokoro reads until it's done)"
+                                      if state == "installing" else "" if voices.chosen() != "kokoro" else " (better voices: `lr voice`)")
     h = paths.home(required=False)
     out["home"] = str(h) if h else None
     if not h:
