@@ -158,3 +158,49 @@ def test_storyboard_music_is_checked():
     assert "music must be" in " ".join(motion.check_storyboard("PI-006", dict(ex, music="dubstep")))
     mix = _mod("mix")
     assert mix.mood_for({"look": "silhouette"}) == "serious" and mix.mood_for({"music": "none"}) == "none"
+
+
+FAKE_CHATTERBOX = '''#!{py}
+import json, sys, numpy as np, soundfile as sf
+from pathlib import Path
+job = json.loads(Path(sys.argv[2]).read_text())
+Path(job["out"], "job.seen.json").write_text(json.dumps(job))
+for i, t in enumerate(job["texts"]):
+    n = int(24000 * .08 * len(t.split()))
+    sf.write(Path(job["out"]) / f"{{i}}.wav", (.3 * np.sin(np.arange(n) / 4)).astype("float32"), 24000)
+'''
+
+
+def test_chatterbox_reads_each_sentence_once_in_the_persona(tmp_path, monkeypatch):
+    v = _mod("voice")
+    fake = tmp_path / "py"; fake.write_text(FAKE_CHATTERBOX.format(py=sys.executable)); fake.chmod(0o755)
+    monkeypatch.setenv("LR_CHATTERBOX_PY", str(fake))
+    voices_dir = tmp_path / "Voices"; voices_dir.mkdir()
+    (voices_dir / "am_michael.wav").write_bytes(b"x")                     # the firm's own narrator sample
+    monkeypatch.setenv("LR_VOICES_DIR", str(voices_dir))
+    seen = []
+    real = v.ChatterboxVoice.prefetch
+    monkeypatch.setattr(v.ChatterboxVoice, "prefetch", lambda self, texts: (seen.append((texts, self.reference())), real(self, texts))[1])
+    for voice, ref in (("am_michael", str(voices_dir / "am_michael.wav")), ("af_heart", None)):
+        (tmp_path / "s.json").write_text(json.dumps(dict(SCRIPT, voice=voice, provider="chatterbox")))
+        T = v.run(str(tmp_path / "s.json"), str(tmp_path / voice))
+        assert T["provider"] == "chatterbox" and not T.get("fallback")
+        assert seen[-1] == (["Hurt in a crash?", "Call Ben Carrasco today.", "Talk to our team."], ref)   # one worker run
+        hook = T["lines"][0]
+        assert [s["text"] for s in hook["sentences"]] == ["Hurt in a crash?", "Call Ben Carrasco today."]
+        assert hook["sentences"][1]["t"] > hook["sentences"][0]["end"]
+
+
+def test_chatterbox_is_the_studio_voice_once_installed(tmp_path, monkeypatch):
+    monkeypatch.setattr(paths, "STATE", tmp_path)
+    monkeypatch.setenv("LR_STATE_DIR", str(tmp_path))
+    for k in ("ELEVENLABS_API_KEY", "OPENAI_API_KEY"):
+        monkeypatch.delenv(k, raising=False)
+    voices.set_key("openai", "sk-test")
+    assert voices.chosen() == "openai"
+    py = tmp_path / "chatterbox" / "bin" / "python"; py.parent.mkdir(parents=True); py.write_text("")
+    assert voices.chosen() == "openai"                                       # half-installed doesn't count
+    (tmp_path / "chatterbox" / ".ready").write_text("ok")
+    assert voices.chosen() == "chatterbox" and voices.install_chatterbox_background() == "ready"
+    (tmp_path / "chatterbox" / ".ready").unlink()
+    assert voices.install_chatterbox_background() == "not installed"        # tests never start the real download

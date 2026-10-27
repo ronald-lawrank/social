@@ -3,7 +3,7 @@
 Voices (script["provider"]):
   elevenlabs  the most natural read; the service returns the time of every character, so sync is exact (needs a key)
   openai      natural and cheap; word times come from OpenAI's transcription of the audio (needs a key)
-  chatterbox  free and private, runs on this laptop (needs `lr voice install chatterbox`, about 3 GB); sentences are
+  chatterbox  free and private, runs on this laptop (`lr setup` installs it, about 3 GB); sentences are
               read one at a time so their start times are exact, words inside are placed by syllable length
   kokoro      the built-in voice: small, fast, always there. Every other voice falls back to it, line by line
               cannot mix voices, so a failure re-reads the whole piece with Kokoro and says why in timing.json
@@ -150,17 +150,37 @@ class KokoroVoice:
 
 
 class ChatterboxVoice:
-    """Runs in its own Python (torch); one worker process reads every sentence of the piece, so the model loads once."""
+    """Runs in its own Python (torch); one worker process reads every sentence of the piece, so the model loads once.
+    Chatterbox copies the voice of a short sample. In order: the firm's own sample ("LawRank Studio/Voices/<voice>.wav"
+    on the Drive, passed in LR_VOICES_DIR), else Chatterbox's own voice for the warm-female persona, else a sample of
+    the persona that Kokoro reads once and keeps (so "deeper male" stays male)."""
     name, exact_words = 'chatterbox', False
+    REF_TEXT = ("Thanks for calling. Tell me what happened, and we'll go through your options together, one step at a time. "
+                "There's no pressure, and no cost to talk.")
     def __init__(self, S):
         self.S = S; py = os.environ.get('LR_CHATTERBOX_PY')
         if not py or not Path(py).exists():
             raise VoiceError('Chatterbox is not installed on this laptop (lr voice install chatterbox)')
         self.py, self.cache = py, {}
+    def reference(self):
+        v = self.S['voice']
+        if self.S.get('reference'): return self.S['reference']
+        own = Path(os.environ.get('LR_VOICES_DIR', '') or '/nonexistent')
+        mine = next((f for f in sorted(own.glob(f'{v}.*')) if f.suffix.lower() in ('.wav', '.mp3', '.m4a', '.flac')), None)
+        if mine: return str(mine)
+        if v == 'af_heart': return None
+        ref = MODEL.parent / 'chatterbox-voices' / f'{v}.wav'
+        if not ref.exists():
+            try:
+                k = load(); a, sr = k.create(self.REF_TEXT, **create_args(k, voice=v, speed=1.0, lang='en-gb' if v.startswith('b') else 'en-us'))
+                ref.parent.mkdir(parents=True, exist_ok=True); sf.write(ref, trim(np.asarray(a, np.float32), sr), sr)
+            except Exception:
+                return None                  # no Kokoro model: Chatterbox's own voice
+        return str(ref)
     def prefetch(self, texts):
         work = Path(tempfile.mkdtemp(prefix='lr-cb-'))
-        job = {'texts': texts, 'out': str(work), 'exaggeration': self.S.get('exaggeration', .45), 'cfg_weight': self.S.get('cfg_weight', .5),
-               'reference': self.S.get('reference')}
+        job = {'texts': texts, 'out': str(work), 'model': os.environ.get('LR_CHATTERBOX_MODEL', 'standard'), 'exaggeration': self.S.get('exaggeration', .45), 'cfg_weight': self.S.get('cfg_weight', .5),
+               'reference': self.reference()}
         (work / 'job.json').write_text(json.dumps(job))
         r = subprocess.run([self.py, str(Path(__file__).with_name('chatterbox_worker.py')), str(work / 'job.json')],
                            capture_output=True, text=True, timeout=60 * 30)

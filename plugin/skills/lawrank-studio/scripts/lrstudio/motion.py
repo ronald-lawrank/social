@@ -251,6 +251,8 @@ def prepare(c: store.Client, d: Path, pid: str, o: dict) -> dict:
               "exact_sentences": True, "provider": voices.chosen(), "lines": [{"id": l["id"], "say": l["say"], "gap": l.get("gap", .45 if i else .35)}
                                                  for i, l in enumerate(sb["lines"])]}
     vkey = _sig(script)
+    if script["provider"] == "kokoro" and paths.settings().get("voice_provider") in (None, "chatterbox"):
+        voices.install_chatterbox_background()          # not in yet (or setup's install was cut off): start it again
     env = _env()
     if read_json(work / "voice.json", {}).get("key") != vkey or not (work / "timing.json").exists():
         say(f"  voicing {pid} {o['key']} ...")

@@ -157,6 +157,8 @@ def setup(home: str | None = None, skip_models: bool = False) -> dict:
         done.append("models")
         if warnings:
             warnings.append("Faces fall back to OpenCV's built-in detector; voiceover needs the voice model (retry `lr setup`).")
+        from . import voices                    # the studio's voice: a big download, so it goes on in the background
+        step("chatterbox voice (" + voices.install_chatterbox_background() + ")", lambda: None)
     if node_bin():                                         # only MP4 rendering needs Node; everything else works without it
         paths.NODE_DIR.mkdir(parents=True, exist_ok=True)
         shutil.copy(paths.SCRIPTS / "node" / "package.json", paths.NODE_DIR / "package.json")
