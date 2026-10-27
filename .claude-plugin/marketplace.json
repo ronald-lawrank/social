@@ -1,11 +1,14 @@
 {
   "name": "lawrank",
-  "owner": { "name": "LawRank" },
+  "owner": {
+    "name": "LawRank"
+  },
   "plugins": [
     {
       "name": "lawrank-studio",
       "source": "./plugin",
-      "description": "Law-firm social creative from a firm's website: posts, carousels, motion, Figma plugin and client deck."
+      "description": "Law-firm social creative from a firm's website: posts, carousels, motion, Figma plugin and client deck.",
+      "version": "1.3.1"
     }
   ]
 }
