@@ -33,7 +33,7 @@ def test_storyboard_rules():
 
 
 @pytest.mark.slow
-def test_preview_then_mp4_after_approval(home):
+def test_preview_then_mp4_without_waiting_for_approval(home):
     if not MCMINN_OLD.exists() or not tools.model("kokoro/voices-v1.0.bin", required=False):
         pytest.skip("needs the internal test client and the voice model")
     run("client", "import", str(MCMINN_OLD))
@@ -49,20 +49,29 @@ def test_preview_then_mp4_after_approval(home):
     assert "data:audio/mpeg;base64," in html and "file://" not in html          # one self-contained, shareable file
     again = run("build", "mcminn", "--post", "PI-006")
     assert again["redrawn"] == 0                                                  # cached: no re-voicing
-    refused = run("video", "mcminn")
-    assert refused["ok"] and not refused["videos"] and "PI-006 A (Draft)" in refused["waiting"]
-    wb = load_workbook(d / "review.xlsx"); ws = wb.active
-    for r in ws.iter_rows(min_row=2):
-        r[11].value = "Approved"
-    wb.save(d / "review.xlsx")
-    vid = run("video", "mcminn")
-    assert vid["ok"] and len(vid["videos"][0]["files"]) == 2
+    vid = run("video", "mcminn")                                                 # no review.xlsx step needed
+    assert vid["ok"] and len(vid["videos"]) == 1 and len(vid["videos"][0]["files"]) == 2
     for f in vid["videos"][0]["files"]:
         probe = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "stream=codec_name,width,height", "-of", "json", str(d / f)],
                                capture_output=True, text=True, env=tools.node_env())
         streams = json.loads(probe.stdout)["streams"]
         assert {s["codec_name"] for s in streams} == {"h264", "aac"}
         assert (streams[0]["width"], streams[0]["height"]) in ((1080, 1920), (1080, 1350))
+    again = run("video", "mcminn")
+    assert not again["videos"] and again["up_to_date"] == ["PI-006 A"]          # kept, not rendered twice
+    pkg = run("package", "mcminn", "--month", "1")
+    assert pkg["ok"] and not pkg["videos_rendered"]                              # already current: packaged as is
+    import zipfile
+    posts_zip = next(f for f in pkg["files"] if f.endswith("Posts.zip"))
+    assert {"PI-006/PI-006-A-9x16.mp4", "PI-006/PI-006-A-4x5.mp4"} <= set(zipfile.ZipFile(posts_zip).namelist())
+
+
+def test_the_options_that_go_out_without_or_with_review_xlsx():
+    post = {"id": "PI-006", "options": [{"key": "A"}, {"key": "B"}, {"key": "C"}]}
+    keys = lambda st: [o["key"] for o in motion.pick_options(st, post)]
+    assert keys({}) == ["A", "B", "C"]                                            # no sheet, or nothing marked: all of them
+    assert keys({("PI-006", "B"): {"status": "Approved"}}) == ["B"]               # the approved one wins
+    assert keys({("PI-006", "C"): {"status": "Rejected"}}) == ["A", "B"]          # rejected never goes out
 
 
 def test_families_are_documented_through_lr():

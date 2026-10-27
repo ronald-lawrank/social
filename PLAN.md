@@ -1,7 +1,7 @@
 # LawRank Creative Studio — rebuild plan
 
 A Claude skill that takes a law firm's website to finished, on-brand social creative: HTML previews,
-PNGs, MP4s (after approval), a Figma plugin and a client deck. The team only talks to Claude; the
+PNGs, MP4s, a Figma plugin and a client deck. The team only talks to Claude; the
 machinery is hidden. Everything is remembered in the shared Google Drive folder **Claude**.
 
 **Goals, in order:** amazing outputs · easy prompting · realistic time.
@@ -16,7 +16,7 @@ machinery is hidden. Everything is remembered in the shared Google Drive folder 
 | "They like direction B" | Locks the direction for that client | seconds |
 | "Build month 2" | Writes all 8 posts (options A/B/C), renders every size, runs the checks, fills in the review sheet | 10–15 min |
 | "Make PI-017 punchier" / "Use Jason's photo on PI-017" | Revises just that post and re-renders it | 1–2 min |
-| "Render the approved videos" | Voices and renders an MP4 for each approved motion post | 2–3 min each |
+| "Render the videos" | Voices and renders an MP4 for each motion post (the approved option where one is marked) | 2–3 min each |
 | "Package month 2 for the client" | Figma plugin, client deck, PNG and MP4 folders | 3–5 min |
 
 Approvals happen in a spreadsheet in Drive (`review.xlsx`): a reviewer sets a post's status to

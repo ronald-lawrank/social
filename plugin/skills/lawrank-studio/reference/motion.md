@@ -16,10 +16,11 @@ read by the voice this laptop is set up for (see Voices and music), and the anim
 2. Run `lr build "<client>" --post PI-006`. The first build takes 1-3 minutes per option with Chatterbox
    (about 30 seconds with Kokoro) and is cached after that, so build a month's motion posts in one go. You get a self-contained preview page that plays with
    sound, and a poster image, both shared via the gallery.
-3. A reviewer marks the option Approved in review.xlsx.
-4. Run `lr video "<client>"`. It renders MP4s for approved options only: a 1080×1920 (9:16) file and a
-   1080×1350 feed cut, about 1 minute each. To render a draft on request, run
-   `lr video "<client>" --post PI-006`.
+3. Run `lr video "<client>" --month N` (or `--post PI-006`) whenever the person wants the MP4s: a
+   1080×1920 (9:16) file and a 1080×1350 feed cut, about 1-2 minutes each, in the campaign's `video`
+   folder. No approval step: where review.xlsx marks an option Approved, only that one is rendered;
+   otherwise every option is. Up-to-date MP4s are kept (`--force` renders again). `lr package` also renders
+   any that are missing, so "package month 1" gives the videos too.
 
 ## The storyboard
 

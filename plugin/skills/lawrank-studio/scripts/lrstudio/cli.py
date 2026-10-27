@@ -15,7 +15,8 @@
   lr campaign new <client> [--name N] [--plan six-month] [--start 2026-11]
   lr campaign update <client> [--campaign C]   after a package change: add the posts it now includes
   lr build <client> [--campaign C] [--month N | --post ID[,ID]] [--sizes 4x5,1x1,9x16] [--force]
-  lr video <client> [--campaign C] [--post ID]   MP4s for approved motion options
+  lr video <client> [--campaign C] [--month N | --post ID[,ID]] [--force]
+                                         MP4s for the motion posts (the Approved option where review.xlsx marks one)
   lr package <client> [--campaign C] [--month N]
   lr voice                               which voice reads narration on this laptop, and the others it could use
   lr voice use elevenlabs|openai|chatterbox|kokoro
@@ -89,7 +90,7 @@ def cmd_build(a):
 
 def cmd_video(a):
     from . import motion
-    return motion.video(_client(a.client), campaign=a.campaign, posts=a.post)
+    return motion.video(_client(a.client), campaign=a.campaign, posts=a.post, month=a.month, force=a.force)
 
 
 def cmd_package(a):
@@ -168,6 +169,7 @@ def parser():
     p = sp.add_parser("build"); p.add_argument("client"); p.add_argument("--campaign"); p.add_argument("--month", type=int)
     p.add_argument("--post"); p.add_argument("--sizes"); p.add_argument("--force", action="store_true"); p.set_defaults(fn=cmd_build)
     p = sp.add_parser("video"); p.add_argument("client"); p.add_argument("--campaign"); p.add_argument("--post")
+    p.add_argument("--month", type=int); p.add_argument("--force", action="store_true")
     p.set_defaults(fn=cmd_video)
     p = sp.add_parser("package"); p.add_argument("client"); p.add_argument("--campaign"); p.add_argument("--month", type=int); p.set_defaults(fn=cmd_package)
     p = sp.add_parser("voice"); p.add_argument("action", nargs="?", choices=["status", "use", "key", "install", "music"], default="status")

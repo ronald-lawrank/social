@@ -47,13 +47,14 @@ Open the Claude desktop app's **Code** tab in the **Claude** Drive folder and ju
 - "Make PI-003 punchier and use Dana's photo."
 - "What's waiting on approval for Smith?"
 - "Smith upgraded to Authority. Do the month 1 motion posts."
-- "Render the approved videos for Smith."
+- "Render the month 1 videos for Smith." (MP4s; no approval step needed)
 - "Package month 1 for Smith."
 
-Review happens in Drive. Open `Clients/<Firm>/campaigns/<campaign>/index.html` to see everything,
-and set **Status** to *Approved* (or *Changes requested* with a note) in `review.xlsx`, using
-Google Sheets. Claude picks it up the next time it runs. When Claude acts on a note, the status
-changes to *Revised* so it comes back to you.
+Open `Clients/<Firm>/campaigns/<campaign>/index.html` in Drive to see everything. Nothing has to be
+approved before videos are rendered or a month is packaged. If you want a record, `review.xlsx` (opens in
+Google Sheets) is there: mark an option *Approved* and only that option is delivered for its post; mark
+*Changes requested* with a note and Claude makes the change next time (the status becomes *Revised*);
+*Rejected* options are never delivered.
 
 ## Updates
 When the skill is improved, everyone runs `/plugin marketplace update lawrank` once (or Claude
