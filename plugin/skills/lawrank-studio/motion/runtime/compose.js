@@ -166,7 +166,7 @@ SCENES.end = {
   // the close follows the look: an accent field (thread, flat), a white card on the gradient (cards), black (silhouette)
   html(sc, X) {
     const LK = X.LK;
-    if (LK.name === 'cards') return `<div class="bgc" style="background:${LK.bgCss}">${LK.decor}</div>${UI.card(LK, { id: 'eCard', x: 90, y: 470, w: 900, h: 1060 })}${endCard(X.S.screen, { bg: '#FFFFFF' })}`;
+    if (LK.name === 'cards') return `<div class="bgc" style="background:${LK.bgCss}">${LK.decor}</div>${UI.card(LK, { id: 'eCard', x: 30, y: 470, w: 1020, h: 1060 })}${endCard(X.S.screen, { bg: '#FFFFFF' })}`;
     if (LK.name === 'silhouette') return `<div class="bgc" style="background:${LK.ink}"></div><div class="lk-blinds" style="opacity:.5"></div>${endCard(X.S.screen, { bg: LK.ink })}`;
     if (LK.name === 'flat') return `<div class="bgc" style="background:${BT.endBg}"></div><div class="lk-dots" style="color:${mix(BT.endBg, BT.endText, .12)}"></div>${endCard(X.S.screen, {})}`;
     return `<div class="bgc" style="background:${BT.endBg}"></div>${endCard(X.S.screen, {})}`;

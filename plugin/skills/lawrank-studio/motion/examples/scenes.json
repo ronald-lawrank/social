@@ -1,0 +1,30 @@
+{
+ "family": "scenes",
+ "look": "cards",
+ "voice": "af_heart",
+ "speed": 1.04,
+ "facts": [],
+ "lines": [
+  {"id": "hook", "say": "Hurt in a crash? McMinn Law Firm has a few things to tell you first."},
+  {"id": "b1", "say": "The adjuster may text you within days. Can we get a recorded statement? We can offer two thousand today."},
+  {"id": "b2", "say": "Before you answer, do four things: see a doctor, take photos, keep every bill, and call before you sign."},
+  {"id": "cta", "say": "You don't have to handle the insurance company alone. Talk to our team today."}
+ ],
+ "screen": {
+  "scenes": [
+   {"type": "kinetic", "line": "hook", "head": "Hurt in a **car crash?**", "kicker": "Before you answer"},
+   {"type": "chat", "line": "b1", "head": "They move **fast.**", "name": "Insurance adjuster",
+    "messages": [{"from": "them", "text": "Can we get a recorded statement?"}, {"from": "them", "text": "We can offer $2,000 today."}]},
+   {"type": "checklist", "line": "b2", "head": "Do this first", "items": ["See a doctor", "Take photos", "Keep every bill", "Call before you sign"]},
+   {"type": "end", "line": "cta"}
+  ],
+  "end": "Talk to our team today.",
+  "cta": "Talk to us",
+  "site": "mcminnlaw.com",
+  "disclaimer": "Attorney advertising."
+ },
+ "key": "A",
+ "template": "motion",
+ "caption": "(the post caption)",
+ "alt": "(what the animation shows)"
+}

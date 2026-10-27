@@ -158,6 +158,34 @@ def _check_scenes(pid: str, o: dict, practice_area: str | None) -> list[str]:
     return errs
 
 
+def variety(posts: list[dict]) -> list[str]:
+    """Repeats a viewer would notice across a campaign's motion posts, so the writer can mix them up: options of one
+    post in the same look or family, the same look and opening scene twice in a month, and identical scene runs."""
+    out, seen, month_open = [], {}, {}
+    for p in sorted(posts, key=lambda p: p.get("id", "")):
+        if p.get("format") != "motion":
+            continue
+        looks = []
+        for o in p.get("options", []):
+            if o.get("family") != "scenes":
+                looks.append(o.get("family")); continue
+            sc = [s.get("type") for s in (o.get("screen") or {}).get("scenes", []) if s.get("type") != "end"]
+            look = o.get("look", "thread"); looks.append(look)
+            sig = (look, tuple(sc))
+            if sig in seen:
+                out.append(f"{p['id']} {o.get('key')} repeats {seen[sig]} exactly ({look}: {', '.join(sc)}); change the look or the scenes")
+            seen.setdefault(sig, f"{p['id']} {o.get('key')}")
+            if sc:
+                k = (p.get("month"), look, sc[0])
+                if k in month_open and month_open[k] != p["id"]:
+                    out.append(f"{p['id']} {o.get('key')} opens like {month_open[k]} in the same month ({look}, {sc[0]}); open on a different scene")
+                month_open.setdefault(k, p["id"])
+        dup = {x for x in looks if looks.count(x) > 1}
+        if dup:
+            out.append(f"{p['id']}: its options share {', '.join(sorted(map(str, dup)))}; give each option its own look so the client sees real choices")
+    return out
+
+
 def lint(o: dict, facts: dict) -> list[dict]:
     """Compliance on what's said and shown (the same rules as stills)."""
     pseudo = {"copy": {"screen": o.get("screen") or {}, "said": [l.get("say", "") for l in o.get("lines", [])]},
