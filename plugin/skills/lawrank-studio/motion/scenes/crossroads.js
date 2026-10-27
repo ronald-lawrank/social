@@ -46,7 +46,7 @@ SCENES.crossroads = {
         <div class="k-abs xrt" data-qa="text" style="left:${L ? 56 : 24}px;width:${w - 80}px;top:0;height:${h}px;display:flex;align-items:center;justify-content:center;text-align:center;
           font:${LK.headWeight} ${fs}px/1.08 var(--head);color:${P.boardInk};${up ? 'text-transform:uppercase;' : ''}">${esc(text)}</div>
         <div class="k-abs xrt2" style="left:${L ? 56 : 24}px;width:${w - 80}px;top:0;height:${h}px;display:flex;align-items:center;justify-content:center;text-align:center;
-          font:${LK.headWeight} ${fs}px/1.08 var(--head);color:${P.onInk};${up ? 'text-transform:uppercase;' : ''}" data-qa="text">${esc(text)}</div></div>`; };
+          font:${LK.headWeight} ${fs}px/1.08 var(--head);color:${P.onInk};${up ? 'text-transform:uppercase;' : ''}"${side === (sc.choose === 'left' ? 'left' : 'right') ? ' data-qa="text"' : ''}>${esc(text)}</div></div>`; };   // the lit copy only counts where it lights
     const sky = nm === 'silhouette' ? `<div class="k-abs" style="left:290px;top:700px;width:500px;height:500px;border-radius:50%;background:${LK.accent};opacity:.85"></div>`
       : nm === 'flat' ? `<div class="k-abs" style="left:240px;top:620px;width:600px;height:600px;border-radius:50%;background:${mix(LK.bg, '#FFFFFF', .14)}"></div>`
       : nm === 'cards' ? `<div class="k-abs" style="left:140px;top:640px;width:800px;height:800px;border-radius:50%;background:radial-gradient(closest-side,rgba(255,255,255,.75),rgba(255,255,255,0))"></div>` : '';

@@ -91,7 +91,7 @@ SCENES['phone-call'] = {
     tl.set(st2, { autoAlpha: 0 }, 0).to(st, { autoAlpha: 0, y: -16, duration: .2, ease: 'lr.in' }, tA + .1).set(st2, { autoAlpha: 1, y: 16 }, tA + .3).to(st2, { y: 0, duration: .35, ease: 'lr.out' }, tA + .3);
     if (fwd) tl.to(av, { x: 120, scale: .7, duration: .5, ease: 'lr.move' }, tA + .2).to(av, { x: 0, scale: 1, duration: .5, ease: 'lr.out' }, tA + .75);
     else tl.to(av, { scale: .88, duration: .4, ease: 'lr.out' }, tA + .1);
-    if (LK.thread) X.dot(g.x + 22 + (g.w - 44) / 2 + 66 + 30, g.y + 22 + g.h - 44 - 132 - 70 + 10, tA + .55, { r: 14 });
+    if (LK.thread) X.dot(g.x + g.w + 44, g.y + 150, tA + .55, { r: 14 });   // beside the phone, clear of the caller's name
     // the reply card pops over the phone
     const cc = q('cc');
     tl.set(cc, { autoAlpha: 0 }, 0).set(cc, { autoAlpha: 1, y: 120, scale: .9, transformOrigin: '50% 100%' }, tC).to(cc, { y: 0, scale: 1, duration: .5, ease: 'back.out(1.6)' }, tC);
