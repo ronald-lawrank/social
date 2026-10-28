@@ -69,7 +69,9 @@ posts need to look alike.
   - maps, roads, scales, umbrellas and weights;
   - people moments, the attorney, the office door.
 - **Transitions** come with the look; set `"transition"` to override (`thread`, `wipe`, `stack`, `slide`, `zoom`,
-  `circle`, `flip`, `cut`, `fade`).
+  `circle`, `flip`, `tunnel`, `ink`, `cut`, `fade`), or give one scene its own with `"in"`. `tunnel` pushes through
+  nested frames (energetic, good into a list or a reveal); `ink` blooms ink in and thins it away (quiet, good before
+  an emotional line or the end card). Use each special one once per video at most.
 
 ```json
 {

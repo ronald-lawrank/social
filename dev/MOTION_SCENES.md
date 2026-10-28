@@ -63,6 +63,15 @@ a phone or form are fine. Never hard-code a brand colour; firms range from navy 
 
 GSAP plugins available: DrawSVG, MorphSVG, MotionPath, SplitText (`MK.lines`), Physics2D and CustomEase.
 
+## Gotchas builders have hit
+- `line` (and `type`, `in`) are reserved scene keys: `line` is the narration line id, not text to show. Name a
+  second line of text `sub`.
+- `sfx` runs in node without a look, so `X.LK` is undefined there: keep look-dependent code out of `sfx` and any
+  helper it calls.
+- Set `transformOrigin` with `tl.set(el, {transformOrigin}, 0)` rather than only inside a `fromTo`; otherwise the
+  frame-jumping QA can see a different origin and report "off-frame".
+- The logo sits above y 300 for the first seconds: keep busy artwork out of that strip at the scene's start.
+
 ## Scene object
 ```js
 SCENES['my-scene'] = {
