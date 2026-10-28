@@ -155,6 +155,8 @@ def _check_scenes(pid: str, o: dict, practice_area: str | None) -> list[str]:
             errs.append(f"{pid}: scene {i} type '{s.get('type')}' isn't in the library (`lr templates motion` lists them)"); continue
         if s.get("line") not in ids:
             errs.append(f"{pid}: scene {i} ({s['type']}) uses line '{s.get('line')}', which isn't in lines")
+        if s.get("in") and s["in"] not in cat["transitions"]:
+            errs.append(f"{pid}: scene {i} ({s['type']}) \"in\" must be one of {', '.join(cat['transitions'])}")
         if not scene_fits(meta["practice"], practice_area):
             errs.append(f"{pid}: scene {i} ({s['type']}) is for {', '.join(meta['practice'])} firms, not {practice_area}")
     if sc and sc[0].get("line") != "hook":

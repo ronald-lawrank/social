@@ -15,7 +15,7 @@ MCMINN_OLD = Path("/home/user/lawrank-creative-studio/engine/template/clients/mc
 def test_every_scene_is_documented_for_writers():
     cat = motion.catalog()
     assert not cat.get("broken"), cat.get("broken")
-    assert set(cat["looks"]) == {"thread", "flat", "cards", "silhouette"} and {"thread", "wipe", "stack", "cut"} <= set(cat["transitions"])
+    assert set(cat["looks"]) == {"thread", "flat", "cards", "silhouette"} and {"thread", "wipe", "stack", "cut", "tunnel", "ink"} <= set(cat["transitions"])
     for k, s in cat["scenes"].items():
         assert s["label"] and s["about"], k
         if k != "end":
@@ -27,8 +27,9 @@ def test_every_scene_is_documented_for_writers():
 def test_composed_storyboards_are_checked():
     ex = json.loads((motion.MOTION / "examples" / "scenes.json").read_text())
     assert motion.check_storyboard("PI-006", ex, "Personal injury") == []
-    bad = dict(ex, look="neon", screen=dict(ex["screen"], scenes=[{"type": "nope", "line": "b1"}, {"type": "kinetic", "line": "zz"}]))
+    bad = dict(ex, look="neon", screen=dict(ex["screen"], scenes=[{"type": "nope", "line": "b1"}, {"type": "kinetic", "line": "zz", "in": "swirl"}]))
     errs = " ".join(motion.check_storyboard("PI-006", bad))
+    assert '"in" must be one of' in errs
     assert "look must be" in errs and "isn't in the library" in errs and "isn't in lines" in errs and "last scene" in errs and "hook" in errs
 
 

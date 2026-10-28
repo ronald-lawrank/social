@@ -93,11 +93,19 @@ const COMPOSE = {
       <div id="kwipe" class="k-wipe" style="background:${LK.name === 'flat' ? LK.fillB : BT.accent}"></div>
       <svg class="svgL" viewBox="0 0 1080 1920"><circle id="thrBig" cx="540" cy="960" r="40" fill="${BT.accent}" opacity="0"/>
         <circle id="thr" cx="0" cy="0" r="22" fill="${BT.accent}" opacity="0"/></svg>
+      <svg id="ktun" class="svgL" viewBox="0 0 1080 1920" style="visibility:hidden">${[0, 1, 2, 3, 4, 5].map(k => {
+        const w = 1080 * Math.pow(.72, k), hh = 1920 * Math.pow(.72, k);
+        return `<rect x="${540 - w / 2}" y="${960 - hh / 2}" width="${w}" height="${hh}" rx="${18 + k * 4}" fill="none" stroke="${k % 2 ? LK.accent : (LK.name === 'flat' ? LK.fillB : LK.ink)}" stroke-width="${26 - k * 3}" opacity="${1 - k * .12}"/>`; }).join('')}</svg>
+      <svg id="kink" class="svgL" viewBox="0 0 1080 1920" style="visibility:hidden"><defs><filter id="kinkF" x="-20%" y="-20%" width="140%" height="140%">
+        <feTurbulence type="fractalNoise" baseFrequency=".012" numOctaves="3" seed="4"/><feDisplacementMap in="SourceGraphic" scale="150"/></filter></defs>
+        <g filter="url(#kinkF)" fill="${LK.name === 'flat' ? LK.fillB : LK.name === 'cards' ? mix(BT.accent, '#FFFFFF', .15) : LK.ink}">${
+          [[140, 1700], [520, 1520], [930, 1760], [300, 1100], [820, 1180], [560, 700], [180, 420], [900, 380], [540, 120]]
+            .map(([x, y], k) => `<circle class="kinkB" cx="${x}" cy="${y}" r="420" data-k="${k}"/>`).join('')}</g></svg>
       <img id="bug" class="m-bug h" src="${logo}" alt="${esc(BT.name)}">`;
   },
   build(tl, T, $, S) {
     const LK = COMPOSE.look(S), h = COMPOSE.hpack(T), P = COMPOSE.plan(S, h), dots = [], thread = LK.thread || S.thread;
-    tl.set('#kwipe', { autoAlpha: 0 }, 0);
+    tl.set(['#kwipe', '#ktun', '#kink'], { autoAlpha: 0 }, 0);
     P.sc.forEach((s, i) => {
       const sc = S.screen.scenes[i], lay = '#scn' + i;
       const X = Object.assign(COMPOSE.X(S, h, s, P), { LK, S, $: sel => $(`${lay} ${sel}`), q: sel => `${lay} ${sel}`,
@@ -150,6 +158,20 @@ Object.assign(TRANSITIONS, {
   flip(tl, A, B, t) {
     tl.to(A, { rotationY: 90, duration: .28, ease: 'power2.in', transformPerspective: 2400, transformOrigin: '50% 50%' }, t - .28).set(A, { autoAlpha: 0, rotationY: 0 }, t);
     tl.set(B, { autoAlpha: 1, rotationY: -90, transformPerspective: 2400, transformOrigin: '50% 50%' }, t).to(B, { rotationY: 0, duration: .32, ease: 'power2.out' }, t);
+  },
+  // through nested frames into the next scene (a camera pushing down a corridor)
+  tunnel(tl, A, B, t) {
+    tl.set('#ktun', { autoAlpha: 1, scale: .45, transformOrigin: '50% 50%' }, t - .36).to('#ktun', { scale: 3.4, duration: .62, ease: 'power2.in' }, t - .36);
+    tl.to(A, { scale: 2.1, autoAlpha: 0, duration: .34, ease: 'power2.in', transformOrigin: '50% 50%' }, t - .36).set(A, { scale: 1 }, t + .01);
+    tl.set(B, { autoAlpha: 1, scale: .3, transformOrigin: '50% 50%' }, t - .08).to(B, { scale: 1, duration: .5, ease: 'lr.out' }, t - .08);
+    tl.to('#ktun', { autoAlpha: 0, duration: .16, ease: 'power1.in' }, t + .1).set('#ktun', { scale: 1 }, t + .27);
+  },
+  // soft ink (or smoke) blooms in from the bottom, then thins away to show the next scene
+  ink(tl, A, B, t) {
+    tl.set('#kink', { autoAlpha: 1 }, t - .56).set('#kink .kinkB', { scale: 0, transformOrigin: '50% 50%' }, t - .56);
+    tl.to('#kink .kinkB', { scale: 1, duration: .4, ease: 'power2.in', stagger: .015 }, t - .56);       // covered by t - .04
+    tl.set(A, { autoAlpha: 0 }, t).set(B, { autoAlpha: 1 }, t);
+    tl.to('#kink', { autoAlpha: 0, duration: .5, ease: 'power1.out' }, t + .04).set('#kink .kinkB', { scale: 0 }, t + .55);
   },
   thread(tl, A, B, t) {
     tl.set('#thrBig', { opacity: 1, scale: 0, svgOrigin: '540 960' }, t - .33).to('#thrBig', { scale: 32, duration: .32, ease: 'power3.in' }, t - .32);
